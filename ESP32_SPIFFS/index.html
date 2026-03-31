@@ -33,10 +33,10 @@ th { background: #1e293b; }
 <section>
 <h2>Loction</h2>
 <h3>Location of mkspiffs:</h3>
-<pre><code>C:\Users\<user_name>\AppData\Local\Arduino15\packages\esp32\tools\mkspiffs\0.2.3\mkspiffs.exe</code></code></pre>
+<pre><code>C:\Users\&lt;user_name&gt;\AppData\Local\Arduino15\packages\esp32\tools\mkspiffs\0.2.3\mkspiffs.exe</code></pre>
 
 <h3>Location of mklittlefs:</h3>
-<pre><code>C:\Users\<user_name>\AppData\Local\Arduino15\packages\esp32\tools\mklittlefs\3.0.0-gnu12-dc7f933\mklittlefs.exe</code></pre>
+<pre><code>C:\Users\&lt;user_name&gt;\AppData\Local\Arduino15\packages\esp32\tools\mklittlefs\3.0.0-gnu12-dc7f933\mklittlefs.exe</code></pre>
 </section>
 
 <section>
@@ -51,6 +51,7 @@ th { background: #1e293b; }
 
 <section>
 <h2>Step 1: Partition Table</h2>
+<pre><code>spiffs, data, spiffs, &lt;Offset&gt;, &lt;Size&gt;,</code></pre>
 <pre><code>spiffs, data, spiffs, 0x290000, 0x170000,</code></pre>
 <p><b>Offset:</b> 0x290000<br><b>Size:</b> 0x170000</p>
 </section>
@@ -58,9 +59,11 @@ th { background: #1e293b; }
 <section>
 <h2>Step 2: Create Filesystem</h2>
 <h3>SPIFFS</h3>
+<pre><code>mkspiffs -c &lt;data_folder_name&gt; -p 256 -b 4096 -s &lt;size_given_in_parition_table&gt; spiffs.bin</code></pre>
 <pre><code>mkspiffs -c data -p 256 -b 4096 -s 0x170000 spiffs.bin</code></pre>
 
 <h3>LittleFS</h3>
+<pre><code>mklittlefs -c &lt;data_folder_name&gt; -p 256 -b 4096 -s &lt;size_given_in_parition_table&gt; littlefs.bin</code></pre>
 <pre><code>mklittlefs -c data -p 256 -b 4096 -s 0x170000 littlefs.bin</code></pre>
 </section>
 
@@ -70,7 +73,71 @@ th { background: #1e293b; }
 </section>
 
 <section>
-<h2>Example Code (SPIFFS)</h2>
+<h2>🚀 ESP-IDF (Automatic Method)</h2>
+<p>ESP-IDF can automatically generate and flash the SPIFFS image without manual tools.</p>
+
+<h3>Add to CMakeLists.txt</h3>
+<pre><code>spiffs_create_partition_image(spiffs data FLASH_IN_PROJECT)</code></pre>
+
+<h3>Build & Flash</h3>
+<pre><code>idf.py build
+idf.py flash</code></pre>
+
+<p><b>This will:</b></p>
+<ul>
+<li>Create SPIFFS image from <code>data/</code></li>
+<li>Use correct partition size automatically</li>
+<li>Flash to correct offset</li>
+</ul>
+
+<h3>Enable SPIFFS</h3>
+<pre><code>idf.py menuconfig</code></pre>
+<p>Go to: <b>Component config → SPIFFS → Enable SPIFFS</b></p>
+
+<h3>Add Dependency</h3>
+<pre><code>REQUIRES spiffs</code></pre>
+</section>
+
+<section>
+<h2>Example Code (ESP-IDF SPIFFS)</h2>
+<pre><code>#include &lt;stdio.h&gt;
+#include "esp_log.h"
+#include "esp_spiffs.h"
+
+static const char *TAG = "SPIFFS";
+
+void app_main(void)
+{
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true
+    };
+
+    if (esp_vfs_spiffs_register(&conf) != ESP_OK) {
+        ESP_LOGE(TAG, "Mount failed");
+        return;
+    }
+
+    FILE *f = fopen("/spiffs/config.json", "r");
+    if (!f) {
+        ESP_LOGE(TAG, "File open failed");
+        return;
+    }
+
+    char line[128];
+    while (fgets(line, sizeof(line), f)) {
+        printf("%s", line);
+    }
+
+    fclose(f);
+}
+</code></pre>
+</section>
+
+<section>
+<h2>Example Code (Arduino SPIFFS)</h2>
 <pre><code>#include &lt;SPIFFS.h&gt;
 void setup() {
   Serial.begin(115200); 
@@ -91,7 +158,7 @@ void loop() {}
 </section>
 
 <section>
-<h2>Example Code (LittleFS)</h2>
+<h2>Example Code (Arduino LittleFS)</h2>
 <pre><code>#include &lt;LittleFS.h&gt;
 
 void setup()
@@ -114,7 +181,7 @@ void loop() {}
 </section>
 
 <section>
-<h2>Example Code (FFat)</h2>
+<h2>Example Code (Arduino FFat)</h2>
 <pre><code>#include &lt;FFat.h&gt;
 
 void setup() {
@@ -125,12 +192,10 @@ void setup() {
     return;
   }
 
-  // Write file
   File file = FFat.open("/test.txt", FILE_WRITE);
   file.println("Hello from FATFS!");
   file.close();
 
-  // Read file
   file = FFat.open("/test.txt");
   while (file.available()) {
     Serial.write(file.read());
@@ -158,6 +223,7 @@ void loop() {}
 <li>Always match partition size</li>
 <li>Wrong size = mount failure</li>
 <li>LittleFS is recommended</li>
+<li>ESP-IDF path uses <code>/spiffs/</code> prefix</li>
 </ul>
 </section>
 
