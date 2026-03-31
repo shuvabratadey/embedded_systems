@@ -1,0 +1,3 @@
+C:/Users/shuva/OneDrive/Documents/Programming/C/cjson/build/CMakeFiles/app.dir
+C:/Users/shuva/OneDrive/Documents/Programming/C/cjson/build/CMakeFiles/edit_cache.dir
+C:/Users/shuva/OneDrive/Documents/Programming/C/cjson/build/CMakeFiles/rebuild_cache.dir
