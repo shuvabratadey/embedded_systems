@@ -106,6 +106,87 @@ void setup() {
 
 void loop() {}
 ```
+---
+
+## 🚀 ESP-IDF (Recommended Way – Automatic Build & Flash)
+### Instead of manually using mkspiffs, ESP-IDF can generate and flash the image automatically.
+### Add to `CMakeLists.txt`
+
+`spiffs_create_partition_image(spiffs data FLASH_IN_PROJECT)`
+
+### Build & Flash
+
+`idf.py build`
+`idf.py flash`
+
+#### ✔ This will:
+* Create SPIFFS image from data/
+* Automatically use correct partition size
+* Flash it to the correct offset
+
+
+---
+
+## 🧠 Example Code (ESP-IDF SPIFFS)
+
+```c
+#include <stdio.h>
+#include "esp_log.h"
+#include "esp_spiffs.h"
+
+static const char *TAG = "SPIFFS";
+
+void app_main(void)
+{
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true
+    };
+
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Mount failed");
+        return;
+    }
+
+    FILE *f = fopen("/spiffs/config.json", "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "File open failed");
+        return;
+    }
+
+    char line[128];
+    while (fgets(line, sizeof(line), f)) {
+        printf("%s", line);
+    }
+
+    fclose(f);
+}
+```
+## 🔧 ESP-IDF Requirements
+### Enable SPIFFS
+
+Run:
+
+`idf.py menuconfig`
+
+Go to:
+
+`Component config → SPIFFS`
+
+Enable:
+
+* SPIFFS support
+
+---
+## Add Dependency
+
+### In `CMakeLists.txt`:
+
+`REQUIRES spiffs`
 
 ---
 
@@ -113,3 +194,10 @@ void loop() {}
 - Size must match partition table
 - Wrong size = mount failure
 - Use LittleFS for new projects
+- Use SPIFFS (ESP-IDF built-in) for native ESP-IDF projects
+- In ESP-IDF, file path must include mount point:
+
+```
+/config.json → Arduino
+/spiffs/config.json → ESP-IDF
+```
