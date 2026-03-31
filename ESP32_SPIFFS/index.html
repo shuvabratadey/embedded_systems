@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Filesystem Guide</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; font-size: 18px; line-height: 1.6; }
+header { background: #020617; padding: 24px; text-align: center; }
+h1 { margin: 0; color: #38bdf8; font-size: 2.4rem; }
+section { padding: 2px; max-width: 900px; margin: auto; }
+h2 { color: #22c55e; font-size: 1.8rem; margin-top: 1.2em; }
+pre { background: #020617; padding: 18px; overflow-x: auto; border-radius: 8px; font-size: 1rem; }
+code { color: #facc15; font-size: 1rem; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid #334155; padding: 12px; text-align: left; font-size: 1rem; }
+th { background: #1e293b; }
+.footer { text-align: center; padding: 24px; color: #94a3b8; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>ESP32 Filesystem Guide</h1>
+<p>SPIFFS • LittleFS • FATFS (FFat)</p>
+</header>
+
+<section>
+<h2>Overview</h2>
+<p>This guide explains how to create filesystem images, flash them, and use them in ESP32 projects.</p>
+</section>
+
+<section>
+<h2>Project Structure</h2>
+<pre><code>your_project/
+ ├── main.ino
+ └── data/
+     ├── index.html
+     ├── config.json
+</code></pre>
+</section>
+
+<section>
+<h2>Step 1: Partition Table</h2>
+<pre><code>spiffs, data, spiffs, 0x290000, 0x170000,</code></pre>
+<p><b>Offset:</b> 0x290000<br><b>Size:</b> 0x170000</p>
+</section>
+
+<section>
+<h2>Step 2: Create Filesystem</h2>
+<h3>SPIFFS</h3>
+<pre><code>mkspiffs -c data -p 256 -b 4096 -s 0x170000 spiffs.bin</code></pre>
+
+<h3>LittleFS</h3>
+<pre><code>mklittlefs -c data -p 256 -b 4096 -s 0x170000 littlefs.bin</code></pre>
+</section>
+
+<section>
+<h2>Step 3: Flash</h2>
+<pre><code>esptool.py --chip esp32 --port COM5 --baud 921600 write_flash 0x290000 spiffs.bin</code></pre>
+</section>
+
+<section>
+<h2>Example Code (SPIFFS)</h2>
+<pre><code>#include &lt;SPIFFS.h&gt;
+void setup() {
+  Serial.begin(115200); 
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("SPIFFS Mount Failed"); 
+    return; 
+  } 
+  File file = SPIFFS.open("/config.json", "r");
+  if (file)
+  {
+    Serial.println(file.readString());
+    file.close();
+  }
+}
+void loop() {}
+</code></pre>
+</section>
+
+<section>
+<h2>Example Code (LittleFS)</h2>
+<pre><code>#include &lt;LittleFS.h&gt;
+
+void setup()
+{
+   Serial.begin(115200);
+   if (!LittleFS.begin(true))
+   {
+     Serial.println("LittleFS Mount Failed");
+     return;
+    }
+    File file = LittleFS.open("/config.json", "r");
+    if (file)
+    {
+       Serial.println(file.readString());
+       file.close();
+    }
+}
+void loop() {}
+</code></pre>
+</section>
+
+<section>
+<h2>Example Code (FFat)</h2>
+<pre><code>#include &lt;FFat.h&gt;
+
+void setup() {
+  Serial.begin(115200);
+
+  if (!FFat.begin(true)) {
+    Serial.println("FFat Mount Failed");
+    return;
+  }
+
+  // Write file
+  File file = FFat.open("/test.txt", FILE_WRITE);
+  file.println("Hello from FATFS!");
+  file.close();
+
+  // Read file
+  file = FFat.open("/test.txt");
+  while (file.available()) {
+    Serial.write(file.read());
+  }
+  file.close();
+}
+
+void loop() {}
+</code></pre>
+</section>
+
+<section>
+<h2>Filesystem Comparison</h2>
+<table>
+<tr><th>Type</th><th>.bin Required</th><th>Tool</th></tr>
+<tr><td>SPIFFS</td><td>Yes</td><td>mkspiffs</td></tr>
+<tr><td>LittleFS</td><td>Yes</td><td>mklittlefs</td></tr>
+<tr><td>FATFS (FFat)</td><td>No</td><td>Runtime</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Notes</h2>
+<ul>
+<li>Always match partition size</li>
+<li>Wrong size = mount failure</li>
+<li>LittleFS is recommended</li>
+</ul>
+</section>
+
+<div class="footer">
+<p>ESP32 Filesystem Tutorial</p>
+</div>
+
+</body>
+</html>

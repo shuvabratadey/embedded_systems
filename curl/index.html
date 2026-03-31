@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Networking & Curl Toolkit</title>
+
+<!-- ===================== STYLES ===================== -->
+<style>
+/* Page base styling */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    color: #e2e8f0;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Main title */
+h1 {
+    text-align: center;
+    color: #38bdf8;
+    margin-bottom: 40px;
+}
+
+/* Section card */
+.section {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 0 20px rgba(56,189,248,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover animation */
+.section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 30px rgba(56,189,248,0.3);
+}
+
+/* Section headings */
+h2 {
+    color: #7dd3fc;
+}
+
+/* Code container */
+pre {
+    background: #020617;
+    padding: 15px;
+    border-radius: 10px;
+    overflow-x: auto;
+    position: relative;
+}
+
+/* Code text styling */
+code {
+    color: #fde047; /* Bright yellow */
+    font-size: 17px; /* Increased readability */
+}
+
+/* Copy button */
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #38bdf8;
+    border: none;
+    color: black;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Copy button hover */
+.copy-btn:hover {
+    background: #0ea5e9;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ===================== HEADER ===================== -->
+<h1>🌐 Networking & Curl Toolkit</h1>
+
+<!-- ===================== CURL GET ===================== -->
+<div class="section">
+<h2>Curl GET Request</h2>
+<pre><button class="copy-btn">Copy</button><code># Simple GET request
+curl https://www.google.com/</code></pre>
+</div>
+
+<!-- ===================== CURL POST ===================== -->
+<div class="section">
+<h2>Curl POST Requests</h2>
+<pre><button class="copy-btn">Copy</button><code># Send form data
+curl -X POST https://example-webhook.com/your-id -d "data1=value1&data2=value2"
+
+# Send JSON data
+curl -X POST -H "Content-Type: application/json" \
+https://example-webhook.com/your-id \
+-d '{"key1":"value1","key2":"value2"}'
+
+# Upload a file/image
+curl -X POST https://example-webhook.com/your-id -F "file=@image.jpg"</code></pre>
+</div>
+
+<!-- ===================== ADVANCED CURL ===================== -->
+<div class="section">
+<h2>Advanced Curl</h2>
+<pre><button class="copy-btn">Copy</button><code># Add Authorization header
+curl -H "Authorization: Bearer YOUR_API_TOKEN" https://api.example.com/data
+
+# Save output to file
+curl -o file.html https://example.com
+
+# Download file with same name
+curl -O https://example.com/file.zip
+
+# Show only headers
+curl -I https://example.com
+
+# Verbose (debugging)
+curl -v https://example.com</code></pre>
+</div>
+
+<!-- ===================== WEBHOOK ===================== -->
+<div class="section">
+<h2>Webhook Testing</h2>
+<pre><button class="copy-btn">Copy</button><code># Steps:
+# 1. Go to https://webhook.site
+# 2. Copy your unique URL
+# 3. Send requests using curl</code></pre>
+</div>
+
+<!-- ===================== MQTT ===================== -->
+<div class="section">
+<h2>MQTT with Curl</h2>
+<pre><button class="copy-btn">Copy</button><code># Subscribe to topic
+curl mqtt://mqtt.eclipseprojects.io/topic_name
+
+# Force output to terminal
+curl mqtt://mqtt.eclipseprojects.io/topic_name --output -
+
+# Save messages to file
+curl mqtt://mqtt.eclipseprojects.io/topic_name --output data.txt
+
+# Publish message
+curl -d "Hello" mqtt://mqtt.eclipseprojects.io/topic_name</code></pre>
+</div>
+
+<!-- ===================== TIME API ===================== -->
+<div class="section">
+<h2>Time API</h2>
+<pre><button class="copy-btn">Copy</button><code># Get current time (Kolkata timezone)
+curl "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata"</code></pre>
+</div>
+
+<!-- ===================== FTP ===================== -->
+<div class="section">
+<h2>FTP Upload</h2>
+<pre><button class="copy-btn">Copy</button><code># Upload file to FTP server
+curl -T file.jpg ftp://USERNAME:PASSWORD@ftp.example.com/path/
+
+# Access uploaded files
+ftp://USERNAME:PASSWORD@ftp.example.com/path/</code></pre>
+</div>
+
+<!-- ===================== NMAP ===================== -->
+<div class="section">
+<h2>Nmap</h2>
+<pre><button class="copy-btn">Copy</button><code># Basic scan
+nmap google.com
+
+# Scan specific ports
+nmap -p 22,80,443 192.168.1.1
+
+# Scan all ports
+nmap -p 1-65535 192.168.1.1
+
+# Detect OS
+nmap -O 192.168.1.1</code></pre>
+</div>
+
+<!-- ===================== POWERSHELL ===================== -->
+<div class="section">
+<h2>PowerShell Test-NetConnection</h2>
+<pre><button class="copy-btn">Copy</button><code># Ping test
+Test-NetConnection google.com
+
+# Test HTTPS port
+Test-NetConnection google.com -Port 443
+
+# Trace route
+Test-NetConnection google.com -TraceRoute
+
+# Check RDP port
+Test-NetConnection -ComputerName 192.168.1.10 -Port 3389
+
+# Check SMB port
+Test-NetConnection -ComputerName 192.168.1.20 -Port 445</code></pre>
+</div>
+
+<!-- ===================== TRACERT ===================== -->
+<div class="section">
+<h2>Trace Route</h2>
+<pre><button class="copy-btn">Copy</button><code># Trace network path
+tracert google.com</code></pre>
+</div>
+
+<!-- ===================== OPENSSL ===================== -->
+<div class="section">
+<h2>OpenSSL</h2>
+<pre><button class="copy-btn">Copy</button><code># Test SSL connection
+openssl s_client -connect example.com:443
+
+# View SMTP certificates
+openssl s_client -showcerts -connect smtp.example.com:587 &lt;NUL -starttls smtp
+
+# Extract certificate to PEM
+openssl s_client -showcerts -connect api.example.com:443 &lt;NUL | openssl x509 -outform PEM &gt; cert.pem</code></pre>
+</div>
+
+<!-- ===================== SCRIPT ===================== -->
+<script>
+// Copy-to-clipboard functionality
+document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const code = btn.nextElementSibling.innerText;
+        navigator.clipboard.writeText(code);
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = "Copy", 1500);
+    });
+});
+</script>
+
+</body>
+</html>

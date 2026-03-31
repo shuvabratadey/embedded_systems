@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Systems Tutorials</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            padding: 40px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            width: 260px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            background: #3b82f6;
+            color: white;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Embedded Systems Tutorials</h1>
+    <p>Simple, structured tutorials with HTML demos and clear documentation</p>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <h2>curl</h2>
+        <p>Learn how to use curl for HTTP requests and data transfer.</p>
+        <a href="curl/index.html" class="btn">Open Tutorial</a>
+    </div>
+
+    <div class="card">
+        <h2>cJSON</h2>
+        <p>Understand JSON parsing and generation in C using cJSON.</p>
+        <a href="cJson/index.html" class="btn">Open Tutorial</a>
+    </div>
+
+    <div class="card">
+        <h2>ESP32 SPIFFS</h2>
+        <p>Work with SPIFFS file system on ESP32 with practical examples.</p>
+        <a href="ESP32_SPIFFS/index.html" class="btn">Open Tutorial</a>
+    </div>
+
+</div>
+
+<footer>
+    © 2026 Embedded Systems | More tutorials coming soon 🚀
+</footer>
+
+</body>
+</html>
