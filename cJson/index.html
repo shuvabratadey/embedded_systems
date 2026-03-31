@@ -3,237 +3,274 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Networking & Curl Toolkit</title>
+<title>cJSON Documentation</title>
 
-<!-- ===================== STYLES ===================== -->
 <style>
-/* Page base styling */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #020617, #0f172a);
-    color: #e2e8f0;
+    font-family: "Segoe UI", sans-serif;
     margin: 0;
-    padding: 20px;
-}
-
-/* Main title */
-h1 {
-    text-align: center;
-    color: #38bdf8;
-    margin-bottom: 40px;
-}
-
-/* Section card */
-.section {
     background: #0f172a;
-    border-radius: 12px;
+    color: #e2e8f0;
+}
+
+header {
+    background: #020617;
     padding: 20px;
-    margin-bottom: 25px;
-    box-shadow: 0 0 20px rgba(56,189,248,0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+    border-bottom: 1px solid #1e293b;
 }
 
-/* Hover animation */
-.section:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0 30px rgba(56,189,248,0.3);
+.container {
+    display: flex;
 }
 
-/* Section headings */
+.sidebar {
+    width: 260px;
+    background: #020617;
+    padding: 20px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+}
+
+.sidebar a {
+    display: block;
+    color: #94a3b8;
+    text-decoration: none;
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.sidebar a:hover {
+    color: #38bdf8;
+}
+
+.content {
+    flex: 1;
+    padding: 30px;
+    max-width: 1000px;
+}
+
 h2 {
-    color: #7dd3fc;
+    color: #38bdf8;
+    margin-top: 40px;
 }
 
-/* Code container */
 pre {
     background: #020617;
     padding: 15px;
     border-radius: 10px;
     overflow-x: auto;
-    position: relative;
 }
 
-/* Code text styling */
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
 code {
-    color: #fde047; /* Bright yellow */
-    font-size: 17px; /* Increased readability */
-}
-
-/* Copy button */
-.copy-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #38bdf8;
-    border: none;
-    color: black;
-    padding: 5px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-/* Copy button hover */
-.copy-btn:hover {
-    background: #0ea5e9;
+    background: #020617;
+    padding: 2px 6px;
+    border-radius: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===================== HEADER ===================== -->
-<h1>🌐 Networking & Curl Toolkit</h1>
+<header>
+<h1>cJSON Complete Documentation</h1>
+<p>Beginner → Advanced Tutorial + Full API Reference</p>
+</header>
 
-<!-- ===================== CURL GET ===================== -->
-<div class="section">
-<h2>Curl GET Request</h2>
-<pre><button class="copy-btn">Copy</button><code># Simple GET request
-curl https://www.google.com/</code></pre>
+<div class="container">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<b>Getting Started</b>
+<a href="#intro">What is cJSON</a>
+<a href="#install">Installation</a>
+
+<b>Basics</b>
+<a href="#create-basic">Create JSON</a>
+<a href="#parse">Parse JSON</a>
+<a href="#array-basic">Arrays</a>
+<a href="#nested">Nested JSON</a>
+
+<b>Advanced</b>
+<a href="#advanced">Advanced Usage</a>
+<a href="#memory">Memory</a>
+<a href="#esp32">ESP32 Example</a>
+
+<b>API Reference</b>
+<a href="#create">Create Functions</a>
+<a href="#access">Access Functions</a>
+<a href="#modify">Modify Functions</a>
+<a href="#print">Print Functions</a>
+<a href="#delete">Memory Functions</a>
 </div>
 
-<!-- ===================== CURL POST ===================== -->
-<div class="section">
-<h2>Curl POST Requests</h2>
-<pre><button class="copy-btn">Copy</button><code># Send form data
-curl -X POST https://example-webhook.com/your-id -d "data1=value1&data2=value2"
+<!-- CONTENT -->
+<div class="content">
 
-# Send JSON data
-curl -X POST -H "Content-Type: application/json" \
-https://example-webhook.com/your-id \
--d '{"key1":"value1","key2":"value2"}'
-
-# Upload a file/image
-curl -X POST https://example-webhook.com/your-id -F "file=@image.jpg"</code></pre>
+<!-- INTRO -->
+<h2 id="intro">📌 What is cJSON?</h2>
+<div class="card">
+<p>
+cJSON is a lightweight C library used to parse and generate JSON data.
+It is widely used in embedded systems like ESP32 due to its small size and simplicity.
+</p>
 </div>
 
-<!-- ===================== ADVANCED CURL ===================== -->
-<div class="section">
-<h2>Advanced Curl</h2>
-<pre><button class="copy-btn">Copy</button><code># Add Authorization header
-curl -H "Authorization: Bearer YOUR_API_TOKEN" https://api.example.com/data
-
-# Save output to file
-curl -o file.html https://example.com
-
-# Download file with same name
-curl -O https://example.com/file.zip
-
-# Show only headers
-curl -I https://example.com
-
-# Verbose (debugging)
-curl -v https://example.com</code></pre>
+<!-- INSTALL -->
+<h2 id="install">⚙️ Installation</h2>
+<div class="card">
+<pre>
+git clone https://github.com/davegamble/cjson
+</pre>
+<pre>
+#include "cJSON.h"
+</pre>
 </div>
 
-<!-- ===================== WEBHOOK ===================== -->
-<div class="section">
-<h2>Webhook Testing</h2>
-<pre><button class="copy-btn">Copy</button><code># Steps:
-# 1. Go to https://webhook.site
-# 2. Copy your unique URL
-# 3. Send requests using curl</code></pre>
+<!-- BASIC CREATE -->
+<h2 id="create-basic">🟢 Create JSON</h2>
+<div class="card">
+<pre>
+cJSON *root = cJSON_CreateObject();
+
+cJSON_AddStringToObject(root, "name", "John");
+cJSON_AddNumberToObject(root, "age", 25);
+
+char *json = cJSON_Print(root);
+printf("%s\n", json);
+
+cJSON_Delete(root);
+free(json);
+</pre>
 </div>
 
-<!-- ===================== MQTT ===================== -->
-<div class="section">
-<h2>MQTT with Curl</h2>
-<pre><button class="copy-btn">Copy</button><code># Subscribe to topic
-curl mqtt://mqtt.eclipseprojects.io/topic_name
+<!-- PARSE -->
+<h2 id="parse">🔍 Parse JSON</h2>
+<div class="card">
+<pre>
+char *data = "{\"name\":\"John\",\"age\":25}";
 
-# Force output to terminal
-curl mqtt://mqtt.eclipseprojects.io/topic_name --output -
+cJSON *root = cJSON_Parse(data);
 
-# Save messages to file
-curl mqtt://mqtt.eclipseprojects.io/topic_name --output data.txt
+cJSON *name = cJSON_GetObjectItem(root, "name");
 
-# Publish message
-curl -d "Hello" mqtt://mqtt.eclipseprojects.io/topic_name</code></pre>
+printf("%s\n", name->valuestring);
+
+cJSON_Delete(root);
+</pre>
 </div>
 
-<!-- ===================== TIME API ===================== -->
-<div class="section">
-<h2>Time API</h2>
-<pre><button class="copy-btn">Copy</button><code># Get current time (Kolkata timezone)
-curl "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata"</code></pre>
+<!-- ARRAY -->
+<h2 id="array-basic">📚 Arrays</h2>
+<div class="card">
+<pre>
+cJSON *arr = cJSON_CreateArray();
+
+cJSON_AddItemToArray(arr, cJSON_CreateNumber(10));
+cJSON_AddItemToArray(arr, cJSON_CreateNumber(20));
+
+</pre>
 </div>
 
-<!-- ===================== FTP ===================== -->
-<div class="section">
-<h2>FTP Upload</h2>
-<pre><button class="copy-btn">Copy</button><code># Upload file to FTP server
-curl -T file.jpg ftp://USERNAME:PASSWORD@ftp.example.com/path/
+<!-- NESTED -->
+<h2 id="nested">📦 Nested JSON</h2>
+<div class="card">
+<pre>
+cJSON *root = cJSON_CreateObject();
+cJSON *addr = cJSON_CreateObject();
 
-# Access uploaded files
-ftp://USERNAME:PASSWORD@ftp.example.com/path/</code></pre>
+cJSON_AddStringToObject(addr, "city", "Kolkata");
+
+cJSON_AddItemToObject(root, "address", addr);
+</pre>
 </div>
 
-<!-- ===================== NMAP ===================== -->
-<div class="section">
-<h2>Nmap</h2>
-<pre><button class="copy-btn">Copy</button><code># Basic scan
-nmap google.com
+<!-- ADVANCED -->
+<h2 id="advanced">🚀 Advanced Usage</h2>
+<div class="card">
+<pre>
+cJSON_ReplaceItemInObject(root, "age", cJSON_CreateNumber(30));
 
-# Scan specific ports
-nmap -p 22,80,443 192.168.1.1
-
-# Scan all ports
-nmap -p 1-65535 192.168.1.1
-
-# Detect OS
-nmap -O 192.168.1.1</code></pre>
+if (cJSON_IsString(name)) {
+    printf("Valid\n");
+}
+</pre>
 </div>
 
-<!-- ===================== POWERSHELL ===================== -->
-<div class="section">
-<h2>PowerShell Test-NetConnection</h2>
-<pre><button class="copy-btn">Copy</button><code># Ping test
-Test-NetConnection google.com
-
-# Test HTTPS port
-Test-NetConnection google.com -Port 443
-
-# Trace route
-Test-NetConnection google.com -TraceRoute
-
-# Check RDP port
-Test-NetConnection -ComputerName 192.168.1.10 -Port 3389
-
-# Check SMB port
-Test-NetConnection -ComputerName 192.168.1.20 -Port 445</code></pre>
+<!-- MEMORY -->
+<h2 id="memory">⚠️ Memory Management</h2>
+<div class="card">
+<ul>
+<li>Always use cJSON_Delete()</li>
+<li>Free strings using free()</li>
+<li>Avoid memory leaks</li>
+</ul>
 </div>
 
-<!-- ===================== TRACERT ===================== -->
-<div class="section">
-<h2>Trace Route</h2>
-<pre><button class="copy-btn">Copy</button><code># Trace network path
-tracert google.com</code></pre>
+<!-- ESP32 -->
+<h2 id="esp32">🔌 ESP32 Example</h2>
+<div class="card">
+<pre>
+cJSON *root = cJSON_CreateObject();
+cJSON_AddNumberToObject(root, "temp", 28.5);
+
+char *json = cJSON_PrintUnformatted(root);
+
+// send via HTTP
+
+cJSON_Delete(root);
+free(json);
+</pre>
 </div>
 
-<!-- ===================== OPENSSL ===================== -->
-<div class="section">
-<h2>OpenSSL</h2>
-<pre><button class="copy-btn">Copy</button><code># Test SSL connection
-openssl s_client -connect example.com:443
+<!-- API REFERENCE -->
 
-# View SMTP certificates
-openssl s_client -showcerts -connect smtp.example.com:587 &lt;NUL -starttls smtp
-
-# Extract certificate to PEM
-openssl s_client -showcerts -connect api.example.com:443 &lt;NUL | openssl x509 -outform PEM &gt; cert.pem</code></pre>
+<h2 id="create">🟢 Create Functions</h2>
+<div class="card">
+<pre>cJSON *cJSON_CreateObject(void);</pre>
+<pre>cJSON *cJSON_CreateArray(void);</pre>
+<pre>cJSON *cJSON_CreateString(const char *string);</pre>
+<pre>cJSON *cJSON_CreateNumber(double num);</pre>
+<pre>cJSON *cJSON_CreateBool(cJSON_bool b);</pre>
 </div>
 
-<!-- ===================== SCRIPT ===================== -->
-<script>
-// Copy-to-clipboard functionality
-document.querySelectorAll('.copy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const code = btn.nextElementSibling.innerText;
-        navigator.clipboard.writeText(code);
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = "Copy", 1500);
-    });
-});
-</script>
+<h2 id="access">📥 Access Functions</h2>
+<div class="card">
+<pre>cJSON *cJSON_GetObjectItem(const cJSON *, const char *);</pre>
+<pre>cJSON *cJSON_GetArrayItem(const cJSON *, int);</pre>
+<pre>int cJSON_GetArraySize(const cJSON *);</pre>
+</div>
+
+<h2 id="modify">✏️ Modify Functions</h2>
+<div class="card">
+<pre>cJSON_AddItemToObject()</pre>
+<pre>cJSON_AddItemToArray()</pre>
+<pre>cJSON_ReplaceItemInObject()</pre>
+<pre>cJSON_DeleteItemFromObject()</pre>
+</div>
+
+<h2 id="print">🖨️ Print Functions</h2>
+<div class="card">
+<pre>char *cJSON_Print(const cJSON *);</pre>
+<pre>char *cJSON_PrintUnformatted(const cJSON *);</pre>
+</div>
+
+<h2 id="delete">⚠️ Memory Functions</h2>
+<div class="card">
+<pre>void cJSON_Delete(cJSON *);</pre>
+</div>
+
+</div>
+</div>
 
 </body>
 </html>
