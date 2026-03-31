@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I2C Communication – Complete Professional Tutorial</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+
+<style>
+body {font-family:'Inter',sans-serif;margin:0;background:#0b1220;color:#e5e7eb;padding:40px;max-width:1100px;margin:auto;}
+h1,h2,h3{color:#38bdf8;}
+hr{border:1px solid #1e293b;}
+pre{background:#020617;padding:15px;border-radius:10px;overflow-x:auto;}
+code{color:#e2e8f0;}
+ul{line-height:1.7;}
+img{max-width:100%;border-radius:10px;margin:15px 0;}
+a{color:#22d3ee;}
+</style>
+</head>
+
+<body>
+
+<h1>I2C Communication – Complete Professional Tutorial</h1>
+
+<h2>📌 Introduction</h2>
+<p>Inter-Integrated Circuit (I2C) is a synchronous, multi-master, multi-slave communication protocol widely used for short-distance communication between microcontrollers and peripherals like sensors, EEPROMs, RTCs, and displays.</p>
+
+<hr>
+
+<h2>🧠 Key Concepts</h2>
+<ul>
+<li><b>Two-wire interface</b>: SDA, SCL</li>
+<li><b>Master-Slave architecture</b></li>
+<li><b>Half-duplex communication</b></li>
+<li><b>Address-based communication</b></li>
+</ul>
+
+<hr>
+
+<h2> 🌐 I²C Communication Simulator Link</h2>
+<a href="I2C_Communication_Simulator.html"><h3>🔗 Open Simulator</h2></a>
+
+<hr>
+
+<h2>🔌 Basic I2C Connection Diagram</h2>
+<img src="images/Basic_I2C_Protocol.png" width="850px">
+
+<h2>🎞️ I2C Working Animation</h2>
+<img src="images/i2c.gif">
+
+<hr>
+
+<h2>⚙️ How I2C Works</h2>
+<h3>1. Start Condition</h3>
+<p>Master pulls SDA LOW while SCL is HIGH</p>
+<h3>2. Address Frame</h3>
+<p>7-bit or 10-bit address + R/W</p>
+<h3>3. ACK/NACK</h3>
+<p>Receiver pulls SDA LOW</p>
+<h3>4. Data Transfer</h3>
+<p>8-bit packets</p>
+<h3>5. Stop Condition</h3>
+<p>SDA HIGH while SCL HIGH</p>
+
+<hr>
+
+<h2>📦 Data Format</h2>
+<pre>| START | ADDRESS (7/10 bit) | R/W | ACK | DATA (8-bit) | ACK | STOP |</pre>
+
+<hr>
+
+<h2>🔢 7-bit vs 10-bit Addressing</h2>
+<p><b>7-bit:</b> Most common</p>
+<p><b>10-bit:</b> Rare</p>
+
+<hr>
+
+<h2>📥 8-bit vs 16-bit Register Addressing</h2>
+<p>Devices may use internal registers (8-bit or 16-bit)</p>
+
+<hr>
+
+<h2>🔁 Read & Write Flow</h2>
+<h3>Write</h3>
+<p>Start → Address → Register → Data → Stop</p>
+<h3>Read</h3>
+<p>Start → Address → Register → Restart → Read → Stop</p>
+
+<hr>
+
+<h2>🧩 ESP-IDF I2C Examples</h2>
+
+<h3>⚙️ Initialization</h3>
+<pre><code class="language-c">#include "driver/i2c.h"
+#include "esp_err.h"
+#include &lt;string.h&gt;
+
+#define I2C_MASTER_SCL_IO         22
+#define I2C_MASTER_SDA_IO         21
+#define I2C_MASTER_PORT           I2C_NUM_0
+#define I2C_MASTER_FREQ_HZ        100000
+#define I2C_MASTER_TIMEOUT_MS     1000
+
+static esp_err_t i2c_master_init(void)
+{
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
+
+    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_PORT, &conf));
+    return i2c_driver_install(I2C_MASTER_PORT, conf.mode, 0, 0, 0);
+}</code></pre>
+
+<h3>🔹 8-bit Register + 8-bit Data</h3>
+<pre><code class="language-c">esp_err_t i2c_write_reg8_data8(uint8_t dev_addr, uint8_t reg_addr, uint8_t data)
+{
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_write_byte(cmd, data, true);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}
+
+esp_err_t i2c_read_reg8_data8(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data)
+{
+    if (!data) return ESP_ERR_INVALID_ARG;
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+    i2c_master_read_byte(cmd, data, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}</code></pre>
+
+<h3>🔹 8-bit Register + 16-bit Data</h3>
+<pre><code class="language-c">esp_err_t i2c_write_reg8_data16(uint8_t dev_addr, uint8_t reg_addr, uint16_t data)
+{
+    uint8_t tx[2] = { data >> 8, data & 0xFF };
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_write(cmd, tx, 2, true);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}
+
+esp_err_t i2c_read_reg8_data16(uint8_t dev_addr, uint8_t reg_addr, uint16_t *data)
+{
+    if (!data) return ESP_ERR_INVALID_ARG;
+    uint8_t rx[2];
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+    i2c_master_read(cmd, rx, 1, I2C_MASTER_ACK);
+    i2c_master_read_byte(cmd, &rx[1], I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    if (ret == ESP_OK) *data = (rx[0] << 8) | rx[1];
+    return ret;
+}</code></pre>
+
+<h3>🔹 16-bit Register + 8-bit Data</h3>
+<pre><code class="language-c">esp_err_t i2c_write_reg16_data8(uint8_t dev_addr, uint16_t reg_addr, uint8_t data)
+{
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr >> 8, true);
+    i2c_master_write_byte(cmd, reg_addr & 0xFF, true);
+    i2c_master_write_byte(cmd, data, true);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}
+
+esp_err_t i2c_read_reg16_data8(uint8_t dev_addr, uint16_t reg_addr, uint8_t *data)
+{
+    if (!data) return ESP_ERR_INVALID_ARG;
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr >> 8, true);
+    i2c_master_write_byte(cmd, reg_addr & 0xFF, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+    i2c_master_read_byte(cmd, data, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}</code></pre>
+
+<h3>🔹 16-bit Register + 16-bit Data</h3>
+<pre><code class="language-c">esp_err_t i2c_write_reg16_data16(uint8_t dev_addr, uint16_t reg_addr, uint16_t data)
+{
+    uint8_t tx[2] = { data >> 8, data & 0xFF };
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr >> 8, true);
+    i2c_master_write_byte(cmd, reg_addr & 0xFF, true);
+    i2c_master_write(cmd, tx, 2, true);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}
+
+esp_err_t i2c_read_reg16_data16(uint8_t dev_addr, uint16_t reg_addr, uint16_t *data)
+{
+    if (!data) return ESP_ERR_INVALID_ARG;
+    uint8_t rx[2];
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr >> 8, true);
+    i2c_master_write_byte(cmd, reg_addr & 0xFF, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+    i2c_master_read(cmd, rx, 1, I2C_MASTER_ACK);
+    i2c_master_read_byte(cmd, &rx[1], I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    if (ret == ESP_OK) *data = (rx[0] << 8) | rx[1];
+    return ret;
+}</code></pre>
+
+<h3>🔹 Multi-byte</h3>
+<pre><code class="language-c">esp_err_t i2c_read_reg8_buffer(uint8_t dev_addr, uint8_t reg_addr, uint8_t *buf, size_t len)
+{
+    if (!buf || !len) return ESP_ERR_INVALID_ARG;
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
+    i2c_master_read_byte(cmd, &buf[len - 1], I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
+    i2c_cmd_link_delete(cmd);
+    return ret;
+}</code></pre>
+
+<hr>
+
+<h2>🧩 STM32 HAL Examples</h2>
+
+<h3>🔹 8-bit Address Mode</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_write_mem8_data8(uint16_t dev_addr, uint16_t mem_addr, uint8_t data)
+{
+    return HAL_I2C_Mem_Write(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
+}
+
+HAL_StatusTypeDef stm32_read_mem8_data8(uint16_t dev_addr, uint16_t mem_addr, uint8_t *data)
+{
+    return HAL_I2C_Mem_Read(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_8BIT, data, 1, 100);
+}</code></pre>
+
+<h3>🔹 8-bit Address + 16-bit Data</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_write_mem8_data16(uint16_t dev_addr, uint16_t mem_addr, uint16_t data)
+{
+    uint8_t tx[2]={data>>8,data&0xFF};
+    return HAL_I2C_Mem_Write(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_8BIT, tx, 2, 100);
+}
+
+HAL_StatusTypeDef stm32_read_mem8_data16(uint16_t dev_addr, uint16_t mem_addr, uint16_t *data)
+{
+    uint8_t rx[2];
+    HAL_I2C_Mem_Read(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_8BIT, rx, 2, 100);
+    *data=(rx[0]<<8)|rx[1];
+    return HAL_OK;
+}</code></pre>
+
+<h3>🔹 16-bit Address Mode</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_write_mem16_data8(uint16_t dev_addr, uint16_t mem_addr, uint8_t data)
+{
+    return HAL_I2C_Mem_Write(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_16BIT, &data, 1, 100);
+}
+
+HAL_StatusTypeDef stm32_read_mem16_data8(uint16_t dev_addr, uint16_t mem_addr, uint8_t *data)
+{
+    return HAL_I2C_Mem_Read(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_16BIT, data, 1, 100);
+}</code></pre>
+
+<h3>🔹 16-bit Address + 16-bit Data</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_write_mem16_data16(uint16_t dev_addr, uint16_t mem_addr, uint16_t data)
+{
+    uint8_t tx[2]={data>>8,data&0xFF};
+    return HAL_I2C_Mem_Write(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_16BIT, tx, 2, 100);
+}
+
+HAL_StatusTypeDef stm32_read_mem16_data16(uint16_t dev_addr, uint16_t mem_addr, uint16_t *data)
+{
+    uint8_t rx[2];
+    HAL_I2C_Mem_Read(&hi2c1, dev_addr<<1, mem_addr, I2C_MEMADD_SIZE_16BIT, rx, 2, 100);
+    *data=(rx[0]<<8)|rx[1];
+    return HAL_OK;
+}</code></pre>
+
+<hr>
+
+<h2>⚡ Important Notes</h2>
+<ul>
+<li>Pull-up resistors required (4.7kΩ)</li>
+<li>100kHz / 400kHz / 1MHz</li>
+<li>Multi-master supported</li>
+</ul>
+
+<hr>
+
+<h2>🛠️ Troubleshooting</h2>
+<ul>
+<li>No ACK → Check wiring</li>
+<li>Data corruption → Check pull-ups</li>
+<li>Bus stuck → Reset I2C</li>
+</ul>
+
+<hr>
+
+<h2>🔬 Internal Handling</h2>
+<p>8-bit address → 1 byte</p>
+<p>16-bit address → 2 bytes (MSB first)</p>
+<p>16-bit data → MSB first</p>
+
+<hr>
+
+<h2>📚 Summary</h2>
+<ul>
+<li>2-wire protocol</li>
+<li>Multiple devices</li>
+<li>Simple & powerful</li>
+</ul>
+
+<hr>
+
+<h2>🚀 Logic Analyzer</h2>
+<img src="images/I2C_Prtocol.png" width="850px"/>
+
+<hr>
+
+</body>
+</html>

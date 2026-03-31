@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>I²C Communication — Master + 2 Slaves</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    border: 0.5px solid #ddd;
+    padding: 1.25rem 1.5rem;
+    width: 100%;
+    max-width: 920px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .cfg-box {
+    background: #faf9f5;
+    border: 0.5px solid #e3e0d7;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .cfg-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+  }
+  .cfg-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: #7a776d;
+    margin-bottom: 4px;
+  }
+  .field input {
+    width: 100%;
+    border: 0.5px solid #d4d0c7;
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    background: #fff;
+    color: #1a1a18;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: #8b84d8;
+    box-shadow: 0 0 0 2px rgba(83,74,183,0.08);
+  }
+  .btn {
+    background: #f0efe9;
+    border: 0.5px solid #ccc;
+    border-radius: 8px;
+    padding: 7px 15px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #1a1a18;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: #e4e3dd; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  #log {
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    color: #555;
+    background: #f7f6f2;
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-height: 64px;
+    max-height: 130px;
+    overflow-y: auto;
+    line-height: 1.8;
+    margin-top: 10px;
+    border: 0.5px solid #e0dfd8;
+  }
+  .log-write { color: #1D9E75; }
+  .log-read  { color: #185FA5; }
+  .log-ack   { color: #BA7517; }
+  .log-start { color: #993C1D; }
+  .legend { display: flex; gap: 16px; font-size: 11px; color: #888; margin-top: 10px; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .note {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #7a776d;
+    line-height: 1.5;
+  }
+  @media (max-width: 760px) {
+    .config-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>I²C Communication Simulator</h1>
+<p class="sub">Editable defaults · live clock/data waveform · correct master/slave direction</p>
+
+<div class="card">
+
+<div class="config-grid">
+  <div class="cfg-box">
+    <div class="cfg-title">Slave 1 settings (defaults loaded)</div>
+    <div class="cfg-row">
+      <div class="field">
+        <label for="s1-addr-input">Device addr</label>
+        <input id="s1-addr-input" value="0x48" oninput="refreshDeviceLabels()"/>
+      </div>
+      <div class="field">
+        <label for="s1-reg-input">Memory addr</label>
+        <input id="s1-reg-input" value="0x1C" oninput="refreshDeviceLabels()"/>
+      </div>
+      <div class="field">
+        <label for="s1-data-input">Data byte</label>
+        <input id="s1-data-input" value="0xA5" oninput="refreshDeviceLabels()"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="cfg-box">
+    <div class="cfg-title">Slave 2 settings (defaults loaded)</div>
+    <div class="cfg-row">
+      <div class="field">
+        <label for="s2-addr-input">Device addr</label>
+        <input id="s2-addr-input" value="0x76" oninput="refreshDeviceLabels()"/>
+      </div>
+      <div class="field">
+        <label for="s2-reg-input">Memory addr</label>
+        <input id="s2-reg-input" value="0x04" oninput="refreshDeviceLabels()"/>
+      </div>
+      <div class="field">
+        <label for="s2-data-input">Data byte</label>
+        <input id="s2-data-input" value="0x3F" oninput="refreshDeviceLabels()"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<svg id="bus-svg" width="100%" viewBox="0 0 720 450" style="margin-bottom:12px;">
+  <defs>
+    <marker id="arrow-end" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="36" y="176" text-anchor="middle" font-size="11" fill="#888" font-family="inherit">SDA</text>
+  <text x="36" y="214" text-anchor="middle" font-size="11" fill="#888" font-family="inherit">SCL</text>
+
+  <line x1="58" y1="174" x2="662" y2="174" stroke="#5DCAA5" stroke-width="2" opacity="0.35"/>
+  <line x1="58" y1="212" x2="662" y2="212" stroke="#EF9F27" stroke-width="2" opacity="0.35"/>
+
+  <rect x="60" y="80" width="130" height="68" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="125" y="106" text-anchor="middle" font-size="13" font-weight="500" fill="#3C3489" font-family="inherit">Master</text>
+  <text x="125" y="124" text-anchor="middle" font-size="11" fill="#534AB7" font-family="inherit">Controls bus</text>
+  <text x="125" y="140" text-anchor="middle" font-size="11" fill="#534AB7" font-family="inherit" id="master-addr">Addr: 0x—</text>
+  <line x1="125" y1="148" x2="125" y2="174" stroke="#5DCAA5" stroke-width="1.5"/>
+  <line x1="145" y1="148" x2="145" y2="212" stroke="#EF9F27" stroke-width="1.5"/>
+
+  <rect x="270" y="60" width="140" height="80" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="340" y="86" text-anchor="middle" font-size="13" font-weight="500" fill="#085041" font-family="inherit">Slave 1</text>
+  <text x="340" y="103" text-anchor="middle" font-size="11" fill="#0F6E56" font-family="inherit" id="s1-addr-label">Addr: 0x48</text>
+  <text x="340" y="120" text-anchor="middle" font-size="11" fill="#0F6E56" font-family="inherit" id="s1-status">Idle</text>
+  <text x="340" y="135" text-anchor="middle" font-size="10" fill="#1D9E75" font-family="inherit" id="s1-reg">reg 0x1C · data 0xA5</text>
+  <line x1="320" y1="140" x2="320" y2="174" stroke="#5DCAA5" stroke-width="1.5"/>
+  <line x1="340" y1="140" x2="340" y2="212" stroke="#EF9F27" stroke-width="1.5"/>
+
+  <rect x="510" y="60" width="140" height="80" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text x="580" y="86" text-anchor="middle" font-size="13" font-weight="500" fill="#4A1B0C" font-family="inherit">Slave 2</text>
+  <text x="580" y="103" text-anchor="middle" font-size="11" fill="#993C1D" font-family="inherit" id="s2-addr-label">Addr: 0x76</text>
+  <text x="580" y="120" text-anchor="middle" font-size="11" fill="#993C1D" font-family="inherit" id="s2-status">Idle</text>
+  <text x="580" y="135" text-anchor="middle" font-size="10" fill="#D85A30" font-family="inherit" id="s2-reg">reg 0x04 · data 0x3F</text>
+  <line x1="560" y1="140" x2="560" y2="174" stroke="#5DCAA5" stroke-width="1.5"/>
+  <line x1="580" y1="140" x2="580" y2="212" stroke="#EF9F27" stroke-width="1.5"/>
+
+  <text x="500" y="265" text-anchor="middle" font-size="10" fill="#aaa" font-family="inherit">R↑ 4.7kΩ</text>
+  <line x1="500" y1="274" x2="500" y2="212" stroke="#ccc" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="540" y="265" text-anchor="middle" font-size="10" fill="#aaa" font-family="inherit">R↑ 4.7kΩ</text>
+  <line x1="540" y1="274" x2="540" y2="174" stroke="#ccc" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="520" y="292" text-anchor="middle" font-size="10" fill="#aaa" font-family="inherit">VCC (3.3V / 5V)</text>
+
+  <g id="packet-layer"></g>
+  <g id="ack-layer"></g>
+  <g id="waveform-layer"></g>
+
+  <g>
+    <text x="36" y="320" text-anchor="middle" font-size="10" fill="#aaa" font-family="inherit">CLK</text>
+    <line x1="58" y1="326" x2="662" y2="326" stroke="#ddd7cb" stroke-width="1"/>
+    <text x="36" y="380" text-anchor="middle" font-size="10" fill="#aaa" font-family="inherit">DATA</text>
+    <line x1="58" y1="386" x2="662" y2="386" stroke="#ddd7cb" stroke-width="1"/>
+    <text x="58" y="442" font-size="10" fill="#aaa" font-family="inherit" id="waveform-title">Live waveform appears here during each byte transfer</text>
+  </g>
+</svg>
+
+<div class="controls">
+  <button class="btn" onclick="doWrite(1)">Write → Slave 1</button>
+  <button class="btn" onclick="doWrite(2)">Write → Slave 2</button>
+  <button class="btn" onclick="doRead(1)">Read ← Slave 1</button>
+  <button class="btn" onclick="doRead(2)">Read ← Slave 2</button>
+  <button class="btn" onclick="restoreDefaults()">Restore defaults</button>
+  <button class="btn" onclick="resetAll()" style="margin-left:auto">Reset</button>
+</div>
+
+<div id="log"><span style="color:#aaa">Defaults are loaded. Edit any address/data field if needed, then start a transaction…</span></div>
+
+<div class="legend">
+  <span><span class="dot" style="background:#5DCAA5"></span> SDA — data line</span>
+  <span><span class="dot" style="background:#EF9F27"></span> SCL — clock line</span>
+  <span><span class="dot" style="background:#1D9E75"></span> Master → Slave byte</span>
+  <span><span class="dot" style="background:#378ADD"></span> Slave → Master byte</span>
+  <span><span class="dot" style="background:#BA7517"></span> ACK / NACK sender shown correctly</span>
+</div>
+<div class="note">DATA now stays on its own baseline like CLK: bit 1 is drawn above the baseline, bit 0 stays on the baseline. Waveforms are drawn live while the communication animation runs.</div>
+
+</div>
+
+<script>
+const GEOM = {
+  1: {xBus:320, xBubble:340, color:'#0F6E56', bubbleColor:'#0F6E56'},
+  2: {xBus:560, xBubble:580, color:'#993C1D', bubbleColor:'#993C1D'}
+};
+const DEFAULTS = {
+  1: {addr:'0x48', reg:'0x1C', data:'0xA5'},
+  2: {addr:'0x76', reg:'0x04', data:'0x3F'}
+};
+const MASTER_X=125;
+const MASTER_BUBBLE_X=125;
+const STEP_MS=220;
+let busy=false;
+
+function log(html){const el=document.getElementById('log');el.innerHTML+=html+'<br>';el.scrollTop=el.scrollHeight;}
+function clearLog(){document.getElementById('log').innerHTML='';}
+function setSlave(id,status,reg){document.getElementById('s'+id+'-status').textContent=status;document.getElementById('s'+id+'-reg').textContent=reg||'—';}
+function setMasterAddr(txt){document.getElementById('master-addr').textContent=txt;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function hexByteToBits(hex){return parseInt(hex,16).toString(2).padStart(8,'0').split('');}
+function addrRwBits(addrHex,read){const seven=(parseInt(addrHex,16) & 0x7F).toString(2).padStart(7,'0').split('');return [...seven, read?'1':'0'];}
+function clampHex(value, fallback, digits, max){
+  const raw = String(value || '').trim();
+  const cleaned = raw.toLowerCase().startsWith('0x') ? raw : '0x' + raw;
+  const parsed = parseInt(cleaned,16);
+  if(Number.isNaN(parsed)) return fallback;
+  const safe = Math.max(0, Math.min(max, parsed));
+  return '0x' + safe.toString(16).toUpperCase().padStart(digits,'0');
+}
+function getSlaveCfg(id){
+  const base = DEFAULTS[id];
+  return {
+    ...GEOM[id],
+    addr: clampHex(document.getElementById('s'+id+'-addr-input').value, base.addr, 2, 0x7F),
+    reg: clampHex(document.getElementById('s'+id+'-reg-input').value, base.reg, 2, 0xFF),
+    data: clampHex(document.getElementById('s'+id+'-data-input').value, base.data, 2, 0xFF)
+  };
+}
+function applyCfgToInputs(id, cfg){
+  document.getElementById('s'+id+'-addr-input').value = cfg.addr;
+  document.getElementById('s'+id+'-reg-input').value = cfg.reg;
+  document.getElementById('s'+id+'-data-input').value = cfg.data;
+}
+function refreshDeviceLabels(){
+  [1,2].forEach(id=>{
+    const cfg=getSlaveCfg(id);
+    document.getElementById('s'+id+'-addr-label').textContent='Addr: ' + cfg.addr;
+    const statusEl=document.getElementById('s'+id+'-status');
+    if(statusEl.textContent==='Idle' || statusEl.textContent==='Written' || statusEl.textContent==='Read done'){
+      statusEl.textContent='Idle';
+      document.getElementById('s'+id+'-reg').textContent=`reg ${cfg.reg} · data ${cfg.data}`;
+    }
+  });
+}
+
+function animatePacket(fromX,toX,y,color,label){
+  return new Promise(resolve=>{
+    const svg=document.getElementById('packet-layer');
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const dx=Math.abs(toX-fromX);
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',fromX);line.setAttribute('x2',toX);
+    line.setAttribute('y1',y);line.setAttribute('y2',y);
+    line.setAttribute('stroke',color);line.setAttribute('stroke-width','3');
+    line.setAttribute('stroke-linecap','round');
+    line.setAttribute('stroke-dasharray',dx);
+    line.setAttribute('stroke-dashoffset',dx);
+    line.setAttribute('marker-end','url(#arrow-end)');
+    line.style.transition='stroke-dashoffset 1.0s ease';
+
+    if(label){
+      const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',(fromX+toX)/2);txt.setAttribute('y',y-10);
+      txt.setAttribute('text-anchor','middle');txt.setAttribute('font-size','11');
+      txt.setAttribute('fill',color);txt.setAttribute('font-family','monospace');
+      txt.textContent=label;g.appendChild(txt);
+    }
+
+    const head=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    head.setAttribute('r','4');head.setAttribute('fill',color);head.setAttribute('opacity','0');
+    g.appendChild(head);g.appendChild(line);svg.appendChild(g);
+
+    requestAnimationFrame(()=>{line.style.strokeDashoffset='0';});
+    setTimeout(()=>{
+      head.setAttribute('cx',toX);
+      head.setAttribute('cy',y);
+      head.setAttribute('opacity','1');
+      setTimeout(()=>{ try{svg.removeChild(g);}catch(e){} resolve(); }, 450);
+    }, 1020);
+  });
+}
+
+function showBubble(x,y,text,color){
+  return new Promise(resolve=>{
+    const svg=document.getElementById('ack-layer');
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x','-20');rect.setAttribute('y','-10');
+    rect.setAttribute('width','40');rect.setAttribute('height','20');
+    rect.setAttribute('rx','10');rect.setAttribute('fill',color);rect.setAttribute('opacity','0.92');
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('text-anchor','middle');t.setAttribute('y','5');
+    t.setAttribute('font-size','10');t.setAttribute('fill','#fff');
+    t.setAttribute('font-weight','500');t.textContent=text;
+    g.appendChild(rect);g.appendChild(t);
+    g.setAttribute('transform',`translate(${x},${y})`);
+    g.style.opacity='0';g.style.transition='opacity 0.25s';
+    svg.appendChild(g);
+    requestAnimationFrame(()=>{g.style.opacity='1';});
+    setTimeout(()=>{g.style.opacity='0';setTimeout(()=>{try{svg.removeChild(g);}catch(e){}resolve();},300);},800);
+  });
+}
+
+async function animateWaveformLive({bits, ackBit='0', title='Byte transfer', dataColor='#1D9E75'}){
+  const layer=document.getElementById('waveform-layer');
+  const titleNode=document.getElementById('waveform-title');
+  layer.innerHTML='';
+  titleNode.textContent=title;
+
+  const x0=58;
+  const step=60;
+  const clkLow=326;
+  const clkHigh=308;
+  const dataLow=386;
+  const dataHigh=362;
+  const labelY=420;
+  const totalBits=[...bits, ackBit];
+  const bitLabels=[...bits, ackBit==='0' ? 'A' : 'N'];
+  const make = tag => document.createElementNS('http://www.w3.org/2000/svg', tag);
+
+  const clk = make('path');
+  clk.setAttribute('fill','none');
+  clk.setAttribute('stroke','#EF9F27');
+  clk.setAttribute('stroke-width','2');
+  clk.setAttribute('stroke-linejoin','round');
+  clk.setAttribute('stroke-linecap','round');
+
+  const sda = make('path');
+  sda.setAttribute('fill','none');
+  sda.setAttribute('stroke',dataColor);
+  sda.setAttribute('stroke-width','2');
+  sda.setAttribute('stroke-linejoin','round');
+  sda.setAttribute('stroke-linecap','round');
+
+  layer.appendChild(clk);
+  layer.appendChild(sda);
+
+  let clkD=`M ${x0} ${clkLow}`;
+  let currentY = totalBits[0]==='1' ? dataHigh : dataLow;
+  let sdaD=`M ${x0} ${currentY}`;
+  clk.setAttribute('d', clkD);
+  sda.setAttribute('d', sdaD);
+
+  for(let i=0;i<totalBits.length;i++){
+    const bit = totalBits[i];
+    const sx=x0 + i*step;
+    const mid=sx + step/2;
+    const ex=sx + step;
+    const y = bit==='1' ? dataHigh : dataLow;
+
+    if(i>0 && currentY!==y){
+      sdaD += ` L ${sx} ${currentY} L ${sx} ${y}`;
+    }
+    sdaD += ` L ${ex} ${y}`;
+    currentY = y;
+
+    clkD += ` L ${sx+10} ${clkLow} L ${sx+10} ${clkHigh} L ${sx+36} ${clkHigh} L ${sx+36} ${clkLow} L ${ex} ${clkLow}`;
+    clk.setAttribute('d', clkD);
+    sda.setAttribute('d', sdaD);
+
+    const txt = make('text');
+    txt.setAttribute('x', mid);
+    txt.setAttribute('y', labelY);
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('font-size','11');
+    txt.setAttribute('font-family','monospace');
+    txt.setAttribute('fill', i===8 ? '#9A6A10' : '#666');
+    txt.textContent = bitLabels[i];
+    layer.appendChild(txt);
+
+    const tick = make('line');
+    tick.setAttribute('x1', mid);
+    tick.setAttribute('x2', mid);
+    tick.setAttribute('y1', 398);
+    tick.setAttribute('y2', 408);
+    tick.setAttribute('stroke', i===8 ? '#E5B867' : '#ccc7bc');
+    layer.appendChild(tick);
+
+    await sleep(STEP_MS);
+  }
+}
+
+async function transferByte({fromX,toX,label,bits,color,dirTitle,ackFromX,ackToX,ackBubbleX,ackBubbleColor,ackText='ACK'}){
+  await Promise.all([
+    animatePacket(fromX,toX,174,color,label),
+    animateWaveformLive({bits, ackBit: ackText==='ACK' ? '0' : '1', title: dirTitle, dataColor: color})
+  ]);
+  const ackColor = ackText==='ACK' ? '#BA7517' : '#993C1D';
+  await animatePacket(ackFromX,ackToX,174,ackColor,ackText);
+  if(ackBubbleX!=null) await showBubble(ackBubbleX,60,ackText,ackBubbleColor);
+  await sleep(80);
+}
+
+async function doWrite(slaveId){
+  if(busy)return;busy=true;
+  const s=getSlaveCfg(slaveId);clearLog();
+  applyCfgToInputs(slaveId, s);
+  refreshDeviceLabels();
+  log(`<span class="log-start">▶ START condition on bus</span>`);
+  setMasterAddr(`Addr: ${s.addr}`);await sleep(420);
+
+  log(`<span class="log-write">→ Master sends address ${s.addr} + W</span>`);
+  setSlave(slaveId,'Addressed','waiting for ACK');
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:`${s.addr}+W`,bits:addrRwBits(s.addr,false),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : address + write bit`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  log(`<span class="log-write">→ Master sends memory address ${s.reg}</span>`);
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:s.reg,bits:hexByteToBits(s.reg),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : memory address byte`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  log(`<span class="log-write">→ Master writes data ${s.data}</span>`);
+  setSlave(slaveId,'Writing',`reg ${s.reg} <= ${s.data}`);
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:s.data,bits:hexByteToBits(s.data),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : data byte`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  setSlave(slaveId,'Written',`reg ${s.reg} = ${s.data}`);
+  log(`<span class="log-start">■ STOP condition — bus released</span>`);
+  document.getElementById('waveform-title').textContent='Last byte waveform shown above';
+  setMasterAddr('Addr: 0x—');busy=false;
+}
+
+async function doRead(slaveId){
+  if(busy)return;busy=true;
+  const s=getSlaveCfg(slaveId);clearLog();
+  applyCfgToInputs(slaveId, s);
+  refreshDeviceLabels();
+  log(`<span class="log-start">▶ START condition on bus</span>`);
+  setMasterAddr(`Addr: ${s.addr}`);await sleep(420);
+
+  log(`<span class="log-write">→ Master sends address ${s.addr} + W (set memory pointer)</span>`);
+  setSlave(slaveId,'Addressed','waiting for ACK');
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:`${s.addr}+W`,bits:addrRwBits(s.addr,false),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : address + write bit`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  log(`<span class="log-write">→ Master sends memory address ${s.reg}</span>`);
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:s.reg,bits:hexByteToBits(s.reg),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : memory address byte`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  log(`<span class="log-start">↻ Repeated START</span>`);await sleep(280);
+
+  log(`<span class="log-write">→ Master sends address ${s.addr} + R</span>`);
+  setSlave(slaveId,'Sending',`reg ${s.reg} => ${s.data}`);
+  await transferByte({
+    fromX:MASTER_X,toX:s.xBus,label:`${s.addr}+R`,bits:addrRwBits(s.addr,true),color:'#1D9E75',
+    dirTitle:`Master → Slave ${slaveId} : address + read bit`,
+    ackFromX:s.xBus,ackToX:MASTER_X,ackBubbleX:s.xBubble,ackBubbleColor:s.bubbleColor,ackText:'ACK'
+  });
+  log(`<span class="log-ack">← Slave ${slaveId} ACK ✓</span>`);
+
+  log(`<span class="log-read">← Slave ${slaveId} sends data ${s.data}</span>`);
+  await transferByte({
+    fromX:s.xBus,toX:MASTER_X,label:s.data,bits:hexByteToBits(s.data),color:'#378ADD',
+    dirTitle:`Slave ${slaveId} → Master : data byte`,
+    ackFromX:MASTER_X,ackToX:s.xBus,ackBubbleX:MASTER_BUBBLE_X,ackBubbleColor:'#993C1D',ackText:'NACK'
+  });
+  log(`<span class="log-ack">→ Master sends NACK (done reading)</span>`);
+
+  setSlave(slaveId,'Read done',`reg ${s.reg} = ${s.data}`);
+  log(`<span class="log-start">■ STOP condition — bus released</span>`);
+  document.getElementById('waveform-title').textContent='Last byte waveform shown above';
+  setMasterAddr('Addr: 0x—');busy=false;
+}
+
+function restoreDefaults(){
+  if(busy) return;
+  [1,2].forEach(id=>applyCfgToInputs(id, DEFAULTS[id]));
+  refreshDeviceLabels();
+  clearLog();
+  log('<span style="color:#aaa">Defaults restored. Ready.</span>');
+}
+
+function resetAll(){
+  busy=false;clearLog();
+  document.getElementById('packet-layer').innerHTML='';
+  document.getElementById('ack-layer').innerHTML='';
+  document.getElementById('waveform-layer').innerHTML='';
+  document.getElementById('waveform-title').textContent='Live waveform appears here during each byte transfer';
+  setMasterAddr('Addr: 0x—');
+  refreshDeviceLabels();
+  log('<span style="color:#aaa">Bus reset. Ready.</span>');
+}
+
+refreshDeviceLabels();
+</script>
+</body>
+</html>
