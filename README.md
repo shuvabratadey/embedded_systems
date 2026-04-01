@@ -5,6 +5,42 @@ Each module includes a clear README and a simple HTML-based tutorial page. More 
 
 ---
 
+## 🌐 How to Access Tutorials
+
+You can explore each tutorial in this way:
+
+### 1️⃣ Directly on GitHub
+
+* Navigate to any folder
+* Open the `README.md` for explanation
+* Open `index.html` to view the tutorial content
+
+Thease tutorials are be available at:
+
+Click this [🔗Link](https://shuvabratadey.github.io/embedded_systems/) or copy this link & open this in browser
+
+```
+https://shuvabratadey.github.io/embedded_systems/
+```
+
+Then access individual tutorials:
+
+* [🔗curl](https://shuvabratadey.github.io/embedded_systems/curl/) →
+  `https://shuvabratadey.github.io/embedded_systems/curl/`
+
+* [🔗cJSON](https://shuvabratadey.github.io/embedded_systems/cJson/) →
+  `https://shuvabratadey.github.io/embedded_systems/cJson/`
+
+* [🔗ESP32 SPIFFS](https://shuvabratadey.github.io/embedded_systems/ESP32_SPIFFS/) →
+  `https://shuvabratadey.github.io/embedded_systems/ESP32_SPIFFS/`
+
+* [🔗I²C Protocol](https://shuvabratadey.github.io/embedded_systems/i2c_communication/) →
+  `https://shuvabratadey.github.io/embedded_systems/i2c_communication/`
+
+  * Click here to [🔗Open I²C Simulator](https://shuvabratadey.github.io/embedded_systems/i2c_communication/I2C_Communication_Simulator.html)
+
+---
+
 ## 📂 Repository Structure
 
 Each folder represents a standalone tutorial:
@@ -22,42 +58,17 @@ embedded_systems/
 │── ESP32_SPIFFS/
 │   ├── index.html
 │   └── README.md
+│
+│── i2c_communication/
+│   ├── index.html
+│   ├── I2C_Communication_Simulator.html
+│   └── README.md
 ```
 
 * `README.md` → Detailed explanation of the topic
 * `index.html` → Simple tutorial webpage for quick understanding
 
 ---
-
-## 🌐 How to Access Tutorials
-
-You can explore each tutorial in two ways:
-
-### 1️⃣ Directly on GitHub
-
-* Navigate to any folder
-* Open the `README.md` for explanation
-* Open `index.html` to view the tutorial content
-
-Your tutorials will be available at:
-
-```
-https://shuvabratadey.github.io/embedded_systems/
-```
-
-Then access individual tutorials:
-
-* curl →
-  `https://shuvabratadey.github.io/embedded_systems/curl/`
-
-* cJSON →
-  `https://shuvabratadey.github.io/embedded_systems/cJson/`
-
-* ESP32 SPIFFS →
-  `https://shuvabratadey.github.io/embedded_systems/ESP32_SPIFFS/`
-
----
-
 ## 🚀 Future Plans
 
 This repository will continue to grow with more embedded systems tutorials.
