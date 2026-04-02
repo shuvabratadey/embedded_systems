@@ -37,6 +37,8 @@ Then access individual tutorials:
 * [🔗I²C Protocol](https://shuvabratadey.github.io/embedded_systems/i2c_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/i2c_communication/`
 
+  * Click here to [🔗Open I²C Simulator](https://shuvabratadey.github.io/embedded_systems/i2c_communication/I2C_Communication_Simulator.html)
+
 * [🔗UART Protocol](https://shuvabratadey.github.io/embedded_systems/uart_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/uart_communication/`
 
