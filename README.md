@@ -37,7 +37,10 @@ Then access individual tutorials:
 * [🔗I²C Protocol](https://shuvabratadey.github.io/embedded_systems/i2c_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/i2c_communication/`
 
-  * Click here to [🔗Open I²C Simulator](https://shuvabratadey.github.io/embedded_systems/i2c_communication/I2C_Communication_Simulator.html)
+* [🔗UART Protocol](https://shuvabratadey.github.io/embedded_systems/uart_communication/) →
+  `https://shuvabratadey.github.io/embedded_systems/uart_communication/`
+
+  * Click here to [🔗Open UART Simulator](https://shuvabratadey.github.io/embedded_systems/uart_communication/UART_Communication_Simulator.html)
 
 ---
 
@@ -62,6 +65,11 @@ embedded_systems/
 │── i2c_communication/
 │   ├── index.html
 │   ├── I2C_Communication_Simulator.html
+│   └── README.md
+│
+│── uart_communication/
+│   ├── index.html
+│   ├── UART_Communication_Simulator.html
 │   └── README.md
 ```
 
