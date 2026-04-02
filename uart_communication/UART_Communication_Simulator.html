@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UART Communication Simulator</title>
+
+<style>
+*, *::before, *::after{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#f5f4f0;
+  color:#1a1a18;
+  padding:2rem;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+h1{
+  font-size:20px;
+  margin-bottom:6px;
+}
+
+.sub{
+  font-size:13px;
+  color:#777;
+  margin-bottom:18px;
+  text-align:center;
+}
+
+.card{
+  background:white;
+  padding:1.4rem;
+  border-radius:14px;
+  border:0.5px solid #ddd;
+  max-width:1100px;
+  width:100%;
+}
+
+.input-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+}
+
+.field label{
+  font-size:13px;
+  color:#555;
+}
+
+.field input{
+  border:0.5px solid #ccc;
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:13px;
+  background:#faf9f6;
+  width:100%;
+}
+
+.combo-wrap{
+  position:relative;
+}
+
+.combo-input{
+  padding-right:42px !important;
+}
+
+.combo-btn{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:28px;
+  height:28px;
+  border:none;
+  border-radius:6px;
+  background:#ece9df;
+  cursor:pointer;
+  font-size:12px;
+  color:#555;
+}
+
+.combo-btn:hover{
+  background:#e1ddd1;
+}
+
+.combo-list{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  right:0;
+  background:white;
+  border:0.5px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.08);
+  max-height:220px;
+  overflow-y:auto;
+  z-index:20;
+  display:none;
+}
+
+.combo-list.show{
+  display:block;
+}
+
+.combo-item{
+  padding:10px 12px;
+  font-size:13px;
+  cursor:pointer;
+  border-bottom:0.5px solid #f0f0f0;
+}
+
+.combo-item:last-child{
+  border-bottom:none;
+}
+
+.combo-item:hover{
+  background:#f5f3ec;
+}
+
+.controls{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+
+.btn{
+  background:#f0efe9;
+  border:0.5px solid #ccc;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.btn:hover{
+  background:#e4e3dd;
+}
+
+#log{
+  font-family:monospace;
+  font-size:12px;
+  background:#f7f6f2;
+  padding:10px;
+  border-radius:8px;
+  margin-top:10px;
+  height:150px;
+  overflow:auto;
+  border:0.5px solid #ddd;
+}
+
+svg{
+  margin-top:14px;
+  width:100%;
+  height:auto;
+}
+
+.small-note{
+  font-size:12px;
+  color:#777;
+  margin-top:8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>UART Communication Simulator</h1>
+<div class="sub">Device A ↔ Device B · TX/RX · Start bit · Data bits · Stop bit</div>
+
+<div class="card">
+
+  <div class="input-grid">
+    <div class="field">
+      <label for="baudRateInput">Baud Rate</label>
+      <div class="combo-wrap">
+        <input
+          type="text"
+          id="baudRateInput"
+          class="combo-input"
+          value="9600"
+          placeholder="Select or type baud rate"
+          inputmode="numeric"
+          autocomplete="off"
+        >
+        <button type="button" class="combo-btn" onclick="toggleBaudMenu()">▼</button>
+        <div id="baudMenu" class="combo-list"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="deviceAData">Device A → Device B Data (HEX)</label>
+      <input type="text" id="deviceAData" value="A5" maxlength="2" placeholder="A5">
+    </div>
+
+    <div class="field">
+      <label for="deviceBData">Device B → Device A Data (HEX)</label>
+      <input type="text" id="deviceBData" value="3F" maxlength="2" placeholder="3F">
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="sendAtoB()">Device A → Device B</button>
+    <button class="btn" onclick="sendBtoA()">Device B → Device A</button>
+    <button class="btn" onclick="sendFullDuplex()">Full Duplex</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+
+  <svg id="svg" viewBox="0 0 1100 650">
+
+    <rect x="60" y="70" width="170" height="80" rx="10" fill="#EEEDFE" stroke="#534AB7"/>
+    <text x="145" y="102" text-anchor="middle" font-size="15" font-weight="600">Device A</text>
+    <text x="145" y="125" text-anchor="middle" font-size="11" fill="#666">UART Node</text>
+
+    <rect x="870" y="70" width="170" height="80" rx="10" fill="#E1F5EE" stroke="#0F6E56"/>
+    <text x="955" y="102" text-anchor="middle" font-size="15" font-weight="600">Device B</text>
+    <text x="955" y="125" text-anchor="middle" font-size="11" fill="#666">UART Node</text>
+
+    <line x1="230" y1="103" x2="870" y2="103" stroke="#5DCAA5" stroke-width="3"/>
+    <text x="550" y="88" text-anchor="middle" font-size="12" fill="#4D9E82">A TX → B RX</text>
+
+    <line x1="870" y1="128" x2="230" y2="128" stroke="#EF9F27" stroke-width="3"/>
+    <text x="550" y="148" text-anchor="middle" font-size="12" fill="#CC861F">B TX → A RX</text>
+
+    <g id="transferLayer"></g>
+
+    <text x="60" y="205" font-size="13" fill="#4D9E82" font-weight="600">Device A TX → Device B RX Timing Diagram</text>
+    <line x1="60" y1="230" x2="1060" y2="230" stroke="#ddd"/>
+    <g id="waveTop"></g>
+
+    <text x="60" y="415" font-size="13" fill="#CC861F" font-weight="600">Device B TX → Device A RX Timing Diagram</text>
+    <line x1="60" y1="440" x2="1060" y2="440" stroke="#ddd"/>
+    <g id="waveBottom"></g>
+  </svg>
+
+  <div class="small-note">
+    Frame format: Start + D0 to D7 + Stop
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<script>
+const DEFAULT_BAUD = 9600;
+const DEFAULT_A_HEX = "A5";
+const DEFAULT_B_HEX = "3F";
+
+const TOP_COLOR = "#5DCAA5";
+const BOTTOM_COLOR = "#EF9F27";
+
+const DEFAULT_BAUD_RATES = [
+  50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800,
+  7200, 9600, 14400, 19200, 28800, 31250, 38400, 56000, 57600,
+  76800, 115200, 128000, 153600, 230400, 256000, 460800, 576000,
+  921600, 1000000, 1500000, 2000000
+];
+
+function log(t){
+  const l = document.getElementById("log");
+  l.innerHTML += t + "<br>";
+  l.scrollTop = l.scrollHeight;
+}
+
+function sleep(ms){
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function sanitizeHexInput(input){
+  input.value = input.value
+    .toUpperCase()
+    .replace(/[^0-9A-F]/g, "")
+    .slice(0, 2);
+}
+
+document.getElementById("deviceAData").addEventListener("input", function(){
+  sanitizeHexInput(this);
+});
+
+document.getElementById("deviceBData").addEventListener("input", function(){
+  sanitizeHexInput(this);
+});
+
+document.getElementById("baudRateInput").addEventListener("input", function(){
+  this.value = this.value.replace(/[^0-9]/g, "");
+  filterBaudMenu(this.value);
+  showBaudMenu();
+});
+
+document.getElementById("baudRateInput").addEventListener("focus", function(){
+  showAllBaudRates();
+});
+
+function buildBaudMenu(list){
+  const menu = document.getElementById("baudMenu");
+  menu.innerHTML = "";
+
+  list.forEach(rate => {
+    const item = document.createElement("div");
+    item.className = "combo-item";
+    item.textContent = rate;
+    item.onclick = function(){
+      document.getElementById("baudRateInput").value = rate;
+      hideBaudMenu();
+    };
+    menu.appendChild(item);
+  });
+}
+
+function showAllBaudRates(){
+  buildBaudMenu(DEFAULT_BAUD_RATES);
+  showBaudMenu();
+}
+
+function filterBaudMenu(query){
+  const q = String(query || "").trim();
+
+  if(q === ""){
+    buildBaudMenu(DEFAULT_BAUD_RATES);
+    return;
+  }
+
+  const filtered = DEFAULT_BAUD_RATES.filter(rate =>
+    String(rate).startsWith(q)
+  );
+
+  buildBaudMenu(filtered.length ? filtered : DEFAULT_BAUD_RATES);
+}
+
+function showBaudMenu(){
+  document.getElementById("baudMenu").classList.add("show");
+}
+
+function hideBaudMenu(){
+  document.getElementById("baudMenu").classList.remove("show");
+}
+
+function toggleBaudMenu(){
+  const menu = document.getElementById("baudMenu");
+  const input = document.getElementById("baudRateInput");
+
+  if(menu.classList.contains("show")){
+    hideBaudMenu();
+  }else{
+    showAllBaudRates();
+    input.focus();
+  }
+}
+
+document.addEventListener("click", function(e){
+  const wrap = document.querySelector(".combo-wrap");
+  if(!wrap.contains(e.target)){
+    hideBaudMenu();
+  }
+});
+
+function byteToBitsLSB(b){
+  return b
+    .toString(2)
+    .padStart(8, "0")
+    .split("")
+    .reverse();
+}
+
+function getBaudRate(){
+  const raw = document.getElementById("baudRateInput").value.trim();
+  const baud = parseInt(raw, 10);
+  return (!isNaN(baud) && baud > 0) ? baud : DEFAULT_BAUD;
+}
+
+function getHexByte(id, defaultHex){
+  let value = document.getElementById(id).value.trim().toUpperCase();
+
+  if(value === ""){
+    value = defaultHex;
+  }
+
+  value = value.replace(/[^0-9A-F]/g, "").slice(0, 2);
+
+  if(value === ""){
+    value = defaultHex;
+  }
+
+  const num = parseInt(value, 16);
+
+  if(isNaN(num) || num < 0 || num > 255){
+    return {
+      hex: defaultHex,
+      value: parseInt(defaultHex, 16),
+      usedDefault: true
+    };
+  }
+
+  const finalHex = num.toString(16).toUpperCase().padStart(2, "0");
+
+  return {
+    hex: finalHex,
+    value: num,
+    usedDefault: false
+  };
+}
+
+function makeFrame(byteValue){
+  const dataBits = byteToBitsLSB(byteValue);
+  return {
+    labels: ["Start", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "Stop"],
+    bits: ["0", ...dataBits, "1"]
+  };
+}
+
+function bitDelayFromBaud(baud){
+  return Math.max(120, Math.min(700, 220000 / baud));
+}
+
+function bitTimeUs(baud){
+  return Math.round(1000000 / baud);
+}
+
+function clearWave(groupId){
+  document.getElementById(groupId).innerHTML = "";
+}
+
+function drawGridAndLabels(groupId, frame, yLow, yHigh, color, baud){
+  const g = document.getElementById(groupId);
+  const step = 90;
+  const startX = 60;
+  const tUs = bitTimeUs(baud);
+
+  for(let i = 0; i < frame.bits.length; i++){
+    const x = startX + i * step;
+    const centerX = x + step / 2;
+    const bit = frame.bits[i];
+    const label = frame.labels[i];
+    const yBit = bit === "1" ? yHigh : yLow;
+
+    const divider = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    divider.setAttribute("x1", x);
+    divider.setAttribute("y1", yHigh - 60);
+    divider.setAttribute("x2", x);
+    divider.setAttribute("y2", yLow + 32);
+    divider.setAttribute("stroke", "#e6e6e6");
+    divider.setAttribute("stroke-width", "1");
+    g.appendChild(divider);
+
+    const timingText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    timingText.setAttribute("x", centerX);
+    timingText.setAttribute("y", yHigh - 42);
+    timingText.setAttribute("text-anchor", "middle");
+    timingText.setAttribute("font-size", "10");
+    timingText.setAttribute("fill", "#777");
+    timingText.textContent = tUs + " µs";
+    g.appendChild(timingText);
+
+    const labelText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    labelText.setAttribute("x", centerX);
+    labelText.setAttribute("y", yHigh - 20);
+    labelText.setAttribute("text-anchor", "middle");
+    labelText.setAttribute("font-size", "11");
+    labelText.setAttribute("font-weight", "600");
+    labelText.setAttribute("fill", "#555");
+    labelText.textContent = label;
+    g.appendChild(labelText);
+
+    const bitText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    bitText.setAttribute("x", centerX);
+    bitText.setAttribute("y", yBit - 10);
+    bitText.setAttribute("text-anchor", "middle");
+    bitText.setAttribute("font-size", "12");
+    bitText.setAttribute("font-weight", "700");
+    bitText.setAttribute("fill", color);
+    bitText.textContent = bit;
+    g.appendChild(bitText);
+  }
+
+  const lastDivider = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  lastDivider.setAttribute("x1", startX + frame.bits.length * step);
+  lastDivider.setAttribute("y1", yHigh - 60);
+  lastDivider.setAttribute("x2", startX + frame.bits.length * step);
+  lastDivider.setAttribute("y2", yLow + 32);
+  lastDivider.setAttribute("stroke", "#e6e6e6");
+  lastDivider.setAttribute("stroke-width", "1");
+  g.appendChild(lastDivider);
+
+  const highLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  highLabel.setAttribute("x", 25);
+  highLabel.setAttribute("y", yHigh + 4);
+  highLabel.setAttribute("font-size", "11");
+  highLabel.setAttribute("fill", color);
+  highLabel.textContent = "HIGH";
+  g.appendChild(highLabel);
+
+  const lowLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  lowLabel.setAttribute("x", 30);
+  lowLabel.setAttribute("y", yLow + 4);
+  lowLabel.setAttribute("font-size", "11");
+  lowLabel.setAttribute("fill", color);
+  lowLabel.textContent = "LOW";
+  g.appendChild(lowLabel);
+}
+
+async function animateWave(groupId, frame, color, baud, yLow, yHigh){
+  const g = document.getElementById(groupId);
+  const step = 90;
+  const startX = 60;
+  const delay = bitDelayFromBaud(baud);
+
+  g.innerHTML = "";
+  drawGridAndLabels(groupId, frame, yLow, yHigh, color, baud);
+
+  let path = `M ${startX} ${yHigh}`;
+
+  for(let i = 0; i < frame.bits.length; i++){
+    const bit = frame.bits[i];
+    const y = bit === "1" ? yHigh : yLow;
+    const x1 = startX + i * step;
+    const x2 = startX + (i + 1) * step;
+
+    path += ` L ${x1} ${y}`;
+    path += ` L ${x2} ${y}`;
+
+    g.innerHTML = "";
+    drawGridAndLabels(groupId, frame, yLow, yHigh, color, baud);
+
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", path);
+    p.setAttribute("stroke", color);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke-width", "3");
+    p.setAttribute("stroke-linejoin", "round");
+    p.setAttribute("stroke-linecap", "round");
+    g.appendChild(p);
+
+    await sleep(delay);
+  }
+}
+
+async function animateHexTransfer(text, x1, y1, x2, y2, color){
+  const layer = document.getElementById("transferLayer");
+  const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+
+  textNode.setAttribute("x", x1);
+  textNode.setAttribute("y", y1);
+  textNode.setAttribute("text-anchor", "middle");
+  textNode.setAttribute("font-size", "14");
+  textNode.setAttribute("font-weight", "700");
+  textNode.setAttribute("fill", color);
+  textNode.textContent = "0x" + text;
+
+  layer.appendChild(textNode);
+
+  const steps = 45;
+
+  for(let i = 0; i <= steps; i++){
+    const t = i / steps;
+    const x = x1 + (x2 - x1) * t;
+    const y = y1 + (y2 - y1) * t;
+    textNode.setAttribute("x", x);
+    textNode.setAttribute("y", y);
+    await sleep(35);
+  }
+
+  await sleep(220);
+
+  if(textNode.parentNode){
+    textNode.parentNode.removeChild(textNode);
+  }
+}
+
+function clearTransferLayer(){
+  document.getElementById("transferLayer").innerHTML = "";
+}
+
+async function sendAtoB(){
+  const baud = getBaudRate();
+  const dataA = getHexByte("deviceAData", DEFAULT_A_HEX);
+  const frameA = makeFrame(dataA.value);
+
+  if(dataA.usedDefault){
+    log("Invalid or empty Device A data. Using default 0x" + DEFAULT_A_HEX);
+  }
+
+  clearTransferLayer();
+  clearWave("waveBottom");
+
+  log("Device A sending 0x" + dataA.hex + " to Device B at " + baud + " baud");
+
+  await Promise.all([
+    animateHexTransfer(dataA.hex, 240, 95, 860, 95, TOP_COLOR),
+    animateWave("waveTop", frameA, TOP_COLOR, baud, 300, 265)
+  ]);
+
+  log("Device B received 0x" + dataA.hex);
+}
+
+async function sendBtoA(){
+  const baud = getBaudRate();
+  const dataB = getHexByte("deviceBData", DEFAULT_B_HEX);
+  const frameB = makeFrame(dataB.value);
+
+  if(dataB.usedDefault){
+    log("Invalid or empty Device B data. Using default 0x" + DEFAULT_B_HEX);
+  }
+
+  clearTransferLayer();
+  clearWave("waveTop");
+
+  log("Device B sending 0x" + dataB.hex + " to Device A at " + baud + " baud");
+
+  await Promise.all([
+    animateHexTransfer(dataB.hex, 860, 120, 240, 120, BOTTOM_COLOR),
+    animateWave("waveBottom", frameB, BOTTOM_COLOR, baud, 510, 475)
+  ]);
+
+  log("Device A received 0x" + dataB.hex);
+}
+
+async function sendFullDuplex(){
+  const baud = getBaudRate();
+  const dataA = getHexByte("deviceAData", DEFAULT_A_HEX);
+  const dataB = getHexByte("deviceBData", DEFAULT_B_HEX);
+  const frameA = makeFrame(dataA.value);
+  const frameB = makeFrame(dataB.value);
+
+  if(dataA.usedDefault){
+    log("Invalid or empty Device A data. Using default 0x" + DEFAULT_A_HEX);
+  }
+
+  if(dataB.usedDefault){
+    log("Invalid or empty Device B data. Using default 0x" + DEFAULT_B_HEX);
+  }
+
+  clearTransferLayer();
+
+  log("Full duplex started at " + baud + " baud");
+  log("Device A TX → Device B RX : 0x" + dataA.hex);
+  log("Device B TX → Device A RX : 0x" + dataB.hex);
+
+  await Promise.all([
+    animateHexTransfer(dataA.hex, 240, 95, 860, 95, TOP_COLOR),
+    animateHexTransfer(dataB.hex, 860, 120, 240, 120, BOTTOM_COLOR),
+    animateWave("waveTop", frameA, TOP_COLOR, baud, 300, 265),
+    animateWave("waveBottom", frameB, BOTTOM_COLOR, baud, 510, 475)
+  ]);
+
+  log("Full duplex transfer complete");
+}
+
+function resetAll(){
+  clearWave("waveTop");
+  clearWave("waveBottom");
+  clearTransferLayer();
+  //document.getElementById("log").innerHTML = "Reset complete";
+}
+
+buildBaudMenu(DEFAULT_BAUD_RATES);
+hideBaudMenu();
+</script>
+
+</body>
+</html>

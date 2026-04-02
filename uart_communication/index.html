@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UART Communication – Complete Professional Tutorial</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #0f1530;
+      --text: #e8ecff;
+      --muted: #b8c0e0;
+      --accent: #7cc4ff;
+      --accent-2: #8ef0c7;
+      --border: #2a3566;
+      --code: #0a0f22;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #111833);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    .card {
+      background: rgba(18, 25, 51, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-bottom: 22px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+    }
+    h1, h2, h3, h4 { margin-top: 0; }
+    h1 {
+      font-size: 2.1rem;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 1.45rem;
+      color: var(--accent-2);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    h3 { color: #c8d6ff; margin-top: 18px; }
+    p, li { color: var(--muted); }
+    ul, ol { padding-left: 22px; }
+    a { color: var(--accent); }
+    code {
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #fff;
+    }
+    pre {
+      background: var(--code);
+      color: #d8e2ff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .img-box {
+      background: var(--panel-2);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    .small {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .hero {
+      padding: 30px;
+      background: radial-gradient(circle at top left, rgba(124,196,255,0.15), transparent 40%),
+                  radial-gradient(circle at top right, rgba(142,240,199,0.12), transparent 35%),
+                  var(--panel);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="card hero">
+      <h1>UART Communication – Complete Professional Tutorial</h1>
+      <p>Universal Asynchronous Receiver-Transmitter (UART) is one of the most widely used serial communication protocols in embedded systems. It enables data exchange between microcontrollers, computers, sensors, GPS modules, Bluetooth modules, modems, and many other peripherals using asynchronous serial communication.</p>
+    </section>
+
+    <section class="card">
+      <h2>📌 Introduction</h2>
+      <p>UART is a simple, hardware-supported serial communication method widely used in embedded systems because it needs only two main signal lines and does not require a clock line.</p>
+    </section>
+
+    <section class="card">
+      <h2>🧠 Key Concepts</h2>
+      <ul>
+        <li><strong>Two main signals</strong>:
+          <ul>
+            <li>TX (Transmit)</li>
+            <li>RX (Receive)</li>
+          </ul>
+        </li>
+        <li><strong>Asynchronous communication</strong></li>
+        <li><strong>Full-duplex communication</strong></li>
+        <li><strong>No clock line required</strong></li>
+        <li><strong>Configurable baud rate, parity, and stop bits</strong></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>🌐 UART Communication Simulator Link</h2>
+      <p><a href="UART_Communication_Simulator.html">Open UART Communication Simulator</a></p>
+    </section>
+
+    <section class="card">
+      <h2>🔌 Basic UART Connection Diagram</h2>
+      <div class="img-box">
+        <img src="images/uart.png" alt="Basic UART Protocol Diagram" />
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>🎞️ UART Working Animation (GIF)</h2>
+      <div class="img-box">
+        <img src="images/uart.gif" alt="UART Working Animation" />
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>⚙️ How UART Works (Step-by-Step)</h2>
+      <h3>1. Idle State</h3>
+      <ul><li>TX and RX lines remain HIGH when no data is being transmitted</li></ul>
+
+      <h3>2. Start Bit</h3>
+      <ul><li>Transmission begins with one <strong>LOW</strong> start bit</li></ul>
+
+      <h3>3. Data Bits</h3>
+      <ul>
+        <li>Typically 8 data bits are sent</li>
+        <li>LSB (Least Significant Bit) is usually sent first</li>
+      </ul>
+
+      <h3>4. Optional Parity Bit</h3>
+      <ul><li>Used for simple error detection</li></ul>
+
+      <h3>5. Stop Bit(s)</h3>
+      <ul>
+        <li>One or more stop bits indicate the end of a frame</li>
+        <li>Line returns to HIGH state</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>📦 Data Format</h2>
+      <pre>| IDLE | START | DATA (5-9 bits) | PARITY (optional) | STOP (1/2 bits) |</pre>
+    </section>
+
+    <section class="card">
+      <h2>🔢 Common UART Frame Formats</h2>
+      <h3>8N1</h3>
+      <ul>
+        <li>8 data bits</li>
+        <li>No parity</li>
+        <li>1 stop bit</li>
+        <li>Most common UART format</li>
+      </ul>
+
+      <h3>8E1</h3>
+      <ul>
+        <li>8 data bits</li>
+        <li>Even parity</li>
+        <li>1 stop bit</li>
+      </ul>
+
+      <h3>8O1</h3>
+      <ul>
+        <li>8 data bits</li>
+        <li>Odd parity</li>
+        <li>1 stop bit</li>
+      </ul>
+
+      <h3>7E1</h3>
+      <ul>
+        <li>7 data bits</li>
+        <li>Even parity</li>
+        <li>1 stop bit</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>📥 Baud Rate</h2>
+      <p>Baud rate defines the transmission speed in bits per second.</p>
+      <h3>Common Baud Rates</h3>
+      <ul>
+        <li>9600</li>
+        <li>19200</li>
+        <li>38400</li>
+        <li>57600</li>
+        <li>115200</li>
+      </ul>
+      <h3>Important Rule</h3>
+      <p>Both transmitter and receiver must use the same baud rate, data bits, parity, and stop bits. Otherwise, communication errors will occur.</p>
+    </section>
+
+    <section class="card">
+      <h2>🔁 Read &amp; Write Flow</h2>
+      <h3>📝 Write Operation</h3>
+      <ol>
+        <li>Configure UART peripheral</li>
+        <li>Set baud rate and frame format</li>
+        <li>Write byte or buffer into TX register</li>
+        <li>UART hardware serializes data</li>
+        <li>Data appears on TX pin</li>
+      </ol>
+
+      <h3>📖 Read Operation</h3>
+      <ol>
+        <li>Configure UART peripheral</li>
+        <li>Wait until RX data is available</li>
+        <li>Read received byte from RX register</li>
+        <li>Repeat until full buffer is received</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>🧩 ESP-IDF UART Examples</h2>
+      <p>The examples below cover all common combinations:</p>
+      <ul>
+        <li>UART initialization</li>
+        <li>single-byte transmit</li>
+        <li>single-byte receive</li>
+        <li>string transmit</li>
+        <li>buffer transmit</li>
+        <li>buffer receive</li>
+        <li>line-based receive</li>
+        <li>timeout-based receive</li>
+        <li>echo example</li>
+        <li>basic packet communication</li>
+      </ul>
+
+      <h3>ESP-IDF Setup</h3>
+      <pre>#include "driver/uart.h"
+#include "driver/gpio.h"
+#include "esp_err.h"
+#include &lt;string.h&gt;
+
+#define UART_PORT_NUM           UART_NUM_1
+#define UART_TX_PIN             17
+#define UART_RX_PIN             16
+#define UART_BAUD_RATE          115200
+#define UART_BUF_SIZE           1024
+#define UART_TIMEOUT_MS         1000
+
+static esp_err_t uart_master_init(void)
+{
+    const uart_config_t uart_config = {
+        .baud_rate = UART_BAUD_RATE,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    ESP_ERROR_CHECK(uart_driver_install(UART_PORT_NUM, UART_BUF_SIZE, UART_BUF_SIZE, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(UART_PORT_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN,
+                                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+    return ESP_OK;
+}</pre>
+
+      <h3>1) Write Single Byte</h3>
+      <pre>esp_err_t uart_write_byte(uint8_t data)
+{
+    int written = uart_write_bytes(UART_PORT_NUM, (const char *)&data, 1);
+    return (written == 1) ? ESP_OK : ESP_FAIL;
+}</pre>
+
+      <h3>2) Read Single Byte</h3>
+      <pre>esp_err_t uart_read_byte(uint8_t *data)
+{
+    if (data == NULL) return ESP_ERR_INVALID_ARG;
+
+    int len = uart_read_bytes(UART_PORT_NUM, data, 1, pdMS_TO_TICKS(UART_TIMEOUT_MS));
+    return (len == 1) ? ESP_OK : ESP_ERR_TIMEOUT;
+}</pre>
+
+      <h3>3) Write String</h3>
+      <pre>esp_err_t uart_write_string(const char *str)
+{
+    if (str == NULL) return ESP_ERR_INVALID_ARG;
+
+    int len = strlen(str);
+    int written = uart_write_bytes(UART_PORT_NUM, str, len);
+    return (written == len) ? ESP_OK : ESP_FAIL;
+}</pre>
+
+      <h3>4) Read Buffer</h3>
+      <pre>esp_err_t uart_read_buffer(uint8_t *buf, size_t len, size_t *received_len)
+{
+    if (buf == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    int rx_len = uart_read_bytes(UART_PORT_NUM, buf, len, pdMS_TO_TICKS(UART_TIMEOUT_MS));
+    if (received_len) {
+        *received_len = (rx_len > 0) ? (size_t)rx_len : 0;
+    }
+
+    return (rx_len > 0) ? ESP_OK : ESP_ERR_TIMEOUT;
+}</pre>
+
+      <h3>5) Write Buffer</h3>
+      <pre>esp_err_t uart_write_buffer(const uint8_t *buf, size_t len)
+{
+    if (buf == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    int written = uart_write_bytes(UART_PORT_NUM, (const char *)buf, len);
+    return (written == (int)len) ? ESP_OK : ESP_FAIL;
+}</pre>
+
+      <h3>6) Read Line Until Newline</h3>
+      <pre>esp_err_t uart_read_line(char *buf, size_t max_len)
+{
+    if (buf == NULL || max_len == 0) return ESP_ERR_INVALID_ARG;
+
+    size_t index = 0;
+    uint8_t ch;
+
+    while (index < (max_len - 1)) {
+        int len = uart_read_bytes(UART_PORT_NUM, &ch, 1, pdMS_TO_TICKS(UART_TIMEOUT_MS));
+        if (len <= 0) {
+            break;
+        }
+
+        buf[index++] = (char)ch;
+        if (ch == '\n') {
+            break;
+        }
+    }
+
+    buf[index] = '\0';
+    return (index > 0) ? ESP_OK : ESP_ERR_TIMEOUT;
+}</pre>
+
+      <h3>7) UART Echo Example</h3>
+      <pre>esp_err_t uart_echo_task_once(void)
+{
+    uint8_t data[128];
+    int len = uart_read_bytes(UART_PORT_NUM, data, sizeof(data), pdMS_TO_TICKS(UART_TIMEOUT_MS));
+    if (len > 0) {
+        int written = uart_write_bytes(UART_PORT_NUM, (const char *)data, len);
+        return (written == len) ? ESP_OK : ESP_FAIL;
+    }
+
+    return ESP_ERR_TIMEOUT;
+}</pre>
+
+      <h3>8) Send Packet with Header and Footer</h3>
+      <pre>esp_err_t uart_send_packet(const uint8_t *payload, size_t len)
+{
+    if (payload == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    uint8_t header = 0xAA;
+    uint8_t footer = 0x55;
+
+    if (uart_write_bytes(UART_PORT_NUM, (const char *)&header, 1) != 1) return ESP_FAIL;
+    if (uart_write_bytes(UART_PORT_NUM, (const char *)payload, len) != (int)len) return ESP_FAIL;
+    if (uart_write_bytes(UART_PORT_NUM, (const char *)&footer, 1) != 1) return ESP_FAIL;
+
+    return ESP_OK;
+}</pre>
+
+      <h3>9) Receive Fixed-Length Packet</h3>
+      <pre>esp_err_t uart_receive_packet(uint8_t *buf, size_t len)
+{
+    if (buf == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    int rx_len = uart_read_bytes(UART_PORT_NUM, buf, len, pdMS_TO_TICKS(UART_TIMEOUT_MS));
+    return (rx_len == (int)len) ? ESP_OK : ESP_ERR_TIMEOUT;
+}</pre>
+
+      <h3>10) Flush UART RX Buffer</h3>
+      <pre>esp_err_t uart_clear_rx_buffer(void)
+{
+    return uart_flush_input(UART_PORT_NUM);
+}</pre>
+
+      <h3>ESP-IDF Example Usage</h3>
+      <pre>void app_main(void)
+{
+    ESP_ERROR_CHECK(uart_master_init());
+
+    uint8_t rx_byte;
+    uint8_t tx_buffer[] = {0x11, 0x22, 0x33, 0x44};
+    char line[64];
+
+    uart_write_byte(0x55);
+    uart_read_byte(&rx_byte);
+
+    uart_write_string("Hello UART\r\n");
+    uart_write_buffer(tx_buffer, sizeof(tx_buffer));
+
+    uart_read_line(line, sizeof(line));
+}</pre>
+    </section>
+
+    <section class="card">
+      <h2>🧩 STM32 HAL Examples</h2>
+      <p>STM32 HAL provides simple and efficient APIs for UART transmit and receive operations.</p>
+
+      <h3>STM32 Setup Assumption</h3>
+      <pre>#include "stm32f1xx_hal.h"
+
+extern UART_HandleTypeDef huart1;</pre>
+
+      <h3>1) Transmit Single Byte</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_write_byte(uint8_t data)
+{
+    return HAL_UART_Transmit(&huart1, &data, 1, 100);
+}</pre>
+
+      <h3>2) Receive Single Byte</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_read_byte(uint8_t *data)
+{
+    return HAL_UART_Receive(&huart1, data, 1, 100);
+}</pre>
+
+      <h3>3) Transmit String</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_write_string(const char *str)
+{
+    if (str == NULL) return HAL_ERROR;
+
+    return HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), 100);
+}</pre>
+
+      <h3>4) Receive Buffer</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_read_buffer(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Receive(&huart1, buf, len, 100);
+}</pre>
+
+      <h3>5) Transmit Buffer</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_write_buffer(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Transmit(&huart1, buf, len, 100);
+}</pre>
+
+      <h3>6) Transmit with DMA</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_write_dma(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Transmit_DMA(&huart1, buf, len);
+}</pre>
+
+      <h3>7) Receive with DMA</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_read_dma(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Receive_DMA(&huart1, buf, len);
+}</pre>
+
+      <h3>8) Transmit with Interrupt</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_write_it(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Transmit_IT(&huart1, buf, len);
+}</pre>
+
+      <h3>9) Receive with Interrupt</h3>
+      <pre>HAL_StatusTypeDef stm32_uart_read_it(uint8_t *buf, uint16_t len)
+{
+    return HAL_UART_Receive_IT(&huart1, buf, len);
+}</pre>
+
+      <h3>10) Echo Example</h3>
+      <pre>void example_uart_echo(void)
+{
+    uint8_t ch;
+
+    if (HAL_UART_Receive(&huart1, &ch, 1, 100) == HAL_OK) {
+        HAL_UART_Transmit(&huart1, &ch, 1, 100);
+    }
+}</pre>
+
+      <h3>STM32 Example Usage</h3>
+      <pre>void example_uart_transactions(void)
+{
+    uint8_t rx_byte;
+    uint8_t tx_data[] = {0x10, 0x20, 0x30, 0x40};
+
+    stm32_uart_write_byte(0x55);
+    stm32_uart_read_byte(&rx_byte);
+
+    stm32_uart_write_string("Hello STM32 UART\r\n");
+    stm32_uart_write_buffer(tx_data, sizeof(tx_data));
+
+    stm32_uart_read_buffer(tx_data, 4);
+}</pre>
+    </section>
+
+    <section class="card">
+      <h2>⚡ Important Notes</h2>
+      <ul>
+        <li>UART is asynchronous, so no clock pin is required</li>
+        <li>TX of one device must connect to RX of the other</li>
+        <li>RX of one device must connect to TX of the other</li>
+        <li>Common ground is required between devices</li>
+        <li>Mismatched baud settings cause garbage data</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>🛠️ Troubleshooting</h2>
+      <ul>
+        <li>No data received → Check TX/RX cross connection</li>
+        <li>Garbage characters → Check baud rate mismatch</li>
+        <li>Framing error → Check stop bit and parity settings</li>
+        <li>Missing data → Check buffer size and timeout</li>
+        <li>Communication works one way only → Check wiring and TX/RX direction</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>🔬 How MCU Handles UART Data Internally</h2>
+
+      <h3>UART Transmission</h3>
+      <p>When software writes data to UART:</p>
+      <ul>
+        <li>MCU places byte into UART transmit register</li>
+        <li>UART hardware adds:
+          <ul>
+            <li>start bit</li>
+            <li>optional parity bit</li>
+            <li>stop bit(s)</li>
+          </ul>
+        </li>
+        <li>Then data is shifted out serially on TX pin</li>
+      </ul>
+
+      <p>Example frame for sending <code>0x41</code> (<code>'A'</code>) using 8N1:</p>
+      <pre>IDLE = 1
+START = 0
+DATA = 10000010   (LSB first for 0x41)
+STOP = 1</pre>
+
+      <h3>UART Reception</h3>
+      <p>When data arrives on RX pin:</p>
+      <ul>
+        <li>UART hardware detects start bit</li>
+        <li>Samples incoming bits according to configured baud rate</li>
+        <li>Reconstructs byte</li>
+        <li>Stores result into receive register</li>
+        <li>Software reads the received data</li>
+      </ul>
+
+      <h3>Start Bit</h3>
+      <p>The start bit tells the receiver that a new frame is beginning.</p>
+      <pre>LINE goes from HIGH to LOW</pre>
+
+      <h3>Stop Bit</h3>
+      <p>Stop bit marks the end of frame and returns line to idle HIGH state.</p>
+      <pre>LINE returns HIGH</pre>
+
+      <h3>Parity Bit</h3>
+      <p>Parity is optional and used for basic error checking.</p>
+      <ul>
+        <li>Even parity → total number of 1s is even</li>
+        <li>Odd parity → total number of 1s is odd</li>
+      </ul>
+
+      <h3>Important Rule</h3>
+      <p>UART transfers raw bytes only. It does not understand:</p>
+      <ul>
+        <li>integers</li>
+        <li>floats</li>
+        <li>strings</li>
+        <li>packets</li>
+      </ul>
+      <p>Those formats must be handled by software protocol design.</p>
+
+      <p>Examples:</p>
+      <ul>
+        <li>Sending <code>"HELLO"</code> means sending bytes one by one</li>
+        <li>Sending <code>0x1234</code> may require 2 bytes</li>
+        <li>Sending packets often requires header, payload, checksum, and footer</li>
+      </ul>
+
+      <p>So always define:</p>
+      <ul>
+        <li>baud rate</li>
+        <li>frame format</li>
+        <li>byte order</li>
+        <li>packet format</li>
+        <li>timeout behavior</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>📚 Summary</h2>
+      <ul>
+        <li>UART uses TX and RX lines</li>
+        <li>No clock signal required</li>
+        <li>Simple and widely supported</li>
+        <li>Ideal for debugging, modules, and point-to-point communication</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>🚀 Bonus: Logic Analyzer View</h2>
+      <div class="img-box">
+        <img src="images/UART_Protocol.png" alt="UART Logic Analyzer Protocol View" />
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📌 Author Notes</h2>
+      <p>This tutorial is designed for embedded engineers working with ESP32, STM32, and similar MCUs.</p>
+      <p class="small"><strong>End of Document</strong></p>
+    </section>
+  </div>
+</body>
+</html>
