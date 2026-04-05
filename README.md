@@ -44,7 +44,7 @@ Then access individual tutorials:
 
   * Click here to [🔗Open UART Simulator](https://shuvabratadey.github.io/embedded_systems/uart_communication/UART_Communication_Simulator.html)
 
-* [🔗curl](https://shuvabratadey.github.io/embedded_systems/LVGL/) →
+* [🔗LVGL](https://shuvabratadey.github.io/embedded_systems/LVGL/) →
   `https://shuvabratadey.github.io/embedded_systems/LVGL/`
 
 ---
