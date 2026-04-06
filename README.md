@@ -47,6 +47,9 @@ Then access individual tutorials:
 * [🔗LVGL](https://shuvabratadey.github.io/embedded_systems/LVGL/) →
   `https://shuvabratadey.github.io/embedded_systems/LVGL/`
 
+* [🔗Git Commands](https://shuvabratadey.github.io/embedded_systems/Git/) →
+  `https://shuvabratadey.github.io/embedded_systems/Git/`
+
 ---
 
 ## 📂 Repository Structure
@@ -78,6 +81,10 @@ embedded_systems/
 │   └── README.md
 │
 │── LVGL/
+│   ├── index.html
+│   └── README.md
+│
+│── Git/
 │   ├── index.html
 │   └── README.md
 ```
