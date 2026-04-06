@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git & GitHub Quick Reference</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --bg-soft: #eef2f8;
+      --surface: #ffffff;
+      --surface-alt: #f9fbfd;
+      --text: #172033;
+      --muted: #5f6b85;
+      --accent: #1f5eff;
+      --accent-soft: #e8f0ff;
+      --success: #1f8f5f;
+      --warning: #b7791f;
+      --border: #d9e1ee;
+      --border-strong: #c8d3e4;
+      --shadow-sm: 0 6px 18px rgba(16, 24, 40, 0.05);
+      --shadow-md: 0 18px 44px rgba(16, 24, 40, 0.08);
+      --radius: 20px;
+      --code-bg: #0f172a;
+      --max: 1200px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .container {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 40px 0 24px;
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow-md);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: linear-gradient(90deg, #123a8f, #1f5eff, #7aa2ff);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #cfe0ff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4vw, 3.6rem);
+      line-height: 1.08;
+      margin: 0 0 16px;
+      letter-spacing: -0.03em;
+      color: #101828;
+    }
+
+    .lead {
+      max-width: 760px;
+      font-size: 1.03rem;
+      color: var(--muted);
+      margin: 0 0 28px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      transition: 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(31, 94, 255, 0.16);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      text-decoration: none;
+      background: #174fe0;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      text-decoration: none;
+      background: #f8fafc;
+      border-color: #b9c6db;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 24px;
+      padding: 8px 0 52px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar h2 {
+      font-size: 1rem;
+      margin: 0 0 12px;
+      color: #111827;
+    }
+
+    .toc {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 9px 12px;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      transition: 0.2s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+      text-decoration: none;
+    }
+
+    .content {
+      display: grid;
+      gap: 24px;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 1.55rem;
+      letter-spacing: -0.02em;
+      color: #101828;
+    }
+
+    .section > p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      transition: 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: #c7d4e8;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      line-height: 1.35;
+      color: #142033;
+    }
+
+    .card p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    pre {
+      margin: 0;
+      background: var(--code-bg);
+      color: #dbe8ff;
+      padding: 14px 16px;
+      border-radius: 14px;
+      overflow-x: auto;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    .note, .warn, .tip {
+      margin-top: 18px;
+      border-radius: 16px;
+      padding: 16px 18px;
+      border: 1px solid transparent;
+    }
+
+    .note {
+      background: #f5f9ff;
+      border-color: #d5e4ff;
+    }
+
+    .warn {
+      background: #fff8eb;
+      border-color: #f2dfb1;
+    }
+
+    .tip {
+      background: #eefaf4;
+      border-color: #cdebd8;
+    }
+
+    .label {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .note .label { color: var(--accent); }
+    .warn .label { color: var(--warning); }
+    .tip .label { color: var(--success); }
+
+    .note p, .warn p, .tip p {
+      margin: 0;
+      color: var(--text);
+    }
+
+    .workflow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .workflow-step {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 14px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .workflow-step .num {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #e9f0ff;
+      color: var(--accent);
+      font-weight: 800;
+      border: 1px solid #d3def8;
+    }
+
+    .workflow-step h3 {
+      margin: 2px 0 8px;
+      font-size: 1rem;
+      color: #122033;
+    }
+
+    footer {
+      padding: 8px 0 48px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .hero-card,
+      .section {
+        padding: 22px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <div class="hero-card">
+        <div class="badge">Git • GitHub • Developer Reference</div>
+        <h1>Git & GitHub Quick Reference</h1>
+        <p class="lead">
+          A professional single-page guide for everyday Git usage — from initial setup and authentication to branches, syncing, stashing, diffs, recovery, and best practices.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#workflow">Beginner Workflow</a>
+          <a class="btn btn-secondary" href="#authentication">GitHub Token Setup</a>
+          <a class="btn btn-secondary" href="#detached-head">Detached HEAD Fix</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container layout">
+    <aside class="sidebar">
+      <h2>Contents</h2>
+      <ul class="toc">
+        <li><a href="#initial-setup">Initial Setup</a></li>
+        <li><a href="#repository">Create or Connect a Repository</a></li>
+        <li><a href="#authentication">Authentication with GitHub Token</a></li>
+        <li><a href="#daily-workflow">Basic Daily Workflow</a></li>
+        <li><a href="#branching">Branching</a></li>
+        <li><a href="#syncing">Syncing with Remote</a></li>
+        <li><a href="#stash">Stash Commands</a></li>
+        <li><a href="#history">Logs and History</a></li>
+        <li><a href="#diff">Difference Checking</a></li>
+        <li><a href="#checkout">Checkout and Restore</a></li>
+        <li><a href="#reset">Reset and Revert</a></li>
+        <li><a href="#tagging">Tagging</a></li>
+        <li><a href="#inspection">Useful Inspection Commands</a></li>
+        <li><a href="#github1s">Open GitHub Project in VS Code Online</a></li>
+        <li><a href="#detached-head">Detached HEAD Fix</a></li>
+        <li><a href="#workflow">Recommended Beginner Workflow</a></li>
+      </ul>
+    </aside>
+
+    <div class="content">
+      <section class="section" id="initial-setup">
+        <h2>Initial Setup</h2>
+        <p>Configure your Git identity and inspect the settings Git uses on your machine.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Show current Git configuration</h3>
+            <pre><code>git config --list --show-origin</code></pre>
+            <p>Displays all Git configuration values and the source file where each one is defined.</p>
+          </article>
+          <article class="card">
+            <h3>Edit global Git configuration</h3>
+            <pre><code>git config --global --edit</code></pre>
+            <p>Opens your global Git config file. On Windows it is commonly located at <code>C:\Users\shuva\.gitconfig</code>.</p>
+          </article>
+          <article class="card">
+            <h3>Set your Git username</h3>
+            <pre><code>git config --global user.name "Shuvabrata Dey"</code></pre>
+            <p>Defines the author name that will be attached to your commits.</p>
+          </article>
+          <article class="card">
+            <h3>Set your Git email</h3>
+            <pre><code>git config --global user.email "shuvabratadey@gmail.com"</code></pre>
+            <p>Defines the author email used in your commit history.</p>
+          </article>
+          <article class="card">
+            <h3>Trust all repositories</h3>
+            <pre><code>git config --global --add safe.directory '*'</code></pre>
+            <p>Marks all directories as safe for Git operations. Useful in some multi-user or permission-restricted environments.</p>
+          </article>
+          <article class="card">
+            <h3>Cache credentials</h3>
+            <pre><code>git config --global credential.helper cache</code></pre>
+            <p>Temporarily remembers your credentials so you do not need to re-enter them every time.</p>
+          </article>
+        </div>
+        <div class="warn">
+          <div class="label">Important</div>
+          <p>Do not store your GitHub password using custom Git config keys. Use a Personal Access Token or Git Credential Manager instead.</p>
+        </div>
+      </section>
+
+      <section class="section" id="repository">
+        <h2>Create or Connect a Repository</h2>
+        <p>Start a repository locally, connect it to GitHub, or clone an existing project.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Initialize a new repository</h3>
+            <pre><code>git init</code></pre>
+            <p>Creates a new local Git repository in the current folder.</p>
+          </article>
+          <article class="card">
+            <h3>Add a remote origin</h3>
+            <pre><code>git remote add origin &lt;repository-link&gt;</code></pre>
+            <p>Links your local repository to a remote GitHub repository.</p>
+          </article>
+          <article class="card">
+            <h3>View remote URLs</h3>
+            <pre><code>git remote -v</code></pre>
+            <p>Shows the remote repository URLs used for fetch and push.</p>
+          </article>
+          <article class="card">
+            <h3>Clone an existing repository</h3>
+            <pre><code>git clone https://github.com/shuvabratadey/FPGA-CPU-Design.git</code></pre>
+            <p>Downloads a copy of the remote repository to your local machine.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="authentication">
+        <h2>Authentication with GitHub Token</h2>
+        <p>GitHub no longer accepts standard account passwords for Git over HTTPS. Use a Personal Access Token instead.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Create a GitHub token</h3>
+            <pre><code>https://github.com/settings/tokens</code></pre>
+            <p>Generate a Personal Access Token from your GitHub account settings.</p>
+          </article>
+          <article class="card">
+            <h3>Push after token creation</h3>
+            <pre><code>git push origin master</code></pre>
+            <p>When prompted, enter your GitHub username and paste the token where Git asks for the password.</p>
+          </article>
+        </div>
+        <div class="tip">
+          <div class="label">Best Practice</div>
+          <p>On Windows, using <code>git config --global credential.helper manager-core</code> is usually better than plain credential caching.</p>
+        </div>
+      </section>
+
+      <section class="section" id="daily-workflow">
+        <h2>Basic Daily Workflow</h2>
+        <p>These are the commands you will use most often while working on a project.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Check repository status</h3>
+            <pre><code>git status</code></pre>
+            <p>Shows changed, staged, and untracked files.</p>
+          </article>
+          <article class="card">
+            <h3>Stage all changes</h3>
+            <pre><code>git add .</code></pre>
+            <p>Adds all current changes to the staging area.</p>
+          </article>
+          <article class="card">
+            <h3>Stage one file</h3>
+            <pre><code>git add &lt;file_name&gt;</code></pre>
+            <p>Stages only the selected file.</p>
+          </article>
+          <article class="card">
+            <h3>Create a commit</h3>
+            <pre><code>git commit -m "Your commit message"</code></pre>
+            <p>Saves the staged changes in a commit with a descriptive message.</p>
+          </article>
+          <article class="card">
+            <h3>Push to remote</h3>
+            <pre><code>git push origin master</code></pre>
+            <p>Uploads your local commits to the remote branch.</p>
+          </article>
+          <article class="card">
+            <h3>Set upstream while pushing</h3>
+            <pre><code>git push --set-upstream origin master</code></pre>
+            <p>Pushes the branch and links it to the remote tracking branch.</p>
+          </article>
+        </div>
+        <div class="note">
+          <div class="label">Note</div>
+          <p>Many repositories use <code>main</code> instead of <code>master</code>. Use the correct default branch for your project.</p>
+        </div>
+      </section>
+
+      <section class="section" id="branching">
+        <h2>Branching</h2>
+        <p>Create, switch, list, and delete branches as part of a clean development workflow.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Create a branch</h3>
+            <pre><code>git branch &lt;branch_name&gt;</code></pre>
+            <p>Creates a new branch without switching to it.</p>
+          </article>
+          <article class="card">
+            <h3>Switch to a branch</h3>
+            <pre><code>git checkout &lt;branch_name&gt;</code></pre>
+            <p>Moves your working directory to the selected branch.</p>
+          </article>
+          <article class="card">
+            <h3>Create and switch</h3>
+            <pre><code>git checkout -b &lt;branch_name&gt;</code></pre>
+            <p>Creates a new branch and switches to it immediately.</p>
+          </article>
+          <article class="card">
+            <h3>Modern switch command</h3>
+            <pre><code>git switch &lt;branch_name&gt;</code></pre>
+            <p>A newer and clearer alternative to <code>git checkout</code> for changing branches.</p>
+          </article>
+          <article class="card">
+            <h3>Push a branch</h3>
+            <pre><code>git push origin &lt;branch_name&gt;</code></pre>
+            <p>Uploads the selected branch to GitHub.</p>
+          </article>
+          <article class="card">
+            <h3>Delete a local branch</h3>
+            <pre><code>git branch -d &lt;branch_name&gt;</code></pre>
+            <p>Deletes a merged local branch.</p>
+          </article>
+          <article class="card">
+            <h3>Force delete a local branch</h3>
+            <pre><code>git branch -D &lt;branch_name&gt;</code></pre>
+            <p>Deletes a branch even if it has not been merged.</p>
+          </article>
+          <article class="card">
+            <h3>Delete a remote branch</h3>
+            <pre><code>git push origin --delete &lt;branch_name&gt;</code></pre>
+            <p>Removes the branch from the remote repository.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="syncing">
+        <h2>Syncing with Remote</h2>
+        <p>Keep your local repository updated and integrate changes from GitHub correctly.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Pull latest changes</h3>
+            <pre><code>git pull origin master</code></pre>
+            <p>Fetches and merges the latest changes from the remote branch.</p>
+          </article>
+          <article class="card">
+            <h3>Set upstream while pulling</h3>
+            <pre><code>git pull --set-upstream origin master</code></pre>
+            <p>Associates your current branch with the remote tracking branch while pulling.</p>
+          </article>
+          <article class="card">
+            <h3>Fetch without merging</h3>
+            <pre><code>git fetch</code></pre>
+            <p>Downloads changes from the remote repository without merging them.</p>
+          </article>
+          <article class="card">
+            <h3>Fetch all remotes</h3>
+            <pre><code>git fetch --all</code></pre>
+            <p>Retrieves updates from all configured remotes.</p>
+          </article>
+          <article class="card">
+            <h3>Merge fetched branch</h3>
+            <pre><code>git merge origin/master</code></pre>
+            <p>Merges the fetched remote branch into your current branch.</p>
+          </article>
+          <article class="card">
+            <h3>Pull with rebase</h3>
+            <pre><code>git pull --rebase origin master</code></pre>
+            <p>Reapplies your local commits on top of the updated remote history.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="stash">
+        <h2>Stash Commands</h2>
+        <p>Temporarily save unfinished work so you can switch branches or pull updates safely.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Save current work</h3>
+            <pre><code>git stash</code></pre>
+            <p>Stores your uncommitted changes temporarily.</p>
+          </article>
+          <article class="card">
+            <h3>Restore latest stash</h3>
+            <pre><code>git stash pop</code></pre>
+            <p>Reapplies the most recent stash and removes it from the stash list.</p>
+          </article>
+          <article class="card">
+            <h3>Apply stash without deleting</h3>
+            <pre><code>git stash apply</code></pre>
+            <p>Reapplies a stash but keeps it available for reuse.</p>
+          </article>
+          <article class="card">
+            <h3>List all stashes</h3>
+            <pre><code>git stash list</code></pre>
+            <p>Shows every saved stash entry.</p>
+          </article>
+          <article class="card">
+            <h3>Delete one stash</h3>
+            <pre><code>git stash drop stash@{0}</code></pre>
+            <p>Deletes the selected stash entry.</p>
+          </article>
+          <article class="card">
+            <h3>Clear all stashes</h3>
+            <pre><code>git stash clear</code></pre>
+            <p>Removes all saved stash entries permanently.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="history">
+        <h2>Logs and History</h2>
+        <p>Inspect commit history to understand the timeline of changes in your repository.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Show commit history</h3>
+            <pre><code>git log</code></pre>
+            <p>Displays detailed commit history.</p>
+          </article>
+          <article class="card">
+            <h3>Compact one-line history</h3>
+            <pre><code>git log --oneline</code></pre>
+            <p>Shows a condensed list of commits.</p>
+          </article>
+          <article class="card">
+            <h3>Graph view</h3>
+            <pre><code>git log --all --decorate --graph --oneline</code></pre>
+            <p>Displays a branch graph with labels for commits, branches, and tags.</p>
+          </article>
+          <article class="card">
+            <h3>Last commit only</h3>
+            <pre><code>git log -1</code></pre>
+            <p>Shows the details of the most recent commit.</p>
+          </article>
+          <article class="card">
+            <h3>Show line authorship</h3>
+            <pre><code>git blame &lt;file_name&gt;</code></pre>
+            <p>Shows who last changed each line in a file.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="diff">
+        <h2>Difference Checking</h2>
+        <p>Compare working files, staged changes, branches, or specific commits.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Show unstaged changes</h3>
+            <pre><code>git diff</code></pre>
+            <p>Displays differences that are not yet staged.</p>
+          </article>
+          <article class="card">
+            <h3>Show changes in one file</h3>
+            <pre><code>git diff &lt;file_path/file_name&gt;</code></pre>
+            <p>Displays changes for a particular file only.</p>
+          </article>
+          <article class="card">
+            <h3>Show staged changes</h3>
+            <pre><code>git diff --staged</code></pre>
+            <p>Shows changes already added to the staging area.</p>
+          </article>
+          <article class="card">
+            <h3>Compare two commits</h3>
+            <pre><code>git diff &lt;commit1&gt; &lt;commit2&gt;</code></pre>
+            <p>Displays the difference between any two commits.</p>
+          </article>
+          <article class="card">
+            <h3>Compare branches</h3>
+            <pre><code>git diff master..feature-branch</code></pre>
+            <p>Shows what differs between two branches.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="checkout">
+        <h2>Checkout and Restore</h2>
+        <p>Move between commits and branches, or discard unwanted local changes.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Checkout a specific commit</h3>
+            <pre><code>git checkout &lt;commit_id&gt;</code></pre>
+            <p>Moves your working directory to a selected commit.</p>
+          </article>
+          <article class="card">
+            <h3>Go back to the previous branch</h3>
+            <pre><code>git checkout -</code></pre>
+            <p>Returns to the last checked-out branch.</p>
+          </article>
+          <article class="card">
+            <h3>Restore a file</h3>
+            <pre><code>git restore &lt;file_name&gt;</code></pre>
+            <p>Discards changes in a file and restores the last committed version.</p>
+          </article>
+          <article class="card">
+            <h3>Unstage a file</h3>
+            <pre><code>git restore --staged &lt;file_name&gt;</code></pre>
+            <p>Removes a file from the staging area while keeping the file changes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="reset">
+        <h2>Reset and Revert</h2>
+        <p>Undo commits or move your branch pointer depending on whether you want to rewrite history or preserve it.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Soft reset last commit</h3>
+            <pre><code>git reset --soft HEAD~1</code></pre>
+            <p>Removes the last commit but keeps the changes staged.</p>
+          </article>
+          <article class="card">
+            <h3>Mixed reset last commit</h3>
+            <pre><code>git reset HEAD~1</code></pre>
+            <p>Removes the last commit and unstages the changes.</p>
+          </article>
+          <article class="card">
+            <h3>Hard reset last commit</h3>
+            <pre><code>git reset --hard HEAD~1</code></pre>
+            <p>Deletes the last commit and permanently removes the changes from your working directory.</p>
+          </article>
+          <article class="card">
+            <h3>Reset to a specific commit</h3>
+            <pre><code>git reset --hard &lt;commit_id&gt;</code></pre>
+            <p>Moves the current branch to a particular commit.</p>
+          </article>
+          <article class="card">
+            <h3>Safely undo a commit</h3>
+            <pre><code>git revert &lt;commit_id&gt;</code></pre>
+            <p>Creates a new commit that reverses the selected commit without rewriting project history.</p>
+          </article>
+        </div>
+        <div class="warn">
+          <div class="label">Warning</div>
+          <p>Use <code>git reset --hard</code> carefully. It permanently removes uncommitted changes from your working directory.</p>
+        </div>
+      </section>
+
+      <section class="section" id="tagging">
+        <h2>Tagging</h2>
+        <p>Use tags to mark important versions such as releases or milestones.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Create a lightweight tag</h3>
+            <pre><code>git tag v1.0</code></pre>
+            <p>Creates a simple tag for a release or checkpoint.</p>
+          </article>
+          <article class="card">
+            <h3>Create an annotated tag</h3>
+            <pre><code>git tag -a v1.0 -m "Version 1.0 release"</code></pre>
+            <p>Creates a tag with extra metadata such as message, author, and date.</p>
+          </article>
+          <article class="card">
+            <h3>Push all tags</h3>
+            <pre><code>git push origin --tags</code></pre>
+            <p>Uploads all local tags to the remote repository.</p>
+          </article>
+          <article class="card">
+            <h3>List tags</h3>
+            <pre><code>git tag</code></pre>
+            <p>Displays every tag available in the repository.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="inspection">
+        <h2>Useful Inspection Commands</h2>
+        <p>Quick commands for checking branch names, tracked files, and commit identifiers.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Show current branch</h3>
+            <pre><code>git branch --show-current</code></pre>
+            <p>Displays the active branch name.</p>
+          </article>
+          <article class="card">
+            <h3>Show current commit hash</h3>
+            <pre><code>git rev-parse HEAD</code></pre>
+            <p>Prints the full commit ID of the current HEAD.</p>
+          </article>
+          <article class="card">
+            <h3>List tracked files</h3>
+            <pre><code>git ls-files</code></pre>
+            <p>Shows all files currently tracked by Git.</p>
+          </article>
+          <article class="card">
+            <h3>Remove untracked files</h3>
+            <pre><code>git clean -f</code></pre>
+            <p>Deletes untracked files from the working directory.</p>
+          </article>
+          <article class="card">
+            <h3>Remove untracked files and folders</h3>
+            <pre><code>git clean -fd</code></pre>
+            <p>Deletes untracked files and directories.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="github1s">
+        <h2>Open GitHub Project in VS Code Online</h2>
+        <p>You can view a GitHub repository in a browser-based VS Code style interface by replacing part of the URL.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Original repository URL</h3>
+            <pre><code>https://github.com/shuvabratadey/ESP-IDF-Free-RTOS</code></pre>
+            <p>This is the standard GitHub repository link.</p>
+          </article>
+          <article class="card">
+            <h3>GitHub1s URL</h3>
+            <pre><code>https://github1s.com/shuvabratadey/ESP-IDF-Free-RTOS</code></pre>
+            <p>Add <code>1s</code> after <code>github</code> to open the repository in an online VS Code-like viewer.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="detached-head">
+        <h2>Detached HEAD Fix</h2>
+        <p>If you checked out a commit directly and want to move your branch back to that commit, these steps help recover it.</p>
+        <div class="workflow">
+          <div class="workflow-step">
+            <div class="num">1</div>
+            <div>
+              <h3>Check the latest commit</h3>
+              <pre><code>git log -1</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">2</div>
+            <div>
+              <h3>Switch back to your branch</h3>
+              <pre><code>git checkout master</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">3</div>
+            <div>
+              <h3>Move the branch to the detached commit</h3>
+              <pre><code>git reset --hard &lt;commit-id&gt;</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="note">
+          <div class="label">Reference</div>
+          <p><a href="https://stackoverflow.com/questions/999907/git-push-says-everything-up-to-date-even-though-i-have-local-changes" target="_blank" rel="noopener noreferrer">Stack Overflow discussion on local changes and push behavior</a></p>
+        </div>
+      </section>
+
+      <section class="section" id="workflow">
+        <h2>Recommended Beginner Workflow</h2>
+        <p>A clean starting workflow for creating a project locally and pushing it to GitHub for the first time.</p>
+        <div class="workflow">
+          <div class="workflow-step">
+            <div class="num">1</div>
+            <div>
+              <h3>Initialize the repository</h3>
+              <pre><code>git init</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">2</div>
+            <div>
+              <h3>Connect remote origin</h3>
+              <pre><code>git remote add origin &lt;repository-link&gt;</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">3</div>
+            <div>
+              <h3>Stage all files</h3>
+              <pre><code>git add .</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">4</div>
+            <div>
+              <h3>Create the first commit</h3>
+              <pre><code>git commit -m "Initial commit"</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">5</div>
+            <div>
+              <h3>Rename default branch</h3>
+              <pre><code>git branch -M main</code></pre>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="num">6</div>
+            <div>
+              <h3>Push and connect upstream</h3>
+              <pre><code>git push --set-upstream origin main</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="label">Professional Tip</div>
+          <p>Use clear commit messages, prefer <code>main</code> for new repositories, and avoid force operations unless you fully understand the impact.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="container">
+    Built as a professional Git & GitHub HTML reference page.
+  </footer>
+</body>
+</html>
