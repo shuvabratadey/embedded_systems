@@ -50,6 +50,9 @@ Then access individual tutorials:
 * [🔗Git Commands](https://shuvabratadey.github.io/embedded_systems/Git/) →
   `https://shuvabratadey.github.io/embedded_systems/Git/`
 
+* [🔗Cmake Guidance](https://shuvabratadey.github.io/embedded_systems/cmake/) →
+  `https://shuvabratadey.github.io/embedded_systems/cmake/`
+
 ---
 
 ## 📂 Repository Structure
@@ -85,6 +88,11 @@ embedded_systems/
 │   └── README.md
 │
 │── Git/
+│   ├── index.html
+│   └── README.md
+│
+│── cmake/
+│   ├── cmake_build_example
 │   ├── index.html
 │   └── README.md
 ```
