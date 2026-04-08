@@ -39,6 +39,11 @@ Then access individual tutorials:
 
   * Click here to [🔗Open I²C Simulator](https://shuvabratadey.github.io/embedded_systems/i2c_communication/I2C_Communication_Simulator.html)
 
+* [🔗SPI Protocol](https://shuvabratadey.github.io/embedded_systems/spi_communication/) →
+  `https://shuvabratadey.github.io/embedded_systems/spi_communication/`
+
+  * Click here to [🔗Open SPI Simulator](https://shuvabratadey.github.io/embedded_systems/spi_communication/SPI_Communication_Simulator.html)
+
 * [🔗UART Protocol](https://shuvabratadey.github.io/embedded_systems/uart_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/uart_communication/`
 
@@ -76,6 +81,11 @@ embedded_systems/
 │── i2c_communication/
 │   ├── index.html
 │   ├── I2C_Communication_Simulator.html
+│   └── README.md
+│
+│── spi_communication/
+│   ├── index.html
+│   ├── SPI_Communication_Simulator.html
 │   └── README.md
 │
 │── uart_communication/
