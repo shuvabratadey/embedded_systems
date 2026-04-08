@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPI Communication – Complete Professional Tutorial</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded', function() { hljs.highlightAll(); });</script>
+
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: #0b1220;
+    color: #e5e7eb;
+}
+.page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px;
+}
+h1, h2, h3 { color: #38bdf8; }
+h1 { font-size: 2.4rem; margin-top: 0; margin-bottom: 18px; }
+h2 { margin-top: 34px; margin-bottom: 14px; font-size: 1.65rem; }
+h3 { margin-top: 24px; margin-bottom: 10px; font-size: 1.15rem; }
+p, li { line-height: 1.8; color: #dbe4f0; }
+ul, ol { padding-left: 24px; }
+hr { border: 1px solid #1e293b; margin: 30px 0; }
+pre {
+    background: #020617;
+    padding: 16px;
+    border-radius: 12px;
+    overflow-x: auto;
+    border: 1px solid #1e293b;
+}
+code { color: #e2e8f0; font-family: Consolas, Monaco, 'Courier New', monospace; }
+pre code { white-space: pre; }
+a { color: #7dd3fc; }
+a:hover { color: #bae6fd; }
+img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 15px 0;
+    border: 1px solid #1e293b;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.link-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #22d3ee, #38bdf8);
+    color: #020617;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: 0.3s ease;
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+    cursor: pointer;
+}
+.link-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
+    color: #020617;
+}
+blockquote {
+    margin: 18px 0;
+    padding: 14px 18px;
+    border-left: 4px solid #38bdf8;
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 0 10px 10px 0;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+}
+th, td {
+    border: 1px solid #1e293b;
+    padding: 12px 14px;
+    text-align: left;
+}
+th { background: #111827; color: #7dd3fc; }
+.header-card {
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), rgba(2, 6, 23, 0.02));
+    border: 1px solid #1e293b;
+    padding: 24px;
+    border-radius: 18px;
+    margin-bottom: 28px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.header-card p { margin-bottom: 0; }
+@media (max-width: 768px) {
+    .page { padding: 22px; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.4rem; }
+    pre { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="header-card">
+    <h1>SPI Communication – Complete Professional Tutorial</h1>
+    <p>A professional embedded-systems tutorial page styled to match your I2C HTML design, using the SPI README content as the source.</p>
+  </section>
+  <h2>📌 Introduction</h2>
+<p>Serial Peripheral Interface (SPI) is a synchronous serial communication protocol widely used for high-speed short-distance communication between microcontrollers and peripherals like displays, ADCs, DACs, sensors, Flash memories, RTCs, and RF modules.</p>
+<p>Unlike I2C, SPI does <strong>not</strong> use device addresses on the bus. Instead, the master selects a slave using a dedicated <strong>CS / SS (Chip Select / Slave Select)</strong> line.</p>
+<hr />
+<h2>🧠 Key Concepts</h2>
+<ul>
+<li><strong>Four-wire interface</strong>:<ul>
+<li>SCLK (Serial Clock)</li>
+<li>MOSI (Master Out, Slave In)</li>
+<li>MISO (Master In, Slave Out)</li>
+<li>CS / SS (Chip Select / Slave Select)</li>
+</ul>
+</li>
+<li><strong>Master-Slave architecture</strong></li>
+<li><strong>Full-duplex communication</strong></li>
+<li><strong>High-speed synchronous transfer</strong></li>
+<li><strong>Clock polarity and phase configurable</strong></li>
+<li><strong>Chip-select-based communication</strong></li>
+</ul>
+<hr />
+<h2>🌐 SPI Communication Simulator Link</h2>
+<p><a href="SPI_Communication_Simulator.html" class="link-btn">🔗 Open SPI Simulator</a></p>
+<hr />
+<h2>🔌 Basic SPI Connection Diagram</h2>
+<p><img src="images/Basic_SPI_Protocol.png" width="650px" alt="SPI Diagram" /></p>
+<hr />
+<h2>🎞️ SPI Working Animation (GIF)</h2>
+<p><img src="images/spi.gif"  width="650px" alt="SPI GIF" /></p>
+<hr />
+<h2>⚙️ How SPI Works (Step-by-Step)</h2>
+<h3>1. Chip Select Assertion</h3>
+<ul>
+<li>Master pulls <strong>CS LOW</strong> to select a slave device</li>
+</ul>
+<h3>2. Clock Generation</h3>
+<ul>
+<li>Master generates <strong>SCLK</strong></li>
+<li>Slave uses this clock to shift data in and out</li>
+</ul>
+<h3>3. Simultaneous Data Transfer</h3>
+<ul>
+<li>Master transmits data on <strong>MOSI</strong></li>
+<li>Slave transmits data on <strong>MISO</strong></li>
+<li>Data transfer is usually <strong>full-duplex</strong></li>
+</ul>
+<h3>4. Command / Address / Data Phase</h3>
+<ul>
+<li>Many SPI devices expect:<ul>
+<li>command byte</li>
+<li>register or memory address</li>
+<li>optional dummy byte(s)</li>
+<li>data bytes</li>
+</ul>
+</li>
+</ul>
+<h3>5. Chip Select Deassertion</h3>
+<ul>
+<li>Master releases <strong>CS HIGH</strong></li>
+<li>Transaction ends</li>
+</ul>
+<hr />
+<h2>📦 Data Format</h2>
+<pre><code class="language-text">| CS LOW | COMMAND | ADDRESS (optional) | DUMMY (optional) | DATA | CS HIGH |
+</code></pre>
+<p><strong>Important:</strong> SPI frame format is <strong>device-specific</strong>.
+Some devices use only raw bytes, while others require command + address + dummy + data.</p>
+<hr />
+<h2>🔢 SPI Modes (CPOL and CPHA)</h2>
+<p>SPI supports 4 standard modes based on:</p>
+<ul>
+<li><strong>CPOL</strong> = Clock Polarity</li>
+<li><strong>CPHA</strong> = Clock Phase</li>
+</ul>
+<h3>Mode 0</h3>
+<ul>
+<li>CPOL = 0</li>
+<li>CPHA = 0</li>
+<li>Clock idle LOW</li>
+<li>Data sampled on rising edge</li>
+</ul>
+<h3>Mode 1</h3>
+<ul>
+<li>CPOL = 0</li>
+<li>CPHA = 1</li>
+<li>Clock idle LOW</li>
+<li>Data sampled on falling edge</li>
+</ul>
+<h3>Mode 2</h3>
+<ul>
+<li>CPOL = 1</li>
+<li>CPHA = 0</li>
+<li>Clock idle HIGH</li>
+<li>Data sampled on falling edge</li>
+</ul>
+<h3>Mode 3</h3>
+<ul>
+<li>CPOL = 1</li>
+<li>CPHA = 1</li>
+<li>Clock idle HIGH</li>
+<li>Data sampled on rising edge</li>
+</ul>
+<hr />
+<h2>🔢 8-bit vs 16-bit Register Addressing</h2>
+<p>Many SPI devices internally use registers or memory locations.</p>
+<h3>8-bit Register Addressing</h3>
+<ul>
+<li>Common in sensors and simple peripherals</li>
+<li>One register byte sent after command</li>
+</ul>
+<h3>16-bit Register Addressing</h3>
+<ul>
+<li>Common in Flash memories, displays, and large memory devices</li>
+<li>Two address bytes are sent:<ul>
+<li>high byte first</li>
+<li>low byte second</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>📥 8-bit vs 16-bit Data</h2>
+<h3>8-bit Data</h3>
+<ul>
+<li>One byte transferred</li>
+</ul>
+<h3>16-bit Data</h3>
+<ul>
+<li>Two bytes transferred</li>
+<li>Usually <strong>MSB first</strong> unless the device datasheet says otherwise</li>
+</ul>
+<hr />
+<h2>🔁 Read &amp; Write Flow</h2>
+<h3>📝 Write Operation</h3>
+<ol>
+<li>Pull CS LOW</li>
+<li>Send write command</li>
+<li>Send register / memory address</li>
+<li>Send data byte(s)</li>
+<li>Pull CS HIGH</li>
+</ol>
+<h3>📖 Read Operation</h3>
+<ol>
+<li>Pull CS LOW</li>
+<li>Send read command</li>
+<li>Send register / memory address</li>
+<li>Send dummy byte(s) if required</li>
+<li>Read returned byte(s)</li>
+<li>Pull CS HIGH</li>
+</ol>
+<hr />
+<h2>🧩 ESP-IDF SPI Examples</h2>
+<p>The examples below cover common SPI use cases:</p>
+<ul>
+<li>command-only transfer</li>
+<li>full-duplex single-byte transfer</li>
+<li>8-bit register + 8-bit data</li>
+<li>8-bit register + 16-bit data</li>
+<li>16-bit register + 8-bit data</li>
+<li>16-bit register + 16-bit data</li>
+<li>single-byte read/write</li>
+<li>multi-byte read/write</li>
+</ul>
+<h3>ESP-IDF Setup</h3>
+<pre><code class="language-c">#include &quot;driver/spi_master.h&quot;
+#include &quot;esp_err.h&quot;
+#include &lt;string.h&gt;
+
+#define SPI_HOST_USED   SPI2_HOST
+#define PIN_NUM_MOSI    23
+#define PIN_NUM_MISO    19
+#define PIN_NUM_CLK     18
+#define PIN_NUM_CS      5
+
+static spi_device_handle_t spi_dev;
+
+static esp_err_t spi_master_init(void)
+{
+    spi_bus_config_t buscfg = {
+        .mosi_io_num = PIN_NUM_MOSI,
+        .miso_io_num = PIN_NUM_MISO,
+        .sclk_io_num = PIN_NUM_CLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 256,
+    };
+
+    spi_device_interface_config_t devcfg = {
+        .clock_speed_hz = 1 * 1000 * 1000,
+        .mode = 0,
+        .spics_io_num = PIN_NUM_CS,
+        .queue_size = 4,
+    };
+
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI_HOST_USED, &amp;buscfg, SPI_DMA_CH_AUTO));
+    return spi_bus_add_device(SPI_HOST_USED, &amp;devcfg, &amp;spi_dev);
+}
+</code></pre>
+<h3>1) Write Command Only</h3>
+<pre><code class="language-c">esp_err_t spi_write_command(uint8_t cmd)
+{
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8;
+    t.tx_buffer = &amp;cmd;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>2) Full-Duplex Single-Byte Transfer</h3>
+<pre><code class="language-c">esp_err_t spi_transfer_byte(uint8_t tx_data, uint8_t *rx_data)
+{
+    if (rx_data == NULL) return ESP_ERR_INVALID_ARG;
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8;
+    t.tx_buffer = &amp;tx_data;
+    t.rx_buffer = rx_data;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>3) Write 8-bit Data to 8-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_write_reg8_data8(uint8_t cmd, uint8_t reg_addr, uint8_t data)
+{
+    uint8_t tx[3] = { cmd, reg_addr, data };
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>4) Read 8-bit Data from 8-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_read_reg8_data8(uint8_t cmd, uint8_t reg_addr, uint8_t *data)
+{
+    if (data == NULL) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[3] = { cmd, reg_addr, 0x00 };
+    uint8_t rx[3] = { 0 };
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
+
+    esp_err_t ret = spi_device_transmit(spi_dev, &amp;t);
+    if (ret == ESP_OK) {
+        *data = rx[2];
+    }
+    return ret;
+}
+</code></pre>
+<h3>5) Write 16-bit Data to 8-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_write_reg8_data16(uint8_t cmd, uint8_t reg_addr, uint16_t data)
+{
+    uint8_t tx[4];
+    tx[0] = cmd;
+    tx[1] = reg_addr;
+    tx[2] = (uint8_t)(data &gt;&gt; 8);
+    tx[3] = (uint8_t)(data &amp; 0xFF);
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>6) Read 16-bit Data from 8-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_read_reg8_data16(uint8_t cmd, uint8_t reg_addr, uint16_t *data)
+{
+    if (data == NULL) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[4] = { cmd, reg_addr, 0x00, 0x00 };
+    uint8_t rx[4] = { 0 };
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
+
+    esp_err_t ret = spi_device_transmit(spi_dev, &amp;t);
+    if (ret == ESP_OK) {
+        *data = ((uint16_t)rx[2] &lt;&lt; 8) | rx[3];
+    }
+    return ret;
+}
+</code></pre>
+<h3>7) Write 8-bit Data to 16-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_write_reg16_data8(uint8_t cmd, uint16_t reg_addr, uint8_t data)
+{
+    uint8_t tx[4];
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+    tx[3] = data;
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>8) Read 8-bit Data from 16-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_read_reg16_data8(uint8_t cmd, uint16_t reg_addr, uint8_t *data)
+{
+    if (data == NULL) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[4] = {
+        cmd,
+        (uint8_t)(reg_addr &gt;&gt; 8),
+        (uint8_t)(reg_addr &amp; 0xFF),
+        0x00
+    };
+    uint8_t rx[4] = { 0 };
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
+
+    esp_err_t ret = spi_device_transmit(spi_dev, &amp;t);
+    if (ret == ESP_OK) {
+        *data = rx[3];
+    }
+    return ret;
+}
+</code></pre>
+<h3>9) Write 16-bit Data to 16-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_write_reg16_data16(uint8_t cmd, uint16_t reg_addr, uint16_t data)
+{
+    uint8_t tx[5];
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+    tx[3] = (uint8_t)(data &gt;&gt; 8);
+    tx[4] = (uint8_t)(data &amp; 0xFF);
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>10) Read 16-bit Data from 16-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_read_reg16_data16(uint8_t cmd, uint16_t reg_addr, uint16_t *data)
+{
+    if (data == NULL) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[5] = {
+        cmd,
+        (uint8_t)(reg_addr &gt;&gt; 8),
+        (uint8_t)(reg_addr &amp; 0xFF),
+        0x00,
+        0x00
+    };
+    uint8_t rx[5] = { 0 };
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
+
+    esp_err_t ret = spi_device_transmit(spi_dev, &amp;t);
+    if (ret == ESP_OK) {
+        *data = ((uint16_t)rx[3] &lt;&lt; 8) | rx[4];
+    }
+    return ret;
+}
+</code></pre>
+<h3>11) Multi-Byte Read from 8-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_read_reg8_buffer(uint8_t cmd, uint8_t reg_addr, uint8_t *buf, size_t len)
+{
+    if (buf == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[len + 2];
+    uint8_t rx[len + 2];
+
+    memset(tx, 0, sizeof(tx));
+    memset(rx, 0, sizeof(rx));
+
+    tx[0] = cmd;
+    tx[1] = reg_addr;
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * sizeof(tx);
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
+
+    esp_err_t ret = spi_device_transmit(spi_dev, &amp;t);
+    if (ret == ESP_OK) {
+        memcpy(buf, &amp;rx[2], len);
+    }
+    return ret;
+}
+</code></pre>
+<h3>12) Multi-Byte Write to 16-bit Register Address</h3>
+<pre><code class="language-c">esp_err_t spi_write_reg16_buffer(uint8_t cmd, uint16_t reg_addr, const uint8_t *buf, size_t len)
+{
+    if (buf == NULL || len == 0) return ESP_ERR_INVALID_ARG;
+
+    uint8_t tx[len + 3];
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+    memcpy(&amp;tx[3], buf, len);
+
+    spi_transaction_t t;
+    memset(&amp;t, 0, sizeof(t));
+
+    t.length = 8 * (len + 3);
+    t.tx_buffer = tx;
+
+    return spi_device_transmit(spi_dev, &amp;t);
+}
+</code></pre>
+<h3>ESP-IDF Example Usage</h3>
+<pre><code class="language-c">void app_main(void)
+{
+    ESP_ERROR_CHECK(spi_master_init());
+
+    uint8_t value8;
+    uint16_t value16;
+    uint8_t buf[4];
+
+    spi_write_reg8_data8(0x02, 0x10, 0xAB);
+    spi_read_reg8_data8(0x03, 0x10, &amp;value8);
+
+    spi_write_reg8_data16(0x02, 0x20, 0x1234);
+    spi_read_reg8_data16(0x03, 0x20, &amp;value16);
+
+    spi_write_reg16_data8(0x02, 0x1234, 0x5A);
+    spi_read_reg16_data8(0x03, 0x1234, &amp;value8);
+
+    spi_write_reg16_data16(0x02, 0x1234, 0xBEEF);
+    spi_read_reg16_data16(0x03, 0x1234, &amp;value16);
+
+    spi_read_reg8_buffer(0x03, 0x30, buf, sizeof(buf));
+}
+</code></pre>
+<hr />
+<h2>🧩 STM32 HAL Examples</h2>
+<p>STM32 HAL provides simple blocking, interrupt, and DMA SPI APIs.
+For this tutorial, the examples use <strong>polling mode</strong> for clarity.</p>
+<h3>STM32 Setup Assumption</h3>
+<pre><code class="language-c">#include &quot;stm32f1xx_hal.h&quot;
+
+extern SPI_HandleTypeDef hspi1;
+</code></pre>
+<h3>1) Write Command Only</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_command(uint8_t cmd)
+{
+    return HAL_SPI_Transmit(&amp;hspi1, &amp;cmd, 1, 100);
+}
+</code></pre>
+<h3>2) Full-Duplex Single-Byte Transfer</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_transfer_byte(uint8_t tx_data, uint8_t *rx_data)
+{
+    return HAL_SPI_TransmitReceive(&amp;hspi1, &amp;tx_data, rx_data, 1, 100);
+}
+</code></pre>
+<h3>3) Write 8-bit Data to 8-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_reg8_data8(uint8_t cmd, uint8_t reg_addr, uint8_t data)
+{
+    uint8_t tx[3] = { cmd, reg_addr, data };
+    return HAL_SPI_Transmit(&amp;hspi1, tx, 3, 100);
+}
+</code></pre>
+<h3>4) Read 8-bit Data from 8-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_read_reg8_data8(uint8_t cmd, uint8_t reg_addr, uint8_t *data)
+{
+    uint8_t tx[3] = { cmd, reg_addr, 0x00 };
+    uint8_t rx[3] = { 0 };
+
+    HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, 3, 100);
+    if (ret == HAL_OK &amp;&amp; data != NULL) {
+        *data = rx[2];
+    }
+    return ret;
+}
+</code></pre>
+<h3>5) Write 16-bit Data to 8-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_reg8_data16(uint8_t cmd, uint8_t reg_addr, uint16_t data)
+{
+    uint8_t tx[4];
+    tx[0] = cmd;
+    tx[1] = reg_addr;
+    tx[2] = (uint8_t)(data &gt;&gt; 8);
+    tx[3] = (uint8_t)(data &amp; 0xFF);
+
+    return HAL_SPI_Transmit(&amp;hspi1, tx, 4, 100);
+}
+</code></pre>
+<h3>6) Read 16-bit Data from 8-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_read_reg8_data16(uint8_t cmd, uint8_t reg_addr, uint16_t *data)
+{
+    uint8_t tx[4] = { cmd, reg_addr, 0x00, 0x00 };
+    uint8_t rx[4] = { 0 };
+
+    HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, 4, 100);
+    if (ret == HAL_OK &amp;&amp; data != NULL) {
+        *data = ((uint16_t)rx[2] &lt;&lt; 8) | rx[3];
+    }
+    return ret;
+}
+</code></pre>
+<h3>7) Write 8-bit Data to 16-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_reg16_data8(uint8_t cmd, uint16_t reg_addr, uint8_t data)
+{
+    uint8_t tx[4];
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+    tx[3] = data;
+
+    return HAL_SPI_Transmit(&amp;hspi1, tx, 4, 100);
+}
+</code></pre>
+<h3>8) Read 8-bit Data from 16-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_read_reg16_data8(uint8_t cmd, uint16_t reg_addr, uint8_t *data)
+{
+    uint8_t tx[4] = {
+        cmd,
+        (uint8_t)(reg_addr &gt;&gt; 8),
+        (uint8_t)(reg_addr &amp; 0xFF),
+        0x00
+    };
+    uint8_t rx[4] = { 0 };
+
+    HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, 4, 100);
+    if (ret == HAL_OK &amp;&amp; data != NULL) {
+        *data = rx[3];
+    }
+    return ret;
+}
+</code></pre>
+<h3>9) Write 16-bit Data to 16-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_reg16_data16(uint8_t cmd, uint16_t reg_addr, uint16_t data)
+{
+    uint8_t tx[5];
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+    tx[3] = (uint8_t)(data &gt;&gt; 8);
+    tx[4] = (uint8_t)(data &amp; 0xFF);
+
+    return HAL_SPI_Transmit(&amp;hspi1, tx, 5, 100);
+}
+</code></pre>
+<h3>10) Read 16-bit Data from 16-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_read_reg16_data16(uint8_t cmd, uint16_t reg_addr, uint16_t *data)
+{
+    uint8_t tx[5] = {
+        cmd,
+        (uint8_t)(reg_addr &gt;&gt; 8),
+        (uint8_t)(reg_addr &amp; 0xFF),
+        0x00,
+        0x00
+    };
+    uint8_t rx[5] = { 0 };
+
+    HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, 5, 100);
+    if (ret == HAL_OK &amp;&amp; data != NULL) {
+        *data = ((uint16_t)rx[3] &lt;&lt; 8) | rx[4];
+    }
+    return ret;
+}
+</code></pre>
+<h3>11) Write Multiple Bytes to 8-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_write_reg8_buffer(uint8_t cmd, uint8_t reg_addr,
+                                              uint8_t *buf, uint16_t len)
+{
+    uint8_t tx[len + 2];
+    tx[0] = cmd;
+    tx[1] = reg_addr;
+    memcpy(&amp;tx[2], buf, len);
+
+    return HAL_SPI_Transmit(&amp;hspi1, tx, len + 2, 100);
+}
+</code></pre>
+<h3>12) Read Multiple Bytes from 16-bit Register Address</h3>
+<pre><code class="language-c">HAL_StatusTypeDef stm32_spi_read_reg16_buffer(uint8_t cmd, uint16_t reg_addr,
+                                              uint8_t *buf, uint16_t len)
+{
+    uint8_t tx[len + 3];
+    uint8_t rx[len + 3];
+
+    memset(tx, 0, sizeof(tx));
+    memset(rx, 0, sizeof(rx));
+
+    tx[0] = cmd;
+    tx[1] = (uint8_t)(reg_addr &gt;&gt; 8);
+    tx[2] = (uint8_t)(reg_addr &amp; 0xFF);
+
+    HAL_StatusTypeDef ret = HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, len + 3, 100);
+    if (ret == HAL_OK &amp;&amp; buf != NULL) {
+        memcpy(buf, &amp;rx[3], len);
+    }
+    return ret;
+}
+</code></pre>
+<h3>STM32 Example Usage</h3>
+<pre><code class="language-c">void example_spi_transactions(void)
+{
+    uint8_t value8;
+    uint16_t value16;
+    uint8_t buf[4];
+
+    stm32_spi_write_reg8_data8(0x02, 0x10, 0xAA);
+    stm32_spi_read_reg8_data8(0x03, 0x10, &amp;value8);
+
+    stm32_spi_write_reg8_data16(0x02, 0x20, 0x1122);
+    stm32_spi_read_reg8_data16(0x03, 0x20, &amp;value16);
+
+    stm32_spi_write_reg16_data8(0x02, 0x1234, 0x77);
+    stm32_spi_read_reg16_data8(0x03, 0x1234, &amp;value8);
+
+    stm32_spi_write_reg16_data16(0x02, 0x1234, 0x3344);
+    stm32_spi_read_reg16_data16(0x03, 0x1234, &amp;value16);
+
+    stm32_spi_read_reg16_buffer(0x03, 0x2000, buf, sizeof(buf));
+}
+</code></pre>
+<hr />
+<h2>⚡ Important Notes</h2>
+<ul>
+<li>SPI usually needs one <strong>CS line per slave</strong></li>
+<li>SPI is generally faster than I2C</li>
+<li>No pull-up resistors required like I2C</li>
+<li>Master always generates the clock</li>
+<li>Some devices require <strong>dummy clocks / dummy bytes</strong> before read data becomes valid</li>
+<li>Some devices support <strong>MSB-first</strong> or <strong>LSB-first</strong></li>
+<li>Always match:<ul>
+<li>SPI mode</li>
+<li>clock speed</li>
+<li>bit order</li>
+<li>frame format</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>🛠️ Troubleshooting</h2>
+<ul>
+<li>No response -&gt; Check CS wiring and SPI mode</li>
+<li>Wrong data -&gt; Check CPOL / CPHA settings</li>
+<li>All zeros / all 0xFF -&gt; Check MISO connection and dummy bytes</li>
+<li>Data shifted incorrectly -&gt; Check bit order and clock edge</li>
+<li>Works sometimes -&gt; Reduce SPI clock speed and verify signal quality</li>
+</ul>
+<hr />
+<h2>🔬 How MCU Handles 8-bit and 16-bit Address/Data Internally</h2>
+<h3>8-bit Register Address</h3>
+<p>When a device uses an 8-bit register address, the MCU typically sends:</p>
+<pre><code class="language-text">CS LOW
+COMMAND
+REG_ADDR (8-bit)
+DATA...
+CS HIGH
+</code></pre>
+<h3>16-bit Register Address</h3>
+<p>When a device uses a 16-bit register or memory address, the MCU typically sends:</p>
+<pre><code class="language-text">CS LOW
+COMMAND
+REG_ADDR_HIGH
+REG_ADDR_LOW
+DATA...
+CS HIGH
+</code></pre>
+<h3>8-bit Data</h3>
+<p>For 8-bit data, only one byte is transferred:</p>
+<pre><code class="language-text">DATA = 0x5A
+</code></pre>
+<h3>16-bit Data</h3>
+<p>For 16-bit data, two bytes are transferred, usually MSB first:</p>
+<pre><code class="language-text">DATA_HIGH = 0x12
+DATA_LOW  = 0x34
+</code></pre>
+<p>Combined value:</p>
+<pre><code class="language-text">0x1234
+</code></pre>
+<h3>Important Rule</h3>
+<p><strong>Register/address width</strong> and <strong>data width</strong> are different things.</p>
+<p>Examples:</p>
+<ul>
+<li>sensor may use <strong>8-bit register address</strong> and <strong>8-bit data</strong></li>
+<li>Flash memory may use <strong>16-bit or 24-bit address</strong> and <strong>8-bit data</strong></li>
+<li>ADC may use <strong>8-bit register address</strong> and return <strong>16-bit data</strong></li>
+<li>display controller may use <strong>command + data stream</strong> without a normal register map</li>
+</ul>
+<p>So always check the datasheet for:</p>
+<ul>
+<li>command format</li>
+<li>register / memory address size</li>
+<li>data size</li>
+<li>byte order</li>
+<li>dummy cycles</li>
+<li>SPI mode</li>
+</ul>
+<hr />
+<h2>📚 Summary</h2>
+<ul>
+<li>SPI uses clocked serial communication</li>
+<li>Usually 4 wires: SCLK, MOSI, MISO, CS</li>
+<li>Full-duplex transfer is possible</li>
+<li>Faster than I2C in many applications</li>
+<li>Each slave usually needs its own CS line</li>
+<li>Frame format depends on the device datasheet</li>
+</ul>
+<hr />
+<h2>🚀 Bonus: Logic Analyzer View</h2>
+<p><img src="images/SPI_Protocol_Logic.png" width="850px" alt="Logic Analyzer" /></p>
+<hr />
+<h2>📌 References</h2>
+<ul>
+<li>ESP-IDF SPI Master Driver:
+<a href="https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/spi_master.html">https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/spi_master.html</a></li>
+<li>STM32 HAL SPI How To Use:
+<a href="https://dev.st.com/stm32cube-docs/stm32c5xx-hal-drivers/2.0.0/en/docs/drivers/hal_drivers/spi/hal_spi_how_to_use.html">https://dev.st.com/stm32cube-docs/stm32c5xx-hal-drivers/2.0.0/en/docs/drivers/hal_drivers/spi/hal_spi_how_to_use.html</a></li>
+</ul>
+<hr />
+</main>
+</body>
+</html>
