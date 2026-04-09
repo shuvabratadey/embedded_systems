@@ -89,15 +89,15 @@ h1{font-size:17px;font-weight:500;margin-bottom:2px}
   <div class="cfg-box">
     <div class="cfg-title">Slave 1 — MOSI / MISO bytes</div>
     <div class="cfg-row">
-      <div class="field"><label>MOSI byte (hex)</label><input id="s1-mosi" value="0xA5" oninput="refreshLabels()"/></div>
-      <div class="field"><label>MISO byte (hex)</label><input id="s1-miso" value="0x3C" oninput="refreshLabels()"/></div>
+      <div class="field"><label>MOSI byte (hex)</label><input id="s1-mosi" value="0xA5" inputmode="text" maxlength="4" placeholder="0x00" oninput="sanitizeHexInput(this);refreshLabels()"/></div>
+      <div class="field"><label>MISO byte (hex)</label><input id="s1-miso" value="0x3C" inputmode="text" maxlength="4" placeholder="0x00" oninput="sanitizeHexInput(this);refreshLabels()"/></div>
     </div>
   </div>
   <div class="cfg-box">
     <div class="cfg-title">Slave 2 — MOSI / MISO bytes</div>
     <div class="cfg-row">
-      <div class="field"><label>MOSI byte (hex)</label><input id="s2-mosi" value="0x76" oninput="refreshLabels()"/></div>
-      <div class="field"><label>MISO byte (hex)</label><input id="s2-miso" value="0xB2" oninput="refreshLabels()"/></div>
+      <div class="field"><label>MOSI byte (hex)</label><input id="s2-mosi" value="0x76" inputmode="text" maxlength="4" placeholder="0x00" oninput="sanitizeHexInput(this);refreshLabels()"/></div>
+      <div class="field"><label>MISO byte (hex)</label><input id="s2-miso" value="0xB2" inputmode="text" maxlength="4" placeholder="0x00" oninput="sanitizeHexInput(this);refreshLabels()"/></div>
     </div>
   </div>
 </div>
@@ -302,6 +302,18 @@ function bitTimeStr(hz){
 function log(html){const el=document.getElementById('log');el.innerHTML+=html+'<br>';el.scrollTop=el.scrollHeight;}
 function clearLog(){document.getElementById('log').innerHTML='';}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function sanitizeHexInput(el){
+  let v=(el.value||'').toUpperCase().replace(/[^0-9A-FX]/g,'');
+  if(v.startsWith('0X')) v='0x'+v.slice(2);
+  else if(v.startsWith('0x')) v='0x'+v.slice(2).toUpperCase();
+  else{
+    v=v.replace(/X/g,'');
+    if(v.length>0) v='0x'+v;
+  }
+  let digits=v.startsWith('0x')?v.slice(2):v;
+  digits=digits.replace(/[^0-9A-F]/g,'').slice(0,2);
+  el.value=digits.length ? '0x'+digits : '0x';
+}
 function hexByteToBits(hex,lsb=false){
   const b=parseInt(hex,16).toString(2).padStart(8,'0').split('');
   return lsb?b.reverse():b;
