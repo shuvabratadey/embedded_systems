@@ -95,6 +95,24 @@
     html {
         scroll-behavior: smooth;
     }
+    /* Button Link */
+    .link-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #22d3ee, #38bdf8);
+        color: #020617;
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: 0.3s;
+        box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+        cursor: pointer; /* ensures pointer on hover */
+    }
+
+    .link-btn:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
+    }
 </style>
 </head>
 <body>
@@ -155,6 +173,14 @@ LVGL Core Engine
 Objects (Buttons, Labels, etc.)
 </code></pre>
 </section>
+
+<h2>🌐 LVGL UI DESIGNER</h2>
+
+<!-- Clickable Button Link -->
+<a href="lvgl_ui_designer.html" class="link-btn">
+    🔗 Open LVGL Editor
+</a>
+
 
 <div class="section-divider"></div>
 
