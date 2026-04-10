@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LVGL UI Designer — ESP32 Visual Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0e11;--bg2:#13151a;--bg3:#1a1d24;--bg4:#21252f;
+  --border:#2a2e3a;--border2:#363b4a;
+  --accent:#00d4aa;--accent2:#0099ff;--accent3:#ff6b35;
+  --text:#e8eaf0;--text2:#9aa0b4;--text3:#5a6078;
+  --red:#ff4757;--yellow:#ffd32a;--green:#00d4aa;
+  --panel:280px;--props:280px;
+  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);height:52px;flex-shrink:0;padding:0 16px;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--accent);letter-spacing:-.3px;white-space:nowrap}
+.logo svg{width:28px;height:28px}
+.topbar-sep{width:1px;height:28px;background:var(--border);margin:0 4px}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.tb-btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.tb-btn.primary:hover{background:#00bfa0}
+.tb-btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
+.tb-btn.run{background:linear-gradient(135deg,#00d4aa,#0099ff);color:#000;border:none;font-weight:600}
+.tb-btn.run:hover{opacity:.9}
+.tb-spacer{flex:1}
+.screen-tabs{display:flex;align-items:center;gap:4px;flex:1;overflow-x:auto;padding:0 4px}
+.screen-tab{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s}
+.screen-tab:hover{background:var(--bg3);color:var(--text)}
+.screen-tab.active{background:var(--bg3);color:var(--accent);border-color:var(--accent)}
+.screen-tab .del{width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;font-size:10px;color:var(--text3);line-height:1}
+.screen-tab .del:hover{background:var(--red);color:#fff}
+.add-screen{padding:5px 8px;border-radius:6px;border:1px dashed var(--border2);background:transparent;color:var(--text3);font-size:12px;cursor:pointer;transition:all .15s}
+.add-screen:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ── MAIN LAYOUT ── */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ── LEFT PANEL ── */
+.left-panel{width:var(--panel);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border)}
+.ptab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.3px;text-transform:uppercase}
+.ptab:hover{color:var(--text2)}
+.ptab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel-content{flex:1;overflow-y:auto;padding:8px}
+.panel-content::-webkit-scrollbar{width:4px}.panel-content::-webkit-scrollbar-track{background:transparent}.panel-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* Component palette */
+.comp-group{margin-bottom:12px}
+.comp-group-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;padding:4px 4px 6px;border-bottom:1px solid var(--border)}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
+.comp-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);cursor:grab;transition:all .15s;user-select:none}
+.comp-item:hover{border-color:var(--accent);background:var(--bg4);transform:translateY(-1px)}
+.comp-item:active{cursor:grabbing}
+.comp-icon{font-size:18px;line-height:1}
+.comp-name{font-size:10px;color:var(--text2);font-weight:500;text-align:center;line-height:1.2}
+
+/* Layer tree */
+.layer-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .1s}
+.layer-item:hover{background:var(--bg3);color:var(--text)}
+.layer-item.selected{background:rgba(0,212,170,.1);color:var(--accent);border:1px solid rgba(0,212,170,.2)}
+.layer-icon{font-size:13px;width:18px;text-align:center}
+.layer-actions{margin-left:auto;display:flex;gap:2px;opacity:0}
+.layer-item:hover .layer-actions{opacity:1}
+.layer-act{padding:2px 4px;border-radius:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:11px}
+.layer-act:hover{background:var(--border);color:var(--text)}
+
+/* ── CANVAS AREA ── */
+.canvas-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.canvas-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.tool-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--text2);cursor:pointer;font-size:14px;transition:all .1s}
+.tool-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border)}
+.tool-btn.active{background:rgba(0,212,170,.15);color:var(--accent);border-color:rgba(0,212,170,.3)}
+.zoom-info{font-size:11px;color:var(--text3);font-family:var(--mono);margin-left:auto}
+.canvas-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:32px}
+.canvas-wrap::-webkit-scrollbar{width:6px;height:6px}.canvas-wrap::-webkit-scrollbar-track{background:transparent}.canvas-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.screen-canvas{position:relative;background:#1a1a2e;border:1px solid var(--border2);box-shadow:0 0 0 1px var(--border),0 8px 48px rgba(0,0,0,.6);overflow:hidden}
+.canvas-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:20px 20px;opacity:.3}
+.drop-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;opacity:.4}
+.drop-hint-icon{font-size:48px}
+.drop-hint-text{font-size:14px;color:var(--text3);font-weight:500}
+
+/* Widget on canvas */
+.canvas-widget{position:absolute;cursor:move;user-select:none}
+.canvas-widget.selected .widget-inner{outline:2px solid var(--accent);outline-offset:1px}
+.canvas-widget.selected .resize-handle{display:block}
+.widget-inner{border-radius:3px;overflow:visible;position:relative}
+.resize-handle{display:none;position:absolute;width:8px;height:8px;background:var(--accent);border:2px solid var(--bg);border-radius:2px;z-index:10}
+.resize-handle.se{bottom:-4px;right:-4px;cursor:se-resize}
+.resize-handle.sw{bottom:-4px;left:-4px;cursor:sw-resize}
+.resize-handle.ne{top:-4px;right:-4px;cursor:ne-resize}
+.resize-handle.nw{top:-4px;left:-4px;cursor:nw-resize}
+.resize-handle.n{top:-4px;left:50%;transform:translateX(-50%);cursor:n-resize}
+.resize-handle.s{bottom:-4px;left:50%;transform:translateX(-50%);cursor:s-resize}
+.resize-handle.e{top:50%;right:-4px;transform:translateY(-50%);cursor:e-resize}
+.resize-handle.w{top:50%;left:-4px;transform:translateY(-50%);cursor:w-resize}
+
+/* LVGL Widget renders */
+.lv-btn{display:inline-flex;align-items:center;justify-content:center;background:#3a5a8a;border:none;border-radius:4px;color:#fff;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:default}
+.lv-label{color:#fff;font-family:var(--mono);font-size:13px;white-space:nowrap}
+.lv-bar-bg{background:#2a2a3a;border-radius:3px;overflow:hidden}
+.lv-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+.lv-slider-bg{background:#2a2a3a;border-radius:3px;position:relative}
+.lv-slider-knob{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;background:var(--accent);border-radius:50%;border:2px solid #fff}
+.lv-switch{display:inline-flex;align-items:center;width:44px;height:24px;background:#555;border-radius:12px;position:relative;cursor:default}
+.lv-switch.on{background:var(--accent)}
+.lv-switch-knob{position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .2s}
+.lv-switch.on .lv-switch-knob{left:22px}
+.lv-checkbox{display:inline-flex;align-items:center;gap:6px;color:#fff;font-family:var(--mono);font-size:12px}
+.lv-checkbox-box{width:16px;height:16px;border:2px solid var(--accent);border-radius:2px;background:transparent;display:flex;align-items:center;justify-content:center;font-size:10px}
+.lv-checkbox-box.checked{background:var(--accent)}
+.lv-spinner{width:40px;height:40px;border:3px solid #333;border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lv-textarea{background:#1a1d24;border:1px solid #444;border-radius:3px;color:#fff;font-family:var(--mono);font-size:11px;padding:4px;resize:none;width:100%;height:100%}
+.lv-dropdown{background:#2a2e3a;border:1px solid #444;border-radius:3px;color:#fff;font-family:var(--mono);font-size:12px;padding:4px 24px 4px 8px;appearance:none;width:100%;position:relative}
+.lv-dropdown-wrap{position:relative;width:100%}
+.lv-dropdown-wrap::after{content:'▼';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:8px;color:var(--accent);pointer-events:none}
+.lv-img{background:#2a2a40;border:1px dashed #444;display:flex;align-items:center;justify-content:center;color:#666;font-size:10px;border-radius:3px}
+.lv-chart{background:#1a1d24;border:1px solid #333;border-radius:3px}
+.lv-tabview{border:1px solid #444;border-radius:3px;overflow:hidden}
+.lv-tabview-tabs{display:flex;background:#1a1d24;border-bottom:1px solid #444}
+.lv-tabview-tab{padding:5px 10px;font-size:11px;color:#888;border-right:1px solid #444;cursor:default;font-family:var(--mono)}
+.lv-tabview-tab.active{color:var(--accent);background:#0d1520}
+.lv-tabview-body{padding:6px;color:#aaa;font-size:11px;font-family:var(--mono)}
+.lv-list{border:1px solid #444;border-radius:3px;overflow:hidden}
+.lv-list-item{padding:5px 8px;border-bottom:1px solid #333;color:#ccc;font-size:11px;font-family:var(--mono);display:flex;align-items:center;gap:6px}
+.lv-list-item:last-child{border-bottom:none}
+.lv-list-item:hover{background:#1a1d24}
+.lv-arc{display:flex;align-items:center;justify-content:center}
+.lv-msgbox{background:#1a1d24;border:1px solid #444;border-radius:6px;padding:10px;color:#ccc;font-family:var(--mono);font-size:11px}
+.lv-msgbox-title{font-weight:600;color:#fff;margin-bottom:6px;font-size:12px}
+.lv-msgbox-btns{display:flex;gap:6px;margin-top:8px}
+.lv-keyboard{background:#1a1d24;border:1px solid #444;border-radius:3px;padding:4px}
+.lv-key-row{display:flex;gap:2px;margin-bottom:2px;justify-content:center}
+.lv-key{background:#2a2e3a;color:#ccc;border:1px solid #444;border-radius:2px;padding:2px 4px;font-size:9px;font-family:var(--mono)}
+.lv-meter{display:flex;align-items:center;justify-content:center}
+.lv-calendar{border:1px solid #444;border-radius:3px;overflow:hidden;font-family:var(--mono);font-size:9px}
+.lv-cal-header{background:#1a1d24;padding:4px;text-align:center;color:var(--accent);font-size:10px;border-bottom:1px solid #444}
+.lv-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0}
+.lv-cal-day{padding:2px;text-align:center;color:#888}
+.lv-cal-day.today{color:var(--accent);font-weight:600}
+.lv-colorwheel{border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);display:flex;align-items:center;justify-content:center}
+.lv-led{border-radius:50%;background:radial-gradient(circle at 35% 35%,#00ff88,#007740)}
+.lv-container{background:rgba(255,255,255,.03);border:1px dashed #444;border-radius:3px}
+.lv-tileview{background:#1a1d24;border:1px solid #444;border-radius:3px;display:grid;gap:2px;padding:2px}
+.lv-tile{background:#2a2e3a;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#666;font-size:10px;font-family:var(--mono)}
+.lv-imgbtn{background:#2a3a4a;border:1px solid #3a5a8a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#88aacc;font-size:10px;font-family:var(--mono)}
+.lv-table{border:1px solid #444;border-radius:3px;border-collapse:collapse;width:100%}
+.lv-table td,.lv-table th{border:1px solid #333;padding:3px 6px;font-size:9px;font-family:var(--mono);color:#ccc}
+.lv-table th{background:#1a1d24;color:var(--accent)}
+.lv-roller{background:#1a1d24;border:1px solid #444;border-radius:3px;overflow:hidden;font-family:var(--mono);font-size:11px}
+.lv-roller-item{padding:3px 8px;text-align:center;color:#666}
+.lv-roller-item.selected{color:#fff;background:rgba(0,212,170,.1);font-weight:600}
+.lv-line{stroke:var(--accent);stroke-width:2;fill:none}
+.lv-canvas-obj{background:#1a1d24;border:1px solid #333;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#444;font-size:10px;font-family:var(--mono)}
+
+/* ── RIGHT PANEL ── */
+.right-panel{width:var(--props);background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.props-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.props-title{font-size:12px;font-weight:600;color:var(--text);letter-spacing:.3px}
+.props-subtitle{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.props-scroll{flex:1;overflow-y:auto;padding:8px}
+.props-scroll::-webkit-scrollbar{width:4px}.props-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.prop-group{margin-bottom:12px}
+.prop-group-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;padding:6px 4px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.prop-row{display:flex;align-items:center;gap:8px;padding:4px 2px;margin-bottom:2px}
+.prop-label{font-size:11px;color:var(--text2);flex:0 0 90px;font-weight:500}
+.prop-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 6px;outline:none;transition:border .1s;min-width:0}
+.prop-input:focus{border-color:var(--accent)}
+.prop-input[type=color]{padding:1px 2px;height:26px;cursor:pointer}
+.prop-input[type=range]{padding:0}
+.prop-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 6px;outline:none}
+.prop-select:focus{border-color:var(--accent)}
+.prop-checkbox{width:14px;height:14px;accent-color:var(--accent)}
+.prop-number{display:flex;align-items:center;gap:2px;flex:1}
+.prop-number input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 4px;text-align:center;outline:none;min-width:0}
+.prop-number input:focus{border-color:var(--accent)}
+.prop-num-btn{width:20px;height:26px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prop-num-btn:hover{background:var(--bg4);color:var(--text)}
+.no-sel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:8px;color:var(--text3)}
+.no-sel-icon{font-size:32px;opacity:.4}
+.no-sel-text{font-size:12px}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:0;min-width:520px;max-width:90vw;box-shadow:0 24px 80px rgba(0,0,0,.8)}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.modal-title{font-size:16px;font-weight:600;color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.setup-card{border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;transition:all .15s;background:var(--bg3)}
+.setup-card:hover{border-color:var(--accent);background:var(--bg4)}
+.setup-card.selected{border-color:var(--accent);background:rgba(0,212,170,.05)}
+.setup-card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.setup-card-desc{font-size:11px;color:var(--text3)}
+.setup-label{font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.setup-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;outline:none;margin-bottom:12px}
+.setup-input:focus{border-color:var(--accent)}
+
+/* Simulate modal */
+.sim-modal{min-width:auto;background:var(--bg2)}
+.sim-screen{background:#1a1a2e;position:relative;overflow:hidden}
+.sim-topbar{background:#111;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #222}
+.sim-dot{width:8px;height:8px;border-radius:50%}
+
+/* Code modal */
+.code-modal{min-width:760px;max-height:90vh}
+.code-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 24px}
+.code-tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.code-tab:hover{color:var(--text2)}
+.code-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;overflow:auto;max-height:400px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#e8eaf0}
+.code-block::-webkit-scrollbar{width:6px;height:6px}.code-block::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.kw{color:#c792ea}.fn{color:#82aaff}.str{color:#c3e88d}.num{color:#f78c6c}.cm{color:#546e7a}.inc{color:#89ddff}.typ{color:#ffcb6b}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:10px 20px;font-size:13px;color:var(--text);z-index:2000;pointer-events:none;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+
+/* Selection box */
+.sel-box{position:absolute;border:1px solid var(--accent);background:rgba(0,212,170,.05);pointer-events:none;z-index:999}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#00d4aa20"/><rect x="4" y="4" width="8" height="8" rx="1.5" fill="#00d4aa"/><rect x="16" y="4" width="8" height="8" rx="1.5" fill="#0099ff"/><rect x="4" y="16" width="8" height="8" rx="1.5" fill="#ff6b35"/><rect x="16" y="16" width="8" height="8" rx="1.5" fill="#00d4aa60"/></svg>
+    LVGL Designer
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="screen-tabs" id="screenTabs"></div>
+  <button class="add-screen" onclick="addScreen()">+ Screen</button>
+  <div class="topbar-sep"></div>
+  <button class="tb-btn run" onclick="runSimulation()">▶ Run</button>
+  <button class="tb-btn primary" onclick="generateCode()">⬇ Export Code</button>
+  <button class="tb-btn" onclick="clearCanvas()">🗑 Clear</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="panel-tabs">
+      <div class="ptab active" onclick="switchPTab(this,'comp')">Components</div>
+      <div class="ptab" onclick="switchPTab(this,'layers')">Layers</div>
+    </div>
+    <div class="panel-content" id="compPanel">
+      <div id="compList"></div>
+    </div>
+    <div class="panel-content" id="layersPanel" style="display:none">
+      <div id="layerTree"></div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <button class="tool-btn active" id="toolSelect" title="Select" onclick="setTool('select')">↖</button>
+      <button class="tool-btn" id="toolMove" title="Pan" onclick="setTool('pan')">✋</button>
+      <div class="topbar-sep" style="height:20px"></div>
+      <button class="tool-btn" title="Undo" onclick="undo()">↩</button>
+      <button class="tool-btn" title="Redo" onclick="redo()">↪</button>
+      <div class="topbar-sep" style="height:20px"></div>
+      <button class="tool-btn" title="Delete selected" onclick="deleteSelected()">✕</button>
+      <button class="tool-btn" title="Duplicate" onclick="duplicateSelected()">⧉</button>
+      <button class="tool-btn" title="Bring forward" onclick="layerWidget(1)">⬆</button>
+      <button class="tool-btn" title="Send back" onclick="layerWidget(-1)">⬇</button>
+      <div class="topbar-sep" style="height:20px"></div>
+      <button class="tool-btn" title="Zoom in" onclick="zoom(1.2)">+</button>
+      <button class="tool-btn" title="Zoom out" onclick="zoom(0.83)">−</button>
+      <button class="tool-btn" title="Fit to view" onclick="zoomFit()" style="font-size:11px">Fit</button>
+      <span class="zoom-info" id="zoomInfo">100%</span>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div id="screenCanvas" class="screen-canvas">
+        <div class="canvas-grid"></div>
+        <div class="drop-hint" id="dropHint">
+          <div class="drop-hint-icon">🖥</div>
+          <div class="drop-hint-text">Drag components from the left panel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="props-header">
+      <div>
+        <div class="props-title">Properties</div>
+        <div class="props-subtitle" id="propsSubtitle">No selection</div>
+      </div>
+    </div>
+    <div class="props-scroll" id="propsPanel">
+      <div class="no-sel">
+        <div class="no-sel-icon">🎛</div>
+        <div class="no-sel-text">Select a component</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#00d4aa20"/><rect x="3" y="3" width="7" height="7" rx="1" fill="#00d4aa"/><rect x="14" y="3" width="7" height="7" rx="1" fill="#0099ff"/><rect x="3" y="14" width="7" height="7" rx="1" fill="#ff6b35"/><rect x="14" y="14" width="7" height="7" rx="1" fill="#00d4aa60"/></svg>
+      <div class="modal-title">New LVGL Project Setup</div>
+    </div>
+    <div class="modal-body">
+      <div class="setup-label">LVGL Version</div>
+      <div class="setup-grid">
+        <div class="setup-card selected" onclick="selectVersion(this,'8.3')" id="v83">
+          <div class="setup-card-title">LVGL v8.3 LTS</div>
+          <div class="setup-card-desc">Long-term support, widely used in production ESP-IDF projects</div>
+        </div>
+        <div class="setup-card" onclick="selectVersion(this,'9.1')" id="v91">
+          <div class="setup-card-title">LVGL v9.1</div>
+          <div class="setup-card-desc">Latest stable, improved rendering pipeline & new APIs</div>
+        </div>
+      </div>
+      <div class="setup-label">Display Resolution</div>
+      <div class="setup-grid">
+        <div class="setup-card selected" onclick="selectRes(this,320,240)" id="r320">
+          <div class="setup-card-title">320 × 240 (QVGA)</div>
+          <div class="setup-card-desc">ESP32 common TFT display</div>
+        </div>
+        <div class="setup-card" onclick="selectRes(this,480,320)" id="r480">
+          <div class="setup-card-title">480 × 320 (HVGA)</div>
+          <div class="setup-card-desc">3.5" TFT, ILI9488</div>
+        </div>
+        <div class="setup-card" onclick="selectRes(this,800,480)" id="r800">
+          <div class="setup-card-title">800 × 480 (WVGA)</div>
+          <div class="setup-card-desc">7" display, RGB parallel</div>
+        </div>
+        <div class="setup-card" onclick="selectRes(this,240,240)" id="r240">
+          <div class="setup-card-title">240 × 240 (Square)</div>
+          <div class="setup-card-desc">Round/square watch displays</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;align-items:flex-end">
+        <div style="flex:1">
+          <div class="setup-label">Custom Width</div>
+          <input class="setup-input" type="number" id="customW" placeholder="e.g. 1024" value="320">
+        </div>
+        <div style="flex:1">
+          <div class="setup-label">Custom Height</div>
+          <input class="setup-input" type="number" id="customH" placeholder="e.g. 600" value="240">
+        </div>
+        <div style="flex:1">
+          <div class="setup-label">Project Name</div>
+          <input class="setup-input" id="projName" placeholder="my_lvgl_app" value="my_lvgl_app" style="margin-bottom:0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tb-btn primary" onclick="startDesign()" style="padding:8px 24px;font-size:13px">Start Designing →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIM MODAL -->
+<div class="modal-overlay" id="simModal" style="display:none">
+  <div class="modal sim-modal">
+    <div class="modal-header">
+      <div class="modal-title">▶ Simulation Preview</div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="tb-btn" onclick="closeModal('simModal')">✕ Close</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:16px;display:flex;justify-content:center;align-items:center">
+      <div>
+        <div class="sim-topbar" style="justify-content:space-between">
+          <span style="font-size:11px;color:#888;font-family:var(--mono)" id="simTitle">Screen 1</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:10px;color:#555;font-family:var(--mono)">INTERACTIVE PREVIEW</span>
+          </div>
+        </div>
+        <div id="simScreen" class="sim-screen"></div>
+        <div style="padding:6px 8px;background:#0d0e11;border-top:1px solid #222;display:flex;gap:12px;align-items:center">
+          <div id="simScreenNav" style="display:flex;gap:6px;flex:1"></div>
+          <span style="font-size:10px;color:#444;font-family:var(--mono)">Click widgets to interact</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CODE MODAL -->
+<div class="modal-overlay" id="codeModal" style="display:none">
+  <div class="modal code-modal" style="max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <div class="modal-title">⬇ ESP-IDF Project Code</div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="tb-btn" onclick="copyCode()">⧉ Copy All</button>
+        <button class="tb-btn" onclick="closeModal('codeModal')">✕</button>
+      </div>
+    </div>
+    <div class="code-tabs" id="codeTabs"></div>
+    <div style="padding:16px 24px;flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <pre class="code-block" id="codeBlock" style="flex:1"></pre>
+    </div>
+    <div class="modal-footer">
+      <div style="font-size:11px;color:var(--text3);flex:1">Generated for ESP-IDF + LVGL <span id="codeVersion">v8.3</span></div>
+      <button class="tb-btn primary" onclick="downloadProject()">⬇ Download .zip</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let config = { version: '8.3', w: 320, h: 240, name: 'my_lvgl_app' };
+let selectedVersion = '8.3', selResW = 320, selResH = 240;
+let screens = [];
+let activeScreen = 0;
+let selectedWidget = null;
+let zoomLevel = 1;
+let history = [], future = [];
+let idCounter = 1;
+let currentTool = 'select';
+let dragging = null, dragOffX = 0, dragOffY = 0;
+let resizing = null, resizeDir = '', resizeStartX = 0, resizeStartY = 0, resizeStartW = 0, resizeStartH = 0, resizeStartLeft = 0, resizeStartTop = 0;
+
+// ════════════════════════════════════════════════════════
+//  COMPONENT DEFINITIONS
+// ════════════════════════════════════════════════════════
+const COMP_GROUPS = [
+  { label: 'Basic', items: [
+    { id:'btn', name:'Button', icon:'🔲', w:80, h:32, defaults:{ text:'OK', bg_color:'#3a5a8a', text_color:'#ffffff', radius:4, font_size:14, border_width:0 } },
+    { id:'label', name:'Label', icon:'🏷', w:100, h:24, defaults:{ text:'Label', text_color:'#ffffff', font_size:13, align:'left', long_mode:'clip' } },
+    { id:'img', name:'Image', icon:'🖼', w:80, h:60, defaults:{ src:'(LV_IMG_DECLARE)', opacity:255 } },
+    { id:'line', name:'Line', icon:'〰', w:120, h:4, defaults:{ color:'#00d4aa', width:2, round_start:true, round_end:true } },
+    { id:'arc', name:'Arc', icon:'◔', w:80, h:80, defaults:{ value:50, min:0, max:100, start_angle:135, end_angle:45, color:'#00d4aa', bg_color:'#2a2a3a', width:8 } },
+    { id:'canvas', name:'Canvas', icon:'🎨', w:120, h:80, defaults:{ bg_color:'#1a1d24' } },
+  ]},
+  { label: 'Controls', items: [
+    { id:'btn_matrix', name:'BtnMatrix', icon:'⌨', w:160, h:80, defaults:{ map:['Btn1','Btn2','Btn3','\n','Btn4','Btn5',''], one_check:false } },
+    { id:'checkbox', name:'Checkbox', icon:'☑', w:120, h:24, defaults:{ text:'Check me', checked:false, text_color:'#ffffff' } },
+    { id:'dropdown', name:'Dropdown', icon:'📋', w:140, h:28, defaults:{ options:'Option 1\nOption 2\nOption 3', selected:0 } },
+    { id:'roller', name:'Roller', icon:'🎰', w:100, h:80, defaults:{ options:'Jan\nFeb\nMar\nApr\nMay', selected:0, visible_row_cnt:3, mode:'normal' } },
+    { id:'slider', name:'Slider', icon:'🎚', w:140, h:16, defaults:{ value:50, min:0, max:100, color:'#00d4aa', knob_size:14 } },
+    { id:'switch', name:'Switch', icon:'🔘', w:44, h:24, defaults:{ checked:false, on_color:'#00d4aa', off_color:'#555555' } },
+    { id:'textarea', name:'Textarea', icon:'📝', w:160, h:60, defaults:{ placeholder:'Type here...', text:'', max_length:256, one_line:false } },
+    { id:'keyboard', name:'Keyboard', icon:'⌨', w:240, h:120, defaults:{ mode:'text_lower' } },
+    { id:'colorwheel', name:'Colorwheel', icon:'🎨', w:100, h:100, defaults:{ mode:'hue', knob_color:'#ffffff' } },
+  ]},
+  { label: 'Display', items: [
+    { id:'bar', name:'Bar', icon:'📊', w:160, h:16, defaults:{ value:60, min:0, max:100, color:'#00d4aa', bg_color:'#2a2a3a', radius:8, anim_time:200 } },
+    { id:'led', name:'LED', icon:'💡', w:24, h:24, defaults:{ color:'#00ff88', brightness:255 } },
+    { id:'chart', name:'Chart', icon:'📈', w:200, h:120, defaults:{ type:'line', point_cnt:10, color:'#00d4aa', bg_color:'#1a1d24', div_line_h:3, div_line_v:5 } },
+    { id:'meter', name:'Meter', icon:'🔢', w:100, h:100, defaults:{ min:0, max:100, value:75, needle_color:'#ff6b35', scale_color:'#00d4aa' } },
+    { id:'table', name:'Table', icon:'📋', w:200, h:120, defaults:{ row_cnt:3, col_cnt:3, row_h:30 } },
+    { id:'calendar', name:'Calendar', icon:'📅', w:200, h:140, defaults:{ today_highlighted:true, day_names_short:true } },
+    { id:'spinbox', name:'Spinbox', icon:'🔢', w:120, h:32, defaults:{ value:0, min:-9999, max:9999, step:1, digit_count:5 } },
+    { id:'lottie', name:'Lottie', icon:'🎬', w:120, h:120, defaults:{ src:'animation.json' } },
+  ]},
+  { label: 'Layout', items: [
+    { id:'container', name:'Container', icon:'📦', w:160, h:120, defaults:{ bg_color:'#ffffff08', border_color:'#444', border_width:1, radius:4, pad:4, layout:'NONE' } },
+    { id:'tabview', name:'Tabview', icon:'🗂', w:200, h:160, defaults:{ tab_pos:'top', tab_names:'Tab1,Tab2,Tab3', tab_height:32 } },
+    { id:'tileview', name:'Tileview', icon:'🔲', w:200, h:160, defaults:{ tile_cnt:4, dir:'horizontal' } },
+    { id:'list', name:'List', icon:'📃', w:160, h:140, defaults:{ items:'Item 1,Item 2,Item 3,Item 4', icon:'LV_SYMBOL_OK' } },
+    { id:'win', name:'Window', icon:'🪟', w:200, h:160, defaults:{ title:'Window', btn_close:true } },
+    { id:'menu', name:'Menu', icon:'☰', w:180, h:160, defaults:{ mode:'sidebar', header_mode:'top_fixed' } },
+  ]},
+  { label: 'Notification', items: [
+    { id:'msgbox', name:'Msgbox', icon:'💬', w:200, h:120, defaults:{ title:'Message', text:'Something happened!', btns:'OK,Cancel', modal:true } },
+    { id:'snackbar', name:'Snackbar', icon:'🔔', w:180, h:40, defaults:{ text:'Action completed', duration:3000 } },
+    { id:'spinner', name:'Spinner', icon:'⟳', w:56, h:56, defaults:{ arc_length:60, speed:1000, color:'#00d4aa', bg_color:'#333' } },
+  ]},
+  { label: 'Image', items: [
+    { id:'imgbtn', name:'ImgBtn', icon:'🖼', w:80, h:40, defaults:{ src_released:'img_released', src_pressed:'img_pressed', tiled:false } },
+    { id:'gif', name:'GIF', icon:'🎞', w:80, h:60, defaults:{ src:'animation.gif' } },
+  ]},
+];
+
+const COMP_MAP = {};
+COMP_GROUPS.forEach(g => g.items.forEach(c => { COMP_MAP[c.id] = c; }));
+
+// ════════════════════════════════════════════════════════
+//  SETUP MODAL
+// ════════════════════════════════════════════════════════
+function selectVersion(el, v) {
+  selectedVersion = v;
+  document.querySelectorAll('[id^="v"]').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function selectRes(el, w, h) {
+  selResW = w; selResH = h;
+  document.getElementById('customW').value = w;
+  document.getElementById('customH').value = h;
+  ['r320','r480','r800','r240'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  el.classList.add('selected');
+}
+document.getElementById('customW').addEventListener('input', e => { selResW = parseInt(e.target.value)||320; });
+document.getElementById('customH').addEventListener('input', e => { selResH = parseInt(e.target.value)||240; });
+
+function startDesign() {
+  config.version = selectedVersion;
+  config.w = parseInt(document.getElementById('customW').value) || 320;
+  config.h = parseInt(document.getElementById('customH').value) || 240;
+  config.name = document.getElementById('projName').value || 'my_lvgl_app';
+  document.getElementById('setupModal').style.display = 'none';
+  initDesigner();
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT DESIGNER
+// ════════════════════════════════════════════════════════
+function initDesigner() {
+  buildCompPanel();
+  addScreen();
+  setupCanvasDnD();
+  setupMouseEvents();
+  zoomFit();
+}
+
+function buildCompPanel() {
+  const list = document.getElementById('compList');
+  list.innerHTML = '';
+  COMP_GROUPS.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'comp-group';
+    div.innerHTML = `<div class="comp-group-label">${g.label}</div><div class="comp-grid">${
+      g.items.map(c => `<div class="comp-item" draggable="true" data-comp="${c.id}" title="${c.name}" ondragstart="compDragStart(event,'${c.id}')">
+        <div class="comp-icon">${c.icon}</div>
+        <div class="comp-name">${c.name}</div>
+      </div>`).join('')
+    }</div>`;
+    list.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  SCREENS
+// ════════════════════════════════════════════════════════
+function addScreen() {
+  const s = { id: screens.length, name: `Screen ${screens.length+1}`, widgets: [], bg_color: '#1a1a2e' };
+  screens.push(s);
+  renderScreenTabs();
+  switchScreen(screens.length - 1);
+}
+
+function renderScreenTabs() {
+  const tabs = document.getElementById('screenTabs');
+  tabs.innerHTML = screens.map((s,i) => `
+    <div class="screen-tab ${i===activeScreen?'active':''}" onclick="switchScreen(${i})">
+      ${s.name}
+      ${screens.length>1?`<span class="del" onclick="event.stopPropagation();deleteScreen(${i})">✕</span>`:''}
+    </div>
+  `).join('');
+}
+
+function switchScreen(idx) {
+  activeScreen = idx;
+  renderScreenTabs();
+  renderCanvas();
+  selectWidget(null);
+}
+
+function deleteScreen(idx) {
+  if(screens.length<=1){showToast('Cannot delete the last screen');return;}
+  screens.splice(idx,1);
+  if(activeScreen>=screens.length) activeScreen=screens.length-1;
+  renderScreenTabs();
+  renderCanvas();
+  selectWidget(null);
+}
+
+// ════════════════════════════════════════════════════════
+//  CANVAS RENDER
+// ════════════════════════════════════════════════════════
+function getCanvas() { return document.getElementById('screenCanvas'); }
+function getScreen() { return screens[activeScreen]; }
+
+function renderCanvas() {
+  const canvas = getCanvas();
+  const s = getScreen();
+  canvas.style.width = (config.w * zoomLevel) + 'px';
+  canvas.style.height = (config.h * zoomLevel) + 'px';
+  canvas.style.background = s.bg_color || '#1a1a2e';
+  canvas.style.transform = `scale(1)`;
+  document.getElementById('dropHint').style.display = s.widgets.length ? 'none' : 'flex';
+  // Remove old widgets
+  canvas.querySelectorAll('.canvas-widget').forEach(e => e.remove());
+  s.widgets.forEach(w => renderWidget(w));
+  renderLayerTree();
+}
+
+function renderWidget(w) {
+  const canvas = getCanvas();
+  const el = document.createElement('div');
+  el.className = 'canvas-widget' + (selectedWidget === w.id ? ' selected' : '');
+  el.id = 'cw_'+w.id;
+  el.style.left = Math.round(w.x * zoomLevel) + 'px';
+  el.style.top = Math.round(w.y * zoomLevel) + 'px';
+  el.style.width = Math.round(w.w * zoomLevel) + 'px';
+  el.style.height = Math.round(w.h * zoomLevel) + 'px';
+  el.style.zIndex = w.z || 1;
+  el.innerHTML = `<div class="widget-inner" style="width:100%;height:100%">${buildWidgetHTML(w)}</div>
+    <div class="resize-handle nw" data-dir="nw"></div>
+    <div class="resize-handle n" data-dir="n"></div>
+    <div class="resize-handle ne" data-dir="ne"></div>
+    <div class="resize-handle e" data-dir="e"></div>
+    <div class="resize-handle se" data-dir="se"></div>
+    <div class="resize-handle s" data-dir="s"></div>
+    <div class="resize-handle sw" data-dir="sw"></div>
+    <div class="resize-handle w" data-dir="w"></div>`;
+  el.addEventListener('mousedown', e => onWidgetMouseDown(e, w));
+  el.querySelectorAll('.resize-handle').forEach(h => {
+    h.addEventListener('mousedown', e => onResizeStart(e, w, h.dataset.dir));
+  });
+  canvas.appendChild(el);
+}
+
+function buildWidgetHTML(w) {
+  const p = w.props;
+  const iw = Math.round(w.w * zoomLevel), ih = Math.round(w.h * zoomLevel);
+  switch(w.type) {
+    case 'btn': return `<div class="lv-btn" style="width:100%;height:100%;background:${p.bg_color||'#3a5a8a'};color:${p.text_color||'#fff'};font-size:${(p.font_size||14)*zoomLevel}px;border-radius:${p.radius||4}px">${p.text||'OK'}</div>`;
+    case 'label': return `<div class="lv-label" style="color:${p.text_color||'#fff'};font-size:${(p.font_size||13)*zoomLevel}px;text-align:${p.align||'left'};line-height:1.4">${p.text||'Label'}</div>`;
+    case 'bar': return `<div class="lv-bar-bg" style="width:100%;height:100%;background:${p.bg_color||'#2a2a3a'};border-radius:${p.radius||8}px"><div class="lv-bar-fill" style="width:${(p.value||60)/(p.max||100)*100}%;height:100%;background:${p.color||'#00d4aa'};border-radius:${p.radius||8}px"></div></div>`;
+    case 'slider': {
+      const pct = ((p.value||50)-(p.min||0))/((p.max||100)-(p.min||0));
+      return `<div class="lv-slider-bg" style="width:100%;height:100%;background:${p.bg_color||'#2a2a3a'};border-radius:4px"><div style="position:absolute;left:0;top:0;width:${pct*100}%;height:100%;background:${p.color||'#00d4aa'};border-radius:4px"></div><div class="lv-slider-knob" style="left:${pct*100}%;width:${p.knob_size||14}px;height:${p.knob_size||14}px;background:${p.color||'#00d4aa'}"></div></div>`;
+    }
+    case 'switch': return `<div class="lv-switch ${p.checked?'on':''}" style="background:${p.checked?(p.on_color||'#00d4aa'):(p.off_color||'#555')}"><div class="lv-switch-knob"></div></div>`;
+    case 'checkbox': return `<div class="lv-checkbox"><div class="lv-checkbox-box ${p.checked?'checked':''}"><span style="color:#000">${p.checked?'✓':''}</span></div><span style="color:${p.text_color||'#fff'};font-size:${(p.font_size||12)*Math.min(zoomLevel,1)}px">${p.text||'Check me'}</span></div>`;
+    case 'spinner': return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div class="lv-spinner" style="border-top-color:${p.color||'#00d4aa'};width:${Math.min(iw,ih)*0.8}px;height:${Math.min(iw,ih)*0.8}px;border-color:${p.bg_color||'#333'};border-top-color:${p.color||'#00d4aa'}"></div></div>`;
+    case 'textarea': return `<textarea class="lv-textarea" style="font-size:${(p.font_size||11)*Math.min(zoomLevel,1)}px" placeholder="${p.placeholder||'Type...'}">${p.text||''}</textarea>`;
+    case 'dropdown': return `<div class="lv-dropdown-wrap"><select class="lv-dropdown" style="width:${iw}px">${(p.options||'Option 1\nOption 2').split('\n').map((o,i)=>`<option ${i===p.selected?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    case 'img': return `<div class="lv-img" style="width:100%;height:100%"><span style="font-size:${Math.min(iw,ih)*0.4}px">🖼</span></div>`;
+    case 'chart': return `<div class="lv-chart" style="width:100%;height:100%;position:relative"><svg width="100%" height="100%" viewBox="0 0 200 120"><polyline points="${generateChartPoints()}" class="lv-line"/><rect x="0" y="0" width="200" height="120" fill="none" stroke="#333" stroke-width="1"/></svg></div>`;
+    case 'tabview': {
+      const tabs = (p.tab_names||'Tab1,Tab2,Tab3').split(',');
+      return `<div class="lv-tabview" style="width:100%;height:100%"><div class="lv-tabview-tabs">${tabs.map((t,i)=>`<div class="lv-tabview-tab ${i===0?'active':''}">${t}</div>`).join('')}</div><div class="lv-tabview-body">${tabs[0]} content</div></div>`;
+    }
+    case 'list': {
+      const items = (p.items||'Item 1,Item 2,Item 3').split(',');
+      return `<div class="lv-list" style="width:100%;height:100%;overflow:hidden">${items.map(i=>`<div class="lv-list-item">→ ${i.trim()}</div>`).join('')}</div>`;
+    }
+    case 'arc': {
+      const pct = ((p.value||50)-(p.min||0))/((p.max||100)-(p.min||0));
+      const r = Math.min(iw,ih)/2-8; const cx=iw/2,cy=ih/2;
+      const sa=(p.start_angle||135)*Math.PI/180, ea=(p.end_angle||45)*Math.PI/180;
+      return `<svg width="100%" height="100%"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${p.bg_color||'#2a2a3a'}" stroke-width="${p.width||8}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${p.color||'#00d4aa'}" stroke-width="${p.width||8}" stroke-dasharray="${2*Math.PI*r*pct} ${2*Math.PI*r}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/></svg>`;
+    }
+    case 'msgbox': return `<div class="lv-msgbox" style="width:100%"><div class="lv-msgbox-title">${p.title||'Message'}</div><div style="font-size:11px;color:#aaa">${p.text||'Content here'}</div><div class="lv-msgbox-btns">${(p.btns||'OK,Cancel').split(',').map(b=>`<div class="lv-btn" style="background:#2a3a5a;padding:4px 10px;font-size:11px">${b.trim()}</div>`).join('')}</div></div>`;
+    case 'keyboard': {
+      const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫'],[' SPACE ','↵']];
+      return `<div class="lv-keyboard" style="width:100%;height:100%">${rows.map(r=>`<div class="lv-key-row">${r.map(k=>`<div class="lv-key">${k}</div>`).join('')}</div>`).join('')}</div>`;
+    }
+    case 'meter': {
+      const pct=((p.value||75)-(p.min||0))/((p.max||100)-(p.min||0));
+      const cx=iw/2,cy=ih*0.6,r=Math.min(iw,ih)*0.4;
+      const angle=-150+pct*300;
+      const nx=cx+r*0.8*Math.cos(angle*Math.PI/180),ny=cy+r*0.8*Math.sin(angle*Math.PI/180);
+      return `<svg width="100%" height="100%"><path d="M${cx-r},${cy} A${r},${r} 0 0,1 ${cx+r},${cy}" fill="none" stroke="${p.scale_color||'#00d4aa'}" stroke-width="6" opacity=".3"/><path d="M${cx-r},${cy} A${r},${r} 0 0,1 ${cx+r},${cy}" fill="none" stroke="${p.scale_color||'#00d4aa'}" stroke-width="4" stroke-dasharray="${Math.PI*r*pct} ${Math.PI*r}"/><line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${p.needle_color||'#ff6b35'}" stroke-width="2" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="4" fill="${p.needle_color||'#ff6b35'}"/><text x="${cx}" y="${cy+ih*0.15}" text-anchor="middle" fill="#aaa" font-size="10" font-family="monospace">${p.value||75}</text></svg>`;
+    }
+    case 'colorwheel': return `<div class="lv-colorwheel" style="width:${Math.min(iw,ih)}px;height:${Math.min(iw,ih)}px"><div style="width:50%;height:50%;border-radius:50%;background:white;opacity:.8"></div></div>`;
+    case 'led': return `<div class="lv-led" style="width:${Math.min(iw,ih)}px;height:${Math.min(iw,ih)}px;background:radial-gradient(circle at 35% 35%,${p.color||'#00ff88'},${p.color||'007740'})"></div>`;
+    case 'container': return `<div class="lv-container" style="width:100%;height:100%;background:${p.bg_color||'rgba(255,255,255,0.03)'};border:${p.border_width||1}px solid ${p.border_color||'#444'};border-radius:${p.radius||4}px;padding:${p.pad||4}px"><span style="font-size:9px;color:#555;font-family:monospace">Container</span></div>`;
+    case 'tileview': return `<div class="lv-tileview" style="width:100%;height:100%;grid-template-columns:1fr 1fr">${[1,2,3,4].map(i=>`<div class="lv-tile">Tile ${i}</div>`).join('')}</div>`;
+    case 'table': {
+      const rows=parseInt(p.row_cnt)||3,cols=parseInt(p.col_cnt)||3;
+      return `<table class="lv-table" style="width:100%"><thead><tr>${Array(cols).fill(0).map((_,i)=>`<th>Col${i+1}</th>`).join('')}</tr></thead><tbody>${Array(rows-1).fill(0).map((_,r)=>`<tr>${Array(cols).fill(0).map((_,c)=>`<td>R${r+1}C${c+1}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+    case 'calendar': {
+      const days=['S','M','T','W','T','F','S'];
+      const dates=Array.from({length:31},(_,i)=>i+1);
+      return `<div class="lv-calendar" style="width:100%;height:100%"><div class="lv-cal-header">April 2025</div><div class="lv-cal-grid">${days.map(d=>`<div class="lv-cal-day" style="color:#0099ff;font-weight:600">${d}</div>`).join('')}${dates.slice(0,28).map((d,i)=>`<div class="lv-cal-day ${d===9?'today':''}">${d}</div>`).join('')}</div></div>`;
+    }
+    case 'roller': {
+      const items=(p.options||'Jan\nFeb\nMar\nApr\nMay').split('\n');
+      const sel=p.selected||0;
+      return `<div class="lv-roller" style="width:100%;height:100%">${items.map((it,i)=>`<div class="lv-roller-item ${i===sel?'selected':''}">${it}</div>`).join('')}</div>`;
+    }
+    case 'imgbtn': return `<div class="lv-imgbtn" style="width:100%;height:100%">ImgBtn</div>`;
+    case 'spinbox': return `<div style="display:flex;align-items:center;gap:4px;height:100%"><div class="lv-btn" style="background:#2a3a5a;padding:4px 8px">−</div><div style="flex:1;background:#1a1d24;border:1px solid #444;border-radius:3px;text-align:center;color:#fff;font-family:monospace;font-size:12px;padding:4px">${p.value||0}</div><div class="lv-btn" style="background:#2a3a5a;padding:4px 8px">+</div></div>`;
+    case 'snackbar': return `<div style="width:100%;height:100%;background:#323232;border-radius:4px;display:flex;align-items:center;padding:0 12px;justify-content:space-between"><span style="color:#fff;font-size:11px;font-family:monospace">${p.text||'Snackbar'}</span><span style="color:#00d4aa;font-size:11px;font-family:monospace">UNDO</span></div>`;
+    case 'win': return `<div style="width:100%;height:100%;border:1px solid #444;border-radius:4px;overflow:hidden"><div style="background:#2a2e3a;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #444"><span style="color:#fff;font-size:11px;font-family:monospace">${p.title||'Window'}</span>${p.btn_close!==false?'<span style="color:#ff5f57;font-size:11px">✕</span>':''}</div><div style="padding:8px;color:#888;font-size:10px;font-family:monospace">Content area</div></div>`;
+    case 'line': return `<svg width="100%" height="100%"><line x1="0" y1="${ih/2}" x2="${iw}" y2="${ih/2}" stroke="${p.color||'#00d4aa'}" stroke-width="${p.width||2}" stroke-linecap="${p.round_start?'round':'butt'}"/></svg>`;
+    case 'canvas': return `<div class="lv-canvas-obj" style="width:100%;height:100%;background:${p.bg_color||'#1a1d24'}">lv_canvas</div>`;
+    case 'gif': return `<div class="lv-img" style="width:100%;height:100%"><span style="font-size:10px;color:#888">GIF</span></div>`;
+    case 'lottie': return `<div class="lv-img" style="width:100%;height:100%"><span style="font-size:10px;color:#888">Lottie</span></div>`;
+    case 'btn_matrix': {
+      const btns=(p.map||['Btn1','Btn2','Btn3','\n','Btn4','Btn5','']).filter(b=>b!=='');
+      return `<div style="width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px">${btns.map(b=>`<div class="lv-btn" style="background:#2a3a5a;font-size:10px;padding:3px">${b}</div>`).join('')}</div>`;
+    }
+    case 'menu': return `<div style="width:100%;height:100%;border:1px solid #444;border-radius:4px;overflow:hidden"><div style="background:#1a1d24;padding:6px;border-bottom:1px solid #333"><span style="color:#fff;font-size:11px;font-family:monospace">☰ Menu</span></div><div style="padding:4px">${['Item 1','Item 2','Item 3'].map(i=>`<div style="padding:5px 8px;color:#aaa;font-size:10px;font-family:monospace;border-bottom:1px solid #222">› ${i}</div>`).join('')}</div></div>`;
+    default: return `<div style="width:100%;height:100%;background:#2a2e3a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:10px;font-family:monospace">${w.type}</div>`;
+  }
+}
+
+function generateChartPoints() {
+  const pts = [];
+  for(let i=0;i<=10;i++) { pts.push(`${i*20},${60+Math.sin(i*0.6)*30+Math.random()*15}`); }
+  return pts.join(' ');
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAG & DROP FROM PANEL
+// ════════════════════════════════════════════════════════
+let dragCompType = null;
+function compDragStart(e, type) {
+  dragCompType = type;
+  e.dataTransfer.setData('text/plain', type);
+}
+
+function setupCanvasDnD() {
+  const canvas = getCanvas();
+  canvas.addEventListener('dragover', e => e.preventDefault());
+  canvas.addEventListener('drop', e => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('text/plain') || dragCompType;
+    if(!type || !COMP_MAP[type]) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round((e.clientX - rect.left) / zoomLevel);
+    const y = Math.round((e.clientY - rect.top) / zoomLevel);
+    addWidget(type, x, y);
+  });
+}
+
+function addWidget(type, x, y) {
+  const def = COMP_MAP[type];
+  const w = {
+    id: idCounter++, type,
+    x: Math.max(0, Math.min(x - Math.round(def.w/2), config.w - def.w)),
+    y: Math.max(0, Math.min(y - Math.round(def.h/2), config.h - def.h)),
+    w: def.w, h: def.h, z: getScreen().widgets.length + 1,
+    props: JSON.parse(JSON.stringify(def.defaults))
+  };
+  pushHistory();
+  getScreen().widgets.push(w);
+  renderCanvas();
+  selectWidget(w.id);
+  document.getElementById('dropHint').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════
+//  MOUSE EVENTS (select/drag/resize)
+// ════════════════════════════════════════════════════════
+function setupMouseEvents() {
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  getCanvas().addEventListener('mousedown', e => {
+    if(e.target === getCanvas() || e.target.classList.contains('canvas-grid') || e.target.classList.contains('drop-hint') || e.target.classList.contains('canvas-grid')) {
+      selectWidget(null);
+    }
+  });
+}
+
+function onWidgetMouseDown(e, w) {
+  if(e.target.classList.contains('resize-handle')) return;
+  e.stopPropagation();
+  selectWidget(w.id);
+  if(currentTool === 'select') {
+    const el = document.getElementById('cw_'+w.id);
+    const rect = el.getBoundingClientRect();
+    dragging = w;
+    dragOffX = e.clientX - rect.left;
+    dragOffY = e.clientY - rect.top;
+  }
+}
+
+function onResizeStart(e, w, dir) {
+  e.stopPropagation();
+  selectWidget(w.id);
+  resizing = w; resizeDir = dir;
+  resizeStartX = e.clientX; resizeStartY = e.clientY;
+  resizeStartW = w.w; resizeStartH = w.h;
+  resizeStartLeft = w.x; resizeStartTop = w.y;
+}
+
+function onMouseMove(e) {
+  if(dragging) {
+    const canvas = getCanvas();
+    const rect = canvas.getBoundingClientRect();
+    const newX = Math.round((e.clientX - rect.left - dragOffX) / zoomLevel);
+    const newY = Math.round((e.clientY - rect.top - dragOffY) / zoomLevel);
+    dragging.x = Math.max(0, Math.min(newX, config.w - dragging.w));
+    dragging.y = Math.max(0, Math.min(newY, config.h - dragging.h));
+    const el = document.getElementById('cw_'+dragging.id);
+    if(el) { el.style.left = Math.round(dragging.x*zoomLevel)+'px'; el.style.top = Math.round(dragging.y*zoomLevel)+'px'; }
+  }
+  if(resizing) {
+    const dx = (e.clientX - resizeStartX) / zoomLevel;
+    const dy = (e.clientY - resizeStartY) / zoomLevel;
+    let nw=resizeStartW,nh=resizeStartH,nx=resizeStartLeft,ny=resizeStartTop;
+    if(resizeDir.includes('e')) nw=Math.max(20,resizeStartW+dx);
+    if(resizeDir.includes('s')) nh=Math.max(16,resizeStartH+dy);
+    if(resizeDir.includes('w')) { nw=Math.max(20,resizeStartW-dx); nx=resizeStartLeft+resizeStartW-nw; }
+    if(resizeDir.includes('n')) { nh=Math.max(16,resizeStartH-dy); ny=resizeStartTop+resizeStartH-nh; }
+    resizing.w=Math.round(nw); resizing.h=Math.round(nh); resizing.x=Math.round(nx); resizing.y=Math.round(ny);
+    const el=document.getElementById('cw_'+resizing.id);
+    if(el){el.style.width=Math.round(nw*zoomLevel)+'px';el.style.height=Math.round(nh*zoomLevel)+'px';el.style.left=Math.round(nx*zoomLevel)+'px';el.style.top=Math.round(ny*zoomLevel)+'px';
+      el.querySelector('.widget-inner').innerHTML=buildWidgetHTML(resizing);}
+  }
+}
+
+function onMouseUp() {
+  if(dragging || resizing) {
+    if(dragging){pushHistory();dragging=null;}
+    if(resizing){pushHistory();resizing=null;}
+    renderCanvas();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SELECTION
+// ════════════════════════════════════════════════════════
+function selectWidget(id) {
+  selectedWidget = id;
+  getCanvas().querySelectorAll('.canvas-widget').forEach(el => {
+    const wid = parseInt(el.id.replace('cw_',''));
+    el.classList.toggle('selected', wid === id);
+  });
+  const w = id ? getScreen().widgets.find(w=>w.id===id) : null;
+  buildPropsPanel(w);
+  renderLayerTree();
+}
+
+function getSelectedWidget() {
+  return selectedWidget ? getScreen().widgets.find(w=>w.id===selectedWidget) : null;
+}
+
+// ════════════════════════════════════════════════════════
+//  PROPERTIES PANEL
+// ════════════════════════════════════════════════════════
+function buildPropsPanel(w) {
+  const panel = document.getElementById('propsPanel');
+  const subtitle = document.getElementById('propsSubtitle');
+  if(!w) {
+    subtitle.textContent = 'No selection';
+    panel.innerHTML = buildScreenProps();
+    return;
+  }
+  subtitle.textContent = `lv_${w.type}_create()`;
+  panel.innerHTML = buildWidgetProps(w);
+  // Attach listeners
+  panel.querySelectorAll('[data-prop]').forEach(el => {
+    el.addEventListener('input', () => {
+      const key = el.dataset.prop;
+      let val = el.type==='checkbox' ? el.checked : el.type==='number'||el.type==='range' ? Number(el.value) : el.value;
+      w.props[key] = val;
+      if(el.dataset.display) document.getElementById(el.dataset.display).textContent = val;
+      const cw = document.getElementById('cw_'+w.id);
+      if(cw) cw.querySelector('.widget-inner').innerHTML = buildWidgetHTML(w);
+    });
+  });
+  panel.querySelectorAll('[data-dim]').forEach(el => {
+    el.addEventListener('change', () => {
+      w[el.dataset.dim] = parseInt(el.value)||1;
+      const cw = document.getElementById('cw_'+w.id);
+      if(cw){cw.style.width=Math.round(w.w*zoomLevel)+'px';cw.style.height=Math.round(w.h*zoomLevel)+'px';cw.querySelector('.widget-inner').innerHTML=buildWidgetHTML(w);}
+    });
+  });
+  panel.querySelectorAll('[data-pos]').forEach(el => {
+    el.addEventListener('change', () => {
+      w[el.dataset.pos] = parseInt(el.value)||0;
+      const cw = document.getElementById('cw_'+w.id);
+      if(cw){cw.style.left=Math.round(w.x*zoomLevel)+'px';cw.style.top=Math.round(w.y*zoomLevel)+'px';}
+    });
+  });
+}
+
+function pi(label, key, type='text', value='', extra='') {
+  const isCheck = type==='checkbox';
+  if(isCheck) return `<div class="prop-row"><label class="prop-label">${label}</label><input class="prop-checkbox" type="checkbox" data-prop="${key}" ${value?'checked':''} ${extra}></div>`;
+  if(type==='select') return '';
+  if(type==='range') {
+    const [min,max,step]=(extra||'0,100,1').split(',');
+    return `<div class="prop-row"><label class="prop-label">${label}</label><div style="flex:1;display:flex;align-items:center;gap:6px"><input class="prop-input" type="range" data-prop="${key}" min="${min}" max="${max}" step="${step||1}" value="${value}" style="flex:1" data-display="rv_${key}"><span id="rv_${key}" style="font-size:10px;color:var(--text3);font-family:var(--mono);min-width:28px">${value}</span></div></div>`;
+  }
+  return `<div class="prop-row"><label class="prop-label">${label}</label><input class="prop-input" type="${type}" data-prop="${key}" value="${value}" ${extra}></div>`;
+}
+
+function pnum(label, key, value, min=0, max=9999) {
+  return `<div class="prop-row"><label class="prop-label">${label}</label><div class="prop-number"><button class="prop-num-btn" onclick="nudgeProp('${key}',-1)">−</button><input type="number" data-prop="${key}" value="${value}" min="${min}" max="${max}"><button class="prop-num-btn" onclick="nudgeProp('${key}',1)">+</button></div></div>`;
+}
+
+function nudgeProp(key, delta) {
+  const w = getSelectedWidget(); if(!w) return;
+  w.props[key] = (Number(w.props[key])||0) + delta;
+  buildPropsPanel(w);
+  const cw = document.getElementById('cw_'+w.id);
+  if(cw) cw.querySelector('.widget-inner').innerHTML = buildWidgetHTML(w);
+}
+
+function buildScreenProps() {
+  const s = getScreen();
+  return `<div class="prop-group">
+    <div class="prop-group-title">Screen</div>
+    ${pi('Name','_name','text',s.name)}
+    <div class="prop-row"><label class="prop-label">Bg Color</label><input class="prop-input" type="color" value="${s.bg_color||'#1a1a2e'}" onchange="getScreen().bg_color=this.value;document.getElementById('screenCanvas').style.background=this.value"></div>
+  </div>`;
+}
+
+function buildImgProps(w) {
+  const p = w.props;
+  const id = w.id;
+  const srcType = p.src_type || 'symbol';
+  const sym = srcType === 'symbol' ? 'flex' : 'none';
+  const url = srcType === 'url'    ? 'flex' : 'none';
+  const fil = srcType === 'file'   ? 'flex' : 'none';
+  const onchg = "var t=this.value;this.closest('.props-scroll').querySelectorAll('.img-src-field').forEach(function(e){e.style.display='none'});var el=document.getElementById('img_src_'+t+'_" + id + "');if(el)el.style.display='flex';";
+  return '<div class="prop-group"><div class="prop-group-title">Image</div>'
+    + '<div class="prop-row"><label class="prop-label">Src Type</label>'
+    + '<select class="prop-select" data-prop="src_type" onchange="' + onchg + '">'
+    + '<option value="symbol"' + (srcType==='symbol'?' selected':'') + '>Symbol / Var</option>'
+    + '<option value="url"'    + (srcType==='url'   ?' selected':'') + '>URL (SPIFFS/SD)</option>'
+    + '<option value="file"'   + (srcType==='file'  ?' selected':'') + '>File path</option>'
+    + '</select></div>'
+    + '<div class="prop-row img-src-field" id="img_src_symbol_' + id + '" style="display:' + sym + '">'
+    + '<label class="prop-label">Var Name</label>'
+    + '<input class="prop-input" type="text" data-prop="src" value="' + (p.src||'&my_image') + '" placeholder="&amp;my_image"></div>'
+    + '<div class="prop-row img-src-field" id="img_src_url_' + id + '" style="display:' + url + '">'
+    + '<label class="prop-label">URL / Path</label>'
+    + '<input class="prop-input" type="text" data-prop="src" value="' + (p.src||'/spiffs/img.png') + '" placeholder="/spiffs/img.png"></div>'
+    + '<div class="prop-row img-src-field" id="img_src_file_' + id + '" style="display:' + fil + '">'
+    + '<label class="prop-label">File path</label>'
+    + '<input class="prop-input" type="text" data-prop="src" value="' + (p.src||'S:/img.bin') + '" placeholder="S:/img.bin"></div>'
+    + pnum('Opacity',    'opacity',    p.opacity!==undefined?p.opacity:255, 0,   255)
+    + pnum('Zoom(256=1x)','zoom',      p.zoom||256,  64,  1024)
+    + pnum('Angle(0.1deg)','angle',    p.angle||0,   0,   3600)
+    + '<div class="prop-row"><label class="prop-label">Pivot X</label><input class="prop-input" type="number" data-prop="pivot_x" value="' + (p.pivot_x||0) + '"></div>'
+    + '<div class="prop-row"><label class="prop-label">Pivot Y</label><input class="prop-input" type="number" data-prop="pivot_y" value="' + (p.pivot_y||0) + '"></div>'
+    + pi('Antialias',  'antialias',  'checkbox', p.antialias)
+    + pi('Recolor',    'recolor_en', 'checkbox', p.recolor_en)
+    + '<div class="prop-row"><label class="prop-label">Recolor</label><input class="prop-input" type="color" data-prop="recolor" value="' + (p.recolor||'#ff0000') + '"></div>'
+    + pnum('Recolor Opa','recolor_opa', p.recolor_opa||0, 0, 255)
+    + '</div>';
+}
+
+function buildWidgetProps(w) {
+  const p = w.props;
+  const geo = `<div class="prop-group"><div class="prop-group-title">Geometry</div>
+    <div class="prop-row"><label class="prop-label">X</label><input class="prop-input" type="number" data-pos="x" value="${w.x}"></div>
+    <div class="prop-row"><label class="prop-label">Y</label><input class="prop-input" type="number" data-pos="y" value="${w.y}"></div>
+    <div class="prop-row"><label class="prop-label">Width</label><input class="prop-input" type="number" data-dim="w" value="${w.w}" min="10"></div>
+    <div class="prop-row"><label class="prop-label">Height</label><input class="prop-input" type="number" data-dim="h" value="${w.h}" min="10"></div>
+    <div class="prop-row"><label class="prop-label">Z-Index</label><input class="prop-input" type="number" data-dim="z" value="${w.z||1}" min="0"></div>
+  </div>`;
+
+  let specific = '';
+  switch(w.type) {
+    case 'btn': specific=`<div class="prop-group"><div class="prop-group-title">Button</div>${pi('Text','text','text',p.text)}${pi('Bg Color','bg_color','color',p.bg_color)}${pi('Text Color','text_color','color',p.text_color)}${pnum('Font Size','font_size',p.font_size,8,40)}${pnum('Radius','radius',p.radius,0,50)}${pnum('Border W','border_width',p.border_width,0,10)}</div>`; break;
+    case 'label': specific=`<div class="prop-group"><div class="prop-group-title">Label</div>${pi('Text','text','text',p.text)}${pi('Text Color','text_color','color',p.text_color)}${pnum('Font Size','font_size',p.font_size,8,40)}<div class="prop-row"><label class="prop-label">Align</label><select class="prop-select" data-prop="align"><option ${p.align==='left'?'selected':''}>left</option><option ${p.align==='center'?'selected':''}>center</option><option ${p.align==='right'?'selected':''}>right</option></select></div></div>`; break;
+    case 'bar': specific=`<div class="prop-group"><div class="prop-group-title">Bar</div>${pi('Value','value','range',p.value,'0,100,1')}${pnum('Min','min',p.min,-9999,9999)}${pnum('Max','max',p.max,-9999,9999)}${pi('Color','color','color',p.color)}${pi('Bg Color','bg_color','color',p.bg_color)}${pnum('Radius','radius',p.radius,0,50)}</div>`; break;
+    case 'slider': specific=`<div class="prop-group"><div class="prop-group-title">Slider</div>${pi('Value','value','range',p.value,'0,100,1')}${pnum('Min','min',p.min,-9999,9999)}${pnum('Max','max',p.max,-9999,9999)}${pi('Color','color','color',p.color)}${pnum('Knob Size','knob_size',p.knob_size,6,30)}</div>`; break;
+    case 'switch': specific=`<div class="prop-group"><div class="prop-group-title">Switch</div>${pi('Checked','checked','checkbox',p.checked)}${pi('On Color','on_color','color',p.on_color)}${pi('Off Color','off_color','color',p.off_color)}</div>`; break;
+    case 'checkbox': specific=`<div class="prop-group"><div class="prop-group-title">Checkbox</div>${pi('Text','text','text',p.text)}${pi('Checked','checked','checkbox',p.checked)}${pi('Text Color','text_color','color',p.text_color)}${pnum('Font Size','font_size',p.font_size||12,8,40)}</div>`; break;
+    case 'arc': specific=`<div class="prop-group"><div class="prop-group-title">Arc</div>${pi('Value','value','range',p.value,'0,100,1')}${pnum('Min','min',p.min,0,9999)}${pnum('Max','max',p.max,0,9999)}${pi('Color','color','color',p.color)}${pi('Bg Color','bg_color','color',p.bg_color)}${pnum('Width','width',p.width,1,40)}</div>`; break;
+    case 'spinner': specific=`<div class="prop-group"><div class="prop-group-title">Spinner</div>${pi('Color','color','color',p.color)}${pi('Bg Color','bg_color','color',p.bg_color)}${pnum('Arc Length','arc_length',p.arc_length,10,360)}${pnum('Speed (ms)','speed',p.speed,100,5000)}</div>`; break;
+    case 'textarea': specific=`<div class="prop-group"><div class="prop-group-title">Textarea</div>${pi('Text','text','text',p.text)}${pi('Placeholder','placeholder','text',p.placeholder)}${pnum('Max Length','max_length',p.max_length,1,65535)}${pi('One Line','one_line','checkbox',p.one_line)}</div>`; break;
+    case 'dropdown': specific=`<div class="prop-group"><div class="prop-group-title">Dropdown</div><div class="prop-row"><label class="prop-label">Options</label><textarea class="prop-input" data-prop="options" style="height:60px;resize:vertical">${p.options||''}</textarea></div>${pnum('Selected','selected',p.selected,0,99)}</div>`; break;
+    case 'roller': specific=`<div class="prop-group"><div class="prop-group-title">Roller</div><div class="prop-row"><label class="prop-label">Options</label><textarea class="prop-input" data-prop="options" style="height:60px;resize:vertical">${p.options||''}</textarea></div>${pnum('Selected','selected',p.selected,0,99)}${pnum('Visible Rows','visible_row_cnt',p.visible_row_cnt,1,10)}</div>`; break;
+    case 'chart': specific=`<div class="prop-group"><div class="prop-group-title">Chart</div><div class="prop-row"><label class="prop-label">Type</label><select class="prop-select" data-prop="type"><option ${p.type==='line'?'selected':''}>line</option><option ${p.type==='bar'?'selected':''}>bar</option><option ${p.type==='scatter'?'selected':''}>scatter</option></select></div>${pi('Color','color','color',p.color)}${pnum('Point Count','point_cnt',p.point_cnt,2,100)}${pnum('H Divlines','div_line_h',p.div_line_h,0,20)}${pnum('V Divlines','div_line_v',p.div_line_v,0,20)}</div>`; break;
+    case 'meter': specific=`<div class="prop-group"><div class="prop-group-title">Meter</div>${pi('Value','value','range',p.value,'0,100,1')}${pnum('Min','min',p.min,0,9999)}${pnum('Max','max',p.max,0,9999)}${pi('Needle Color','needle_color','color',p.needle_color)}${pi('Scale Color','scale_color','color',p.scale_color)}</div>`; break;
+    case 'led': specific=`<div class="prop-group"><div class="prop-group-title">LED</div>${pi('Color','color','color',p.color)}${pi('Value','value','range',p.brightness||255,'0,255,1')}</div>`; break;
+    case 'msgbox': specific=`<div class="prop-group"><div class="prop-group-title">Msgbox</div>${pi('Title','title','text',p.title)}${pi('Text','text','text',p.text)}${pi('Buttons','btns','text',p.btns)}${pi('Modal','modal','checkbox',p.modal)}</div>`; break;
+    case 'tabview': specific=`<div class="prop-group"><div class="prop-group-title">Tabview</div>${pi('Tab Names','tab_names','text',p.tab_names)}<div class="prop-row"><label class="prop-label">Tab Pos</label><select class="prop-select" data-prop="tab_pos"><option ${p.tab_pos==='top'?'selected':''}>top</option><option ${p.tab_pos==='bottom'?'selected':''}>bottom</option><option ${p.tab_pos==='left'?'selected':''}>left</option></select></div>${pnum('Tab Height','tab_height',p.tab_height,20,60)}</div>`; break;
+    case 'list': specific=`<div class="prop-group"><div class="prop-group-title">List</div>${pi('Items','items','text',p.items)}</div>`; break;
+    case 'container': specific=`<div class="prop-group"><div class="prop-group-title">Container</div>${pi('Bg Color','bg_color','color',p.bg_color||'#ffffff08')}${pi('Border Color','border_color','color',p.border_color||'#444')}${pnum('Border W','border_width',p.border_width,0,10)}${pnum('Radius','radius',p.radius,0,50)}${pnum('Padding','pad',p.pad,0,40)}</div>`; break;
+    case 'table': specific=`<div class="prop-group"><div class="prop-group-title">Table</div>${pnum('Rows','row_cnt',p.row_cnt,1,50)}${pnum('Columns','col_cnt',p.col_cnt,1,20)}${pnum('Row Height','row_h',p.row_h,10,100)}</div>`; break;
+    case 'spinbox': specific=`<div class="prop-group"><div class="prop-group-title">Spinbox</div>${pnum('Value','value',p.value,-99999,99999)}${pnum('Min','min',p.min,-99999,99999)}${pnum('Max','max',p.max,-99999,99999)}${pnum('Step','step',p.step,1,1000)}${pnum('Digits','digit_count',p.digit_count,1,10)}</div>`; break;
+    case 'line': specific=`<div class="prop-group"><div class="prop-group-title">Line</div>${pi('Color','color','color',p.color)}${pnum('Width','width',p.width,1,20)}${pi('Round Start','round_start','checkbox',p.round_start)}${pi('Round End','round_end','checkbox',p.round_end)}</div>`; break;
+    case 'img': specific = buildImgProps(w); break;
+    case 'snackbar': specific=`<div class="prop-group"><div class="prop-group-title">Snackbar</div>${pi('Text','text','text',p.text)}${pnum('Duration (ms)','duration',p.duration,500,10000)}</div>`; break;
+    case 'win': specific=`<div class="prop-group"><div class="prop-group-title">Window</div>${pi('Title','title','text',p.title)}${pi('Close Btn','btn_close','checkbox',p.btn_close)}</div>`; break;
+    case 'colorwheel': specific=`<div class="prop-group"><div class="prop-group-title">Colorwheel</div><div class="prop-row"><label class="prop-label">Mode</label><select class="prop-select" data-prop="mode"><option ${p.mode==='hue'?'selected':''}>hue</option><option ${p.mode==='saturation'?'selected':''}>saturation</option><option ${p.mode==='value'?'selected':''}>value</option></select></div></div>`; break;
+    default: specific='';
+  }
+  return geo + specific;
+}
+
+// ════════════════════════════════════════════════════════
+//  LAYER TREE
+// ════════════════════════════════════════════════════════
+function renderLayerTree() {
+  const tree = document.getElementById('layerTree');
+  const widgets = [...getScreen().widgets].reverse();
+  tree.innerHTML = widgets.length ? widgets.map(w => `
+    <div class="layer-item ${w.id===selectedWidget?'selected':''}" onclick="selectWidget(${w.id})">
+      <span class="layer-icon">${COMP_MAP[w.type]?.icon||'?'}</span>
+      <span style="font-size:12px;font-family:var(--mono)">${w.type}_${w.id}</span>
+      <div class="layer-actions">
+        <button class="layer-act" title="Duplicate" onclick="event.stopPropagation();duplicateWidgetById(${w.id})">⧉</button>
+        <button class="layer-act" title="Up" onclick="event.stopPropagation();layerWidgetById(${w.id},1)">↑</button>
+        <button class="layer-act" title="Down" onclick="event.stopPropagation();layerWidgetById(${w.id},-1)">↓</button>
+        <button class="layer-act" title="Delete" onclick="event.stopPropagation();deleteWidgetById(${w.id})" style="color:var(--red)">✕</button>
+      </div>
+    </div>
+  `).join('') : '<div style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No layers yet</div>';
+}
+
+// ════════════════════════════════════════════════════════
+//  TOOLBAR ACTIONS
+// ════════════════════════════════════════════════════════
+function setTool(t) {
+  currentTool = t;
+  document.getElementById('toolSelect').classList.toggle('active', t==='select');
+  document.getElementById('toolMove').classList.toggle('active', t==='pan');
+}
+
+function deleteSelected() {
+  if(!selectedWidget) return;
+  deleteWidgetById(selectedWidget);
+}
+function deleteWidgetById(id) {
+  pushHistory();
+  getScreen().widgets = getScreen().widgets.filter(w=>w.id!==id);
+  if(selectedWidget===id) selectWidget(null);
+  renderCanvas();
+}
+
+function duplicateSelected() {
+  if(!selectedWidget) return;
+  duplicateWidgetById(selectedWidget);
+}
+function duplicateWidgetById(id) {
+  const w = getScreen().widgets.find(w=>w.id===id); if(!w) return;
+  pushHistory();
+  const clone = JSON.parse(JSON.stringify(w));
+  clone.id = idCounter++;
+  clone.x = Math.min(clone.x+16, config.w-clone.w);
+  clone.y = Math.min(clone.y+16, config.h-clone.h);
+  clone.z = (clone.z||1)+1;
+  getScreen().widgets.push(clone);
+  renderCanvas();
+  selectWidget(clone.id);
+}
+
+function layerWidget(delta) {
+  if(!selectedWidget) return;
+  layerWidgetById(selectedWidget, delta);
+}
+function layerWidgetById(id, delta) {
+  const widgets = getScreen().widgets;
+  const idx = widgets.findIndex(w=>w.id===id);
+  if(idx === -1) return;
+  const newIdx = idx + delta;
+  if(newIdx < 0 || newIdx >= widgets.length) return;
+  pushHistory();
+  // Swap widgets in array
+  [widgets[idx], widgets[newIdx]] = [widgets[newIdx], widgets[idx]];
+  // Update z-indices to match array order
+  widgets.forEach((w, i) => { w.z = i + 1; });
+  renderCanvas();
+}
+
+function clearCanvas() {
+  if(!confirm('Clear all widgets from this screen?')) return;
+  pushHistory();
+  getScreen().widgets = [];
+  selectWidget(null);
+  renderCanvas();
+}
+
+function zoom(factor) {
+  zoomLevel = Math.max(0.25, Math.min(4, zoomLevel*factor));
+  document.getElementById('zoomInfo').textContent = Math.round(zoomLevel*100)+'%';
+  renderCanvas();
+}
+
+function zoomFit() {
+  const wrap = document.getElementById('canvasWrap');
+  const scaleX = (wrap.clientWidth - 80) / config.w;
+  const scaleY = (wrap.clientHeight - 80) / config.h;
+  zoomLevel = Math.min(scaleX, scaleY, 2);
+  document.getElementById('zoomInfo').textContent = Math.round(zoomLevel*100)+'%';
+  renderCanvas();
+}
+
+function switchPTab(el, panel) {
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('compPanel').style.display = panel==='comp'?'':'none';
+  document.getElementById('layersPanel').style.display = panel==='layers'?'':'none';
+}
+
+// ════════════════════════════════════════════════════════
+//  UNDO/REDO
+// ════════════════════════════════════════════════════════
+function pushHistory() {
+  history.push(JSON.stringify(screens));
+  if(history.length>50) history.shift();
+  future = [];
+}
+function undo() {
+  if(!history.length) return;
+  future.push(JSON.stringify(screens));
+  screens = JSON.parse(history.pop());
+  renderCanvas();
+  selectWidget(null);
+  renderScreenTabs();
+}
+function redo() {
+  if(!future.length) return;
+  history.push(JSON.stringify(screens));
+  screens = JSON.parse(future.pop());
+  renderCanvas();
+  selectWidget(null);
+  renderScreenTabs();
+}
+
+// ════════════════════════════════════════════════════════
+//  SIMULATION
+// ════════════════════════════════════════════════════════
+
+// Global sim state lives outside runSimulation so toggle helpers can reach it
+var _simState = {};
+var _simWidgets = [];
+
+window.simToggleSwitch = function(id) {
+  if(!_simState[id]) return;
+  _simState[id].checked = !_simState[id].checked;
+  var w = _simWidgets.find(function(x){return x.id===id;});
+  if(w) { var el=document.getElementById('simg_'+id); if(el) el.innerHTML=buildSimWidgetHTML(w); }
+};
+window.simToggleCheck = function(id) {
+  if(!_simState[id]) return;
+  _simState[id].checked = !_simState[id].checked;
+  var w = _simWidgets.find(function(x){return x.id===id;});
+  if(w) { var el=document.getElementById('simg_'+id); if(el) el.innerHTML=buildSimWidgetHTML(w); }
+};
+
+function buildSimWidgetHTML(w) {
+  var p = _simState[w.id] || w.props;
+  var iw = w.w, ih = w.h;
+  switch(w.type) {
+    case 'btn':
+      return '<div class="lv-btn" style="width:100%;height:100%;background:'+( p.bg_color||'#3a5a8a')+';color:'+(p.text_color||'#fff')+';font-size:'+(p.font_size||14)+'px;border-radius:'+(p.radius||4)+'px;cursor:pointer;transition:filter .12s" onmousedown="this.style.filter=\'brightness(0.65)\'" onmouseup="this.style.filter=\'\'" onmouseleave="this.style.filter=\'\'">'+(p.text||'OK')+'</div>';
+    case 'label':
+      return '<div style="color:'+(p.text_color||'#fff')+';font-size:'+(p.font_size||13)+'px;text-align:'+(p.align||'left')+';font-family:monospace;line-height:1.4">'+(p.text||'Label')+'</div>';
+    case 'bar': {
+      var pct = ((p.value||60)-(p.min||0)) / ((p.max||100)-(p.min||0));
+      return '<div style="width:100%;height:100%;background:'+(p.bg_color||'#2a2a3a')+';border-radius:'+(p.radius||8)+'px;overflow:hidden"><div style="width:'+(pct*100)+'%;height:100%;background:'+(p.color||'#00d4aa')+';border-radius:'+(p.radius||8)+'px"></div></div>';
+    }
+    case 'slider': {
+      var pct2 = ((p.value||50)-(p.min||0)) / ((p.max||100)-(p.min||0));
+      return '<div style="width:100%;height:100%;background:'+(p.bg_color||'#2a2a3a')+';border-radius:4px;position:relative;cursor:pointer" data-sim-slider="'+w.id+'" data-min="'+(p.min||0)+'" data-max="'+(p.max||100)+'">'
+        +'<div style="position:absolute;left:0;top:0;width:'+(pct2*100)+'%;height:100%;background:'+(p.color||'#00d4aa')+';border-radius:4px;pointer-events:none"></div>'
+        +'<div style="position:absolute;top:50%;left:'+(pct2*100)+'%;transform:translate(-50%,-50%);width:'+(p.knob_size||14)+'px;height:'+(p.knob_size||14)+'px;background:'+(p.color||'#00d4aa')+';border-radius:50%;border:2px solid #fff;pointer-events:none"></div>'
+        +'</div>';
+    }
+    case 'switch': {
+      var on = !!p.checked;
+      return '<div class="lv-switch '+(on?'on':'')+'" style="background:'+(on?(p.on_color||'#00d4aa'):(p.off_color||'#555'))+';cursor:pointer;width:44px;height:24px" onclick="simToggleSwitch('+w.id+')">'
+        +'<div class="lv-switch-knob" style="position:absolute;top:2px;left:'+(on?'22':'2')+'px;transition:left .2s"></div></div>';
+    }
+    case 'checkbox': {
+      var chk = !!p.checked;
+      return '<div style="display:inline-flex;align-items:center;gap:6px;cursor:pointer" onclick="simToggleCheck('+w.id+')">'
+        +'<div style="width:16px;height:16px;border:2px solid #00d4aa;border-radius:2px;background:'+(chk?'#00d4aa':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:10px;color:#000">'+(chk?'✓':'')+'</div>'
+        +'<span style="color:'+(p.text_color||'#fff')+';font-family:monospace;font-size:12px">'+(p.text||'Check me')+'</span></div>';
+    }
+    case 'spinner':
+      return '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div style="border:3px solid '+(p.bg_color||'#333')+';border-top-color:'+(p.color||'#00d4aa')+';border-radius:50%;width:'+Math.min(iw,ih)*0.8+'px;height:'+Math.min(iw,ih)*0.8+'px;animation:spin 1s linear infinite"></div></div>';
+    case 'textarea':
+      return '<textarea style="background:#1a1d24;border:1px solid #444;border-radius:3px;color:#fff;font-family:monospace;font-size:11px;padding:4px;resize:none;width:100%;height:100%;box-sizing:border-box" placeholder="'+(p.placeholder||'Type...')+'">'+(p.text||'')+'</textarea>';
+    case 'dropdown': {
+      var opts = (p.options||'Option 1\nOption 2').split('\n').map(function(o,i){return '<option'+(i===(p.selected||0)?' selected':'')+'>'+o+'</option>';}).join('');
+      return '<div style="position:relative;width:100%"><select style="background:#2a2e3a;border:1px solid #444;border-radius:3px;color:#fff;font-family:monospace;font-size:12px;padding:4px 24px 4px 8px;width:100%;appearance:none">'+opts+'</select><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:8px;color:#00d4aa;pointer-events:none">▼</span></div>';
+    }
+    case 'arc': {
+      var pctA = ((p.value||50)-(p.min||0))/((p.max||100)-(p.min||0));
+      var rA = Math.min(iw,ih)/2-8; var cxA=iw/2, cyA=ih/2;
+      return '<svg width="100%" height="100%"><circle cx="'+cxA+'" cy="'+cyA+'" r="'+rA+'" fill="none" stroke="'+(p.bg_color||'#2a2a3a')+'" stroke-width="'+(p.width||8)+'"/><circle cx="'+cxA+'" cy="'+cyA+'" r="'+rA+'" fill="none" stroke="'+(p.color||'#00d4aa')+'" stroke-width="'+(p.width||8)+'" stroke-dasharray="'+(2*Math.PI*rA*pctA)+' '+(2*Math.PI*rA)+'" stroke-linecap="round" transform="rotate(-90 '+cxA+' '+cyA+')"/></svg>';
+    }
+    case 'led':
+      return '<div style="width:'+Math.min(iw,ih)+'px;height:'+Math.min(iw,ih)+'px;border-radius:50%;background:radial-gradient(circle at 35% 35%,'+(p.color||'#00ff88')+','+(p.color||'#007740')+')"></div>';
+    case 'img':
+      return '<div style="width:100%;height:100%;background:#2a2a40;border:1px dashed #444;display:flex;align-items:center;justify-content:center;border-radius:3px"><span style="font-size:'+Math.min(iw,ih)*0.4+'px">🖼</span></div>';
+    case 'btn_matrix': {
+      var btns2 = (p.map||['Btn1','Btn2','Btn3','\n','Btn4','Btn5','']).filter(function(b){return b!==''&&b!=='\n';});
+      return '<div style="width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px">'+btns2.map(function(b){return '<div class="lv-btn" style="background:#2a3a5a;font-size:10px;padding:3px;cursor:pointer" onmousedown="this.style.filter=\'brightness(0.65)\'" onmouseup="this.style.filter=\'\'">'+b+'</div>';}).join('')+'</div>';
+    }
+    case 'list': {
+      var items2 = (p.items||'Item 1,Item 2,Item 3').split(',');
+      return '<div class="lv-list" style="width:100%;height:100%;overflow:hidden">'+items2.map(function(it){return '<div class="lv-list-item" style="cursor:pointer" onmouseenter="this.style.background=\'#1a1d24\'" onmouseleave="this.style.background=\'\'">→ '+it.trim()+'</div>';}).join('')+'</div>';
+    }
+    case 'meter': {
+      var pctM=((p.value||75)-(p.min||0))/((p.max||100)-(p.min||0));
+      var cxM=iw/2,cyM=ih*0.6,rM=Math.min(iw,ih)*0.4;
+      var angle=-150+pctM*300;
+      var nxM=cxM+rM*0.8*Math.cos(angle*Math.PI/180),nyM=cyM+rM*0.8*Math.sin(angle*Math.PI/180);
+      return '<svg width="100%" height="100%"><path d="M'+(cxM-rM)+','+cyM+' A'+rM+','+rM+' 0 0,1 '+(cxM+rM)+','+cyM+'" fill="none" stroke="'+(p.scale_color||'#00d4aa')+'" stroke-width="6" opacity=".3"/><path d="M'+(cxM-rM)+','+cyM+' A'+rM+','+rM+' 0 0,1 '+(cxM+rM)+','+cyM+'" fill="none" stroke="'+(p.scale_color||'#00d4aa')+'" stroke-width="4" stroke-dasharray="'+(Math.PI*rM*pctM)+' '+(Math.PI*rM)+'"/><line x1="'+cxM+'" y1="'+cyM+'" x2="'+nxM+'" y2="'+nyM+'" stroke="'+(p.needle_color||'#ff6b35')+'" stroke-width="2" stroke-linecap="round"/><circle cx="'+cxM+'" cy="'+cyM+'" r="4" fill="'+(p.needle_color||'#ff6b35')+'"/><text x="'+cxM+'" y="'+(cyM+ih*0.15)+'" text-anchor="middle" fill="#aaa" font-size="10" font-family="monospace">'+(p.value||75)+'</text></svg>';
+    }
+    default:
+      return buildWidgetHTML({type:w.type, w:w.w, h:w.h, id:w.id, x:w.x, y:w.y, z:w.z, props:p});
+  }
+}
+
+function renderSimScreen(sim, scale) {
+  var s = getScreen();
+  sim.innerHTML = '<div id="simInner" style="width:'+config.w+'px;height:'+config.h+'px;transform:scale('+scale+');transform-origin:top left;background:'+(s.bg_color||'#1a1a2e')+';position:relative;overflow:hidden">'
+    + s.widgets.map(function(w){
+        return '<div style="position:absolute;left:'+w.x+'px;top:'+w.y+'px;width:'+w.w+'px;height:'+w.h+'px;z-index:'+(w.z||1)+'" id="simg_'+w.id+'">'
+          + buildSimWidgetHTML(w) + '</div>';
+      }).join('')
+    + '</div>';
+
+  // Attach slider drag
+  sim.querySelectorAll('[data-sim-slider]').forEach(function(el) {
+    el.addEventListener('mousedown', function(e) {
+      var wid = parseInt(el.dataset.simSlider);
+      var mn  = parseFloat(el.dataset.min);
+      var mx  = parseFloat(el.dataset.max);
+      function onMove(ev) {
+        var rect = el.getBoundingClientRect();
+        var pct  = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+        _simState[wid].value = Math.round(mn + pct*(mx-mn));
+        var wObj = _simWidgets.find(function(x){return x.id===wid;});
+        if(wObj) { var cel = document.getElementById('simg_'+wid); if(cel) cel.innerHTML = buildSimWidgetHTML(wObj); }
+      }
+      function onUp() { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      onMove(e);
+    });
+  });
+}
+
+function runSimulation() {
+  var sim   = document.getElementById('simScreen');
+  var scale = Math.min(600/config.w, 460/config.h, 1);
+  sim.style.width  = Math.round(config.w * scale) + 'px';
+  sim.style.height = Math.round(config.h * scale) + 'px';
+
+  // Snapshot current screen state into global sim state
+  _simWidgets = JSON.parse(JSON.stringify(getScreen().widgets));
+  _simState   = {};
+  _simWidgets.forEach(function(w){ _simState[w.id] = JSON.parse(JSON.stringify(w.props)); });
+
+  renderSimScreen(sim, scale);
+
+  // Screen nav buttons
+  var nav = document.getElementById('simScreenNav');
+  nav.innerHTML = screens.map(function(s,i){
+    var active = i===activeScreen;
+    return '<button onclick="switchSimScreen('+i+')" style="padding:3px 10px;border-radius:4px;border:1px solid '+(active?'#00d4aa':'#333')+';background:'+(active?'rgba(0,212,170,.15)':'transparent')+';color:'+(active?'#00d4aa':'#666')+';font-size:11px;cursor:pointer;font-family:monospace">'+s.name+'</button>';
+  }).join('');
+
+  document.getElementById('simTitle').textContent = getScreen().name + ' (' + config.w + '\xd7' + config.h + ')';
+  document.getElementById('simModal').style.display = 'flex';
+}
+
+window.switchSimScreen = function(idx) {
+  activeScreen = idx;
+  _simWidgets = JSON.parse(JSON.stringify(getScreen().widgets));
+  _simState   = {};
+  _simWidgets.forEach(function(w){ _simState[w.id] = JSON.parse(JSON.stringify(w.props)); });
+  var sim   = document.getElementById('simScreen');
+  var scale = Math.min(600/config.w, 460/config.h, 1);
+  sim.style.width  = Math.round(config.w * scale) + 'px';
+  sim.style.height = Math.round(config.h * scale) + 'px';
+  document.getElementById('simTitle').textContent = getScreen().name + ' (' + config.w + '\xd7' + config.h + ')';
+  var nav = document.getElementById('simScreenNav');
+  nav.innerHTML = screens.map(function(s,i){
+    var active = i===activeScreen;
+    return '<button onclick="switchSimScreen('+i+')" style="padding:3px 10px;border-radius:4px;border:1px solid '+(active?'#00d4aa':'#333')+';background:'+(active?'rgba(0,212,170,.15)':'transparent')+';color:'+(active?'#00d4aa':'#666')+';font-size:11px;cursor:pointer;font-family:monospace">'+s.name+'</button>';
+  }).join('');
+  renderSimScreen(sim, scale);
+};
+
+// ════════════════════════════════════════════════════════
+//  CODE GENERATION
+// ════════════════════════════════════════════════════════
+const CODE_FILES = ['main.c','ui.h','ui.c','CMakeLists.txt'];
+let activeCodeTab = 0;
+
+function generateCode() {
+  document.getElementById('codeVersion').textContent = 'v'+config.version;
+  buildCodeTabs();
+  showCodeTab(0);
+  document.getElementById('codeModal').style.display = 'flex';
+}
+
+function buildCodeTabs() {
+  const tabs = document.getElementById('codeTabs');
+  tabs.innerHTML = CODE_FILES.map((f,i)=>`<div class="code-tab ${i===0?'active':''}" onclick="showCodeTab(${i})">${f}</div>`).join('');
+}
+
+function showCodeTab(i) {
+  activeCodeTab = i;
+  document.querySelectorAll('.code-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  const code = getCodeFile(CODE_FILES[i]);
+  document.getElementById('codeBlock').innerHTML = syntaxHighlight(code);
+}
+
+function getCodeFile(name) {
+  switch(name) {
+    case 'main.c': return genMainC();
+    case 'ui.h': return genUIH();
+    case 'ui.c': return genUIC();
+    case 'CMakeLists.txt': return genCMake();
+    default: return '';
+  }
+}
+
+function genMainC() {
+  return `#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
+#include "esp_log.h"
+#include "lvgl.h"
+#include "ui.h"
+
+static const char *TAG = "${config.name}";
+
+/* LVGL tick task */
+static void lv_tick_task(void *arg) {
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+        lv_tick_inc(10);
+    }
+}
+
+/* LVGL handler task */
+static void lv_handler_task(void *arg) {
+    while (1) {
+        lv_timer_handler();
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+
+void app_main(void) {
+    ESP_LOGI(TAG, "Starting ${config.name}");
+
+    /* Initialize LVGL */
+    lv_init();
+
+    /* TODO: Initialize your display driver here */
+    /* Example: ili9341_init(); */
+
+    /* Create display buffer */
+    static lv_disp_draw_buf_t disp_buf;
+    static lv_color_t buf1[${config.w} * 20];
+    static lv_color_t buf2[${config.w} * 20];
+    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, ${config.w} * 20);
+
+    /* Register display driver */
+    static lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.hor_res  = ${config.w};
+    disp_drv.ver_res  = ${config.h};
+    disp_drv.flush_cb = my_disp_flush;  /* TODO: implement */
+    disp_drv.draw_buf = &disp_buf;
+    lv_disp_drv_register(&disp_drv);
+
+    /* Create UI */
+    ui_init();
+
+    /* Start LVGL tasks */
+    xTaskCreate(lv_tick_task,    "lv_tick",    2048, NULL, 5, NULL);
+    xTaskCreate(lv_handler_task, "lv_handler", 4096, NULL, 4, NULL);
+
+    ESP_LOGI(TAG, "UI initialized — ${config.w}x${config.h} @ LVGL v${config.version}");
+}
+`;
+}
+
+function genUIH() {
+  const guards = config.name.toUpperCase().replace(/[^A-Z0-9]/g,'_');
+  const screenVars = screens.map((s,i)=>`extern lv_obj_t *screen_${i+1};`).join('\n');
+  const widgetVars = screens.flatMap(s=>s.widgets.map(w=>`extern lv_obj_t *${w.type}_${w.id};`)).join('\n');
+  return `#ifndef ${guards}_UI_H
+#define ${guards}_UI_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "lvgl.h"
+
+/* Screen objects */
+${screenVars}
+
+/* Widget objects */
+${widgetVars}
+
+/* Public API */
+void ui_init(void);
+${screens.map((s,i)=>`void ui_screen_${i+1}_init(void);`).join('\n')}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ${guards}_UI_H */
+`;
+}
+
+function genUIC() {
+  const includes = `#include "ui.h"\n#include "lvgl.h"\n`;
+  const declarations = screens.map((s,i) => `lv_obj_t *screen_${i+1};`).join('\n')
+    + '\n' + screens.flatMap(s=>s.widgets.map(w=>`lv_obj_t *${w.type}_${w.id};`)).join('\n');
+
+  const screenFns = screens.map((s,i) => {
+    const bgHex = hexToLvColor(s.bg_color||'#1a1a2e');
+    const widgets = s.widgets.map(w => genWidgetCode(w, `screen_${i+1}`)).join('\n\n');
+    return `void ui_screen_${i+1}_init(void) {
+    screen_${i+1} = lv_obj_create(NULL);
+    lv_obj_set_size(screen_${i+1}, ${config.w}, ${config.h});
+    lv_obj_set_style_bg_color(screen_${i+1}, lv_color_hex(0x${bgHex}), 0);
+    lv_obj_set_style_bg_opa(screen_${i+1}, LV_OPA_COVER, 0);
+
+${widgets}
+}`;
+  }).join('\n\n');
+
+  return `${includes}\n/* ── Widget declarations ── */\n${declarations}\n\n/* ════════════════════════════════════\n   Screen init functions\n   ════════════════════════════════════ */\n\n${screenFns}\n\n/* ════════════════════════════════════\n   UI entry point\n   ════════════════════════════════════ */\nvoid ui_init(void) {\n    ui_screen_1_init();\n    lv_scr_load(screen_1);\n}\n`;
+}
+
+function genWidgetCode(w, parent) {
+  const p = w.props;
+  const name = `${w.type}_${w.id}`;
+  let code = '';
+  const pos = `    lv_obj_set_pos(${name}, ${w.x}, ${w.y});\n    lv_obj_set_size(${name}, ${w.w}, ${w.h});`;
+
+  switch(w.type) {
+    case 'btn':
+      code = `    ${name} = lv_btn_create(${parent});
+${pos}
+    lv_obj_set_style_bg_color(${name}, lv_color_hex(0x${hexToLvColor(p.bg_color||'#3a5a8a')}), 0);
+    lv_obj_set_style_radius(${name}, ${p.radius||4}, 0);
+    lv_obj_t *${name}_label = lv_label_create(${name});
+    lv_label_set_text(${name}_label, "${p.text||'OK'}");
+    lv_obj_set_style_text_color(${name}_label, lv_color_hex(0x${hexToLvColor(p.text_color||'#ffffff')}), 0);
+    lv_obj_center(${name}_label);`; break;
+
+    case 'label':
+      code = `    ${name} = lv_label_create(${parent});
+${pos}
+    lv_label_set_text(${name}, "${p.text||'Label'}");
+    lv_obj_set_style_text_color(${name}, lv_color_hex(0x${hexToLvColor(p.text_color||'#ffffff')}), 0);
+    lv_obj_set_style_text_font(${name}, &lv_font_montserrat_${nearestFont(p.font_size||13)}, 0);`; break;
+
+    case 'bar':
+      code = `    ${name} = lv_bar_create(${parent});
+${pos}
+    lv_bar_set_range(${name}, ${p.min||0}, ${p.max||100});
+    lv_bar_set_value(${name}, ${p.value||60}, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(${name}, lv_color_hex(0x${hexToLvColor(p.bg_color||'#2a2a3a')}), 0);
+    lv_obj_set_style_radius(${name}, ${p.radius||8}, 0);`; break;
+
+    case 'slider':
+      code = `    ${name} = lv_slider_create(${parent});
+${pos}
+    lv_slider_set_range(${name}, ${p.min||0}, ${p.max||100});
+    lv_slider_set_value(${name}, ${p.value||50}, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), LV_PART_INDICATOR);`; break;
+
+    case 'switch':
+      code = `    ${name} = lv_switch_create(${parent});
+${pos}
+    ${p.checked?`lv_obj_add_state(${name}, LV_STATE_CHECKED);`:''}`; break;
+
+    case 'checkbox':
+      code = `    ${name} = lv_checkbox_create(${parent});
+${pos}
+    lv_checkbox_set_text(${name}, "${p.text||'Check me'}");
+    ${p.checked?`lv_obj_add_state(${name}, LV_STATE_CHECKED);`:''}`; break;
+
+    case 'spinner':
+      code = `    ${name} = lv_spinner_create(${parent}, ${p.speed||1000}, ${p.arc_length||60});
+${pos}
+    lv_obj_set_style_arc_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), LV_PART_INDICATOR);`; break;
+
+    case 'textarea':
+      code = `    ${name} = lv_textarea_create(${parent});
+${pos}
+    lv_textarea_set_placeholder_text(${name}, "${p.placeholder||'Type here...'}");
+    lv_textarea_set_max_length(${name}, ${p.max_length||256});
+    ${p.one_line?`lv_textarea_set_one_line(${name}, true);`:''}`; break;
+
+    case 'dropdown':
+      code = `    ${name} = lv_dropdown_create(${parent});
+${pos}
+    lv_dropdown_set_options(${name}, "${(p.options||'Option 1\nOption 2').split('\n').join('\\n')}");
+    lv_dropdown_set_selected(${name}, ${p.selected||0});`; break;
+
+    case 'roller':
+      code = `    ${name} = lv_roller_create(${parent});
+${pos}
+    lv_roller_set_options(${name}, "${(p.options||'Jan\nFeb\nMar').split('\n').join('\\n')}", LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_selected(${name}, ${p.selected||0}, LV_ANIM_OFF);
+    lv_roller_set_visible_row_count(${name}, ${p.visible_row_cnt||3});`; break;
+
+    case 'arc':
+      code = `    ${name} = lv_arc_create(${parent});
+${pos}
+    lv_arc_set_range(${name}, ${p.min||0}, ${p.max||100});
+    lv_arc_set_value(${name}, ${p.value||50});
+    lv_obj_set_style_arc_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(${name}, ${p.width||8}, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(${name}, lv_color_hex(0x${hexToLvColor(p.bg_color||'#2a2a3a')}), LV_PART_MAIN);`; break;
+
+    case 'chart':
+      code = `    ${name} = lv_chart_create(${parent});
+${pos}
+    lv_chart_set_type(${name}, LV_CHART_TYPE_LINE);
+    lv_chart_set_div_line_count(${name}, ${p.div_line_h||3}, ${p.div_line_v||5});
+    lv_chart_series_t *${name}_ser = lv_chart_add_series(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), LV_CHART_AXIS_PRIMARY_Y);
+    lv_chart_set_point_count(${name}, ${p.point_cnt||10});
+    /* TODO: fill series data with lv_chart_set_next_value() */`; break;
+
+    case 'table':
+      code = `    ${name} = lv_table_create(${parent});
+${pos}
+    lv_table_set_col_cnt(${name}, ${p.col_cnt||3});
+    lv_table_set_row_cnt(${name}, ${p.row_cnt||3});
+    /* TODO: fill cells with lv_table_set_cell_value() */`; break;
+
+    case 'led':
+      code = `    ${name} = lv_led_create(${parent});
+${pos}
+    lv_led_set_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00ff88')}));
+    lv_led_set_brightness(${name}, ${p.brightness||255});
+    lv_led_on(${name});`; break;
+
+    case 'meter':
+      code = `    ${name} = lv_meter_create(${parent});
+${pos}
+    lv_meter_scale_t *${name}_scale = lv_meter_add_scale(${name});
+    lv_meter_set_scale_range(${name}, ${name}_scale, ${p.min||0}, ${p.max||100}, 270, 135);
+    lv_meter_set_scale_ticks(${name}, ${name}_scale, 11, 2, 10, lv_color_hex(0x${hexToLvColor(p.scale_color||'#00d4aa')}));
+    lv_meter_indicator_t *${name}_indic = lv_meter_add_needle_line(${name}, ${name}_scale, 4, lv_color_hex(0x${hexToLvColor(p.needle_color||'#ff6b35')}), -10);
+    lv_meter_set_indicator_value(${name}, ${name}_indic, ${p.value||75});`; break;
+
+    case 'msgbox':
+      code = `    static const char *${name}_btns[] = {"${(p.btns||'OK,Cancel').split(',').join('","')}", ""};
+    ${name} = lv_msgbox_create(${parent}, "${p.title||'Message'}", "${p.text||'Content'}", ${name}_btns, ${p.modal?'true':'false'});
+    lv_obj_center(${name});`; break;
+
+    case 'tabview':
+      code = `    ${name} = lv_tabview_create(${parent}, LV_DIR_TOP, ${p.tab_height||32});
+${pos}
+${(p.tab_names||'Tab1,Tab2').split(',').map((t,i)=>`    lv_obj_t *${name}_tab${i+1} = lv_tabview_add_tab(${name}, "${t.trim()}");`).join('\n')}`;
+      break;
+
+    case 'list':
+      code = `    ${name} = lv_list_create(${parent});
+${pos}
+${(p.items||'Item 1,Item 2').split(',').map(it=>`    lv_list_add_btn(${name}, LV_SYMBOL_OK, "${it.trim()}");`).join('\n')}`;
+      break;
+
+    case 'container':
+      code = `    ${name} = lv_obj_create(${parent});
+${pos}
+    lv_obj_set_style_bg_opa(${name}, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(${name}, ${p.border_width||1}, 0);
+    lv_obj_set_style_radius(${name}, ${p.radius||4}, 0);
+    lv_obj_set_style_pad_all(${name}, ${p.pad||4}, 0);`; break;
+
+    case 'img':
+      code = `    ${name} = lv_img_create(${parent});
+${pos}
+    lv_img_set_src(${name}, ${p.src||'&my_image'});
+    lv_obj_set_style_img_opa(${name}, ${p.opacity!==undefined?p.opacity:255}, 0);${p.zoom&&p.zoom!==256?`\n    lv_img_set_zoom(${name}, ${p.zoom});`:''}${p.angle?`\n    lv_img_set_angle(${name}, ${p.angle});`:''}${(p.pivot_x||p.pivot_y)?`\n    lv_img_set_pivot(${name}, ${p.pivot_x||0}, ${p.pivot_y||0});`:''}${p.antialias?`\n    lv_img_set_antialias(${name}, true);`:''}${p.recolor_en?`\n    lv_obj_set_style_img_recolor(${name}, lv_color_hex(0x${hexToLvColor(p.recolor||'#ff0000')}), 0);\n    lv_obj_set_style_img_recolor_opa(${name}, ${p.recolor_opa||128}, 0);`:''}`; break;
+
+    case 'line':
+      code = `    static lv_point_t ${name}_pts[] = {{0, ${w.h/2}}, {${w.w}, ${w.h/2}}};
+    ${name} = lv_line_create(${parent});
+${pos}
+    lv_line_set_points(${name}, ${name}_pts, 2);
+    lv_obj_set_style_line_color(${name}, lv_color_hex(0x${hexToLvColor(p.color||'#00d4aa')}), 0);
+    lv_obj_set_style_line_width(${name}, ${p.width||2}, 0);
+    lv_obj_set_style_line_rounded(${name}, ${p.round_start?'true':'false'}, 0);`; break;
+
+    case 'colorwheel':
+      code = `    ${name} = lv_colorwheel_create(${parent}, true);
+${pos};`; break;
+
+    case 'spinbox':
+      code = `    ${name} = lv_spinbox_create(${parent});
+${pos}
+    lv_spinbox_set_range(${name}, ${p.min||-9999}, ${p.max||9999});
+    lv_spinbox_set_value(${name}, ${p.value||0});
+    lv_spinbox_set_digit_count(${name}, ${p.digit_count||5}, 0);
+    lv_spinbox_set_step(${name}, ${p.step||1});`; break;
+
+    case 'keyboard':
+      code = `    ${name} = lv_keyboard_create(${parent});
+${pos}
+    lv_keyboard_set_mode(${name}, LV_KEYBOARD_MODE_TEXT_LOWER);
+    /* lv_keyboard_set_textarea(${name}, my_textarea); */`; break;
+
+    default:
+      code = `    /* TODO: ${name} = lv_${w.type}_create(${parent}); */\n${pos}`;
+  }
+  return code;
+}
+
+function hexToLvColor(hex) {
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  return hex.toUpperCase();
+}
+
+function nearestFont(size) {
+  const sizes = [8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48];
+  return sizes.reduce((prev,curr) => Math.abs(curr-size)<Math.abs(prev-size)?curr:prev);
+}
+
+function genCMake() {
+  return `cmake_minimum_required(VERSION 3.16)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+# LVGL configuration
+set(LV_CONF_PATH "${config.name}/lv_conf.h")
+
+project(${config.name})
+
+# Add LVGL component
+idf_component_register(
+    SRCS "main/main.c"
+         "main/ui.c"
+    INCLUDE_DIRS "main"
+    REQUIRES lvgl esp_lcd driver
+)
+
+# LVGL version: ${config.version}
+# Display: ${config.w}x${config.h}
+# Generated by LVGL Designer
+`;
+}
+
+function syntaxHighlight(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\/\*[\s\S]*?\*\/)/g,'<span class="cm">$1</span>')
+    .replace(/(\/\/[^\n]*)/g,'<span class="cm">$1</span>')
+    .replace(/#(include|define|ifndef|endif|ifdef)[^\n]*/g,'<span class="inc">#$1...</span>')
+    .replace(/\b(void|int|static|const|char|bool|uint8_t|uint16_t|uint32_t|uint64_t|int32_t|true|false|NULL|extern)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(lv_\w+)\s*\(/g,'<span class="fn">$1</span>(')
+    .replace(/"([^"]*)"/g,'<span class="str">"$1"</span>')
+    .replace(/\b(\d+)\b/g,'<span class="num">$1</span>')
+    .replace(/\b(LV_\w+)\b/g,'<span class="typ">$1</span>');
+}
+
+function copyCode() {
+  const code = getCodeFile(CODE_FILES[activeCodeTab]);
+  navigator.clipboard.writeText(code).then(()=>showToast('Copied to clipboard!'));
+}
+
+async function downloadProject() {
+  if(typeof JSZip === 'undefined') {
+    showToast('JSZip not loaded, downloading as text...');
+    const content = CODE_FILES.map(f=>`/* ═══════ ${f} ═══════ */\n\n${getCodeFile(f)}`).join('\n\n');
+    const blob = new Blob([content], {type:'text/plain'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = config.name+'.c'; a.click();
+    return;
+  }
+  const zip = new JSZip();
+  const proj = zip.folder(config.name);
+  const main = proj.folder('main');
+  // Add files in proper ESP-IDF structure
+  main.file('main.c', getCodeFile('main.c'));
+  main.file('ui.h',   getCodeFile('ui.h'));
+  main.file('ui.c',   getCodeFile('ui.c'));
+  proj.file('CMakeLists.txt', getCodeFile('CMakeLists.txt'));
+  // Add component CMakeLists
+  proj.file('main/CMakeLists.txt', `idf_component_register(
+    SRCS "main.c" "ui.c"
+    INCLUDE_DIRS "."
+    REQUIRES lvgl esp_lcd driver
+)`);
+  // Add lv_conf.h placeholder
+  proj.file('main/lv_conf.h', `/* lv_conf.h — configure LVGL for ${config.name}\n * Display: ${config.w}x${config.h}, LVGL v${config.version}\n */\n#define LV_COLOR_DEPTH 16\n#define LV_HOR_RES_MAX ${config.w}\n#define LV_VER_RES_MAX ${config.h}\n`);
+  // Add README
+  proj.file('README.md', `# ${config.name}\n\nGenerated by LVGL Designer for ESP-IDF.\n\n## Build\n\`\`\`bash\nidf.py build\nidf.py -p /dev/ttyUSB0 flash monitor\n\`\`\`\n\n## LVGL Version\n${config.version}\n\n## Display\n${config.w} x ${config.h}\n`);
+
+  const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = config.name + '.zip';
+  a.click();
+  showToast('Project .zip downloaded!');
+}
+
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  if(e.key==='Delete'||e.key==='Backspace') deleteSelected();
+  if(e.ctrlKey||e.metaKey) {
+    if(e.key==='z'){e.preventDefault();undo();}
+    if(e.key==='y'||e.key==='Z'){e.preventDefault();redo();}
+    if(e.key==='d'){e.preventDefault();duplicateSelected();}
+  }
+  if(e.key==='ArrowLeft'&&selectedWidget){getSelectedWidget().x=Math.max(0,getSelectedWidget().x-1);renderCanvas();}
+  if(e.key==='ArrowRight'&&selectedWidget){const w=getSelectedWidget();w.x=Math.min(config.w-w.w,w.x+1);renderCanvas();}
+  if(e.key==='ArrowUp'&&selectedWidget){getSelectedWidget().y=Math.max(0,getSelectedWidget().y-1);renderCanvas();}
+  if(e.key==='ArrowDown'&&selectedWidget){const w=getSelectedWidget();w.y=Math.min(config.h-w.h,w.y+1);renderCanvas();}
+  if(e.key==='Escape') selectWidget(null);
+});
+</script>
+</body>
+</html>
