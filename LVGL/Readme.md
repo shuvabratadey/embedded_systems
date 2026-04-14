@@ -218,6 +218,12 @@ lv_obj_set_style_bg_color(obj, lv_color_hex(0x0000FF), 0);
 lv_obj_set_style_border_width(obj, 2, 0);
 ```
 
+## Border Color
+
+```c
+lv_obj_set_style_border_color(obj, lv_color_hex(0xFF0000), 0);
+```
+
 ## Radius
 
 ```c
