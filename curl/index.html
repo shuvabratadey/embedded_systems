@@ -76,6 +76,49 @@ code {
 .copy-btn:hover {
     background: #0ea5e9;
 }
+
+/* Info note box */
+.note {
+    background: #0c1a2e;
+    border-left: 3px solid #38bdf8;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-size: 15px;
+    color: #94a3b8;
+}
+
+.note strong {
+    color: #7dd3fc;
+}
+
+/* Quick reference table */
+.ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    margin-top: 10px;
+}
+
+.ref-table th {
+    text-align: left;
+    padding: 10px;
+    color: #7dd3fc;
+    border-bottom: 1px solid #1e3a5f;
+}
+
+.ref-table td {
+    padding: 10px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.ref-table tr:last-child td {
+    border-bottom: none;
+}
+
+.ref-table code {
+    font-size: 14px;
+}
 </style>
 </head>
 
@@ -112,6 +155,11 @@ curl -X POST https://example-webhook.com/your-id -F "file=@image.jpg"</code></pr
 <pre><button class="copy-btn">Copy</button><code># Add Authorization header
 curl -H "Authorization: Bearer YOUR_API_TOKEN" https://api.example.com/data
 
+# Post to an IoT feed (e.g., Adafruit IO)
+curl -H "X-AIO-Key: YOUR_AIO_KEY" \
+  -F "value=on" \
+  https://io.adafruit.com/api/v2/YOUR_USERNAME/feeds/YOUR_FEED/data
+
 # Save output to file
 curl -o file.html https://example.com
 
@@ -131,7 +179,10 @@ curl -v https://example.com</code></pre>
 <pre><button class="copy-btn">Copy</button><code># Steps:
 # 1. Go to https://webhook.site
 # 2. Copy your unique URL
-# 3. Send requests using curl</code></pre>
+# 3. Send requests using curl
+
+# Example POST test
+curl -X POST https://webhook.site/your-unique-id -d "test=hello"</code></pre>
 </div>
 
 <!-- ===================== MQTT ===================== -->
@@ -148,6 +199,7 @@ curl mqtt://mqtt.eclipseprojects.io/topic_name --output data.txt
 
 # Publish message
 curl -d "Hello" mqtt://mqtt.eclipseprojects.io/topic_name</code></pre>
+<div class="note">📖 Full MQTT documentation: <a href="https://curl.se/docs/mqtt.html" style="color:#38bdf8;">https://curl.se/docs/mqtt.html</a></div>
 </div>
 
 <!-- ===================== TIME API ===================== -->
@@ -161,15 +213,21 @@ curl "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata"</code></pr
 <div class="section">
 <h2>FTP Upload</h2>
 <pre><button class="copy-btn">Copy</button><code># Upload file to FTP server
-curl -T file.jpg ftp://USERNAME:PASSWORD@ftp.example.com/path/
+curl -k -T file.jpg ftp://USERNAME:PASSWORD@ftp.example.com/htdocs/uploads/
 
-# Access uploaded files
-ftp://USERNAME:PASSWORD@ftp.example.com/path/</code></pre>
+# Access uploaded files (paste in Windows File Explorer address bar)
+# ftp://USERNAME:PASSWORD@ftp.example.com/htdocs/</code></pre>
+<div class="note">💡 Replace <strong>USERNAME</strong>, <strong>PASSWORD</strong>, and <strong>ftp.example.com</strong> with your actual FTP credentials.</div>
 </div>
 
 <!-- ===================== NMAP ===================== -->
 <div class="section">
 <h2>Nmap</h2>
+<div class="note" style="margin-bottom:14px;">
+  🔧 <strong>Installation (Windows):</strong> Download from
+  <a href="https://nmap.org/download.html#windows" style="color:#38bdf8;">nmap.org/download.html</a>
+  → Run the <code style="font-size:13px;">.exe</code> installer → ✅ Check <strong>"Add Nmap to PATH"</strong>
+</div>
 <pre><button class="copy-btn">Copy</button><code># Basic scan
 nmap google.com
 
@@ -186,6 +244,7 @@ nmap -O 192.168.1.1</code></pre>
 <!-- ===================== POWERSHELL ===================== -->
 <div class="section">
 <h2>PowerShell Test-NetConnection</h2>
+<div class="note" style="margin-bottom:14px;">✅ Built-in PowerShell utility — <strong>no installation required.</strong></div>
 <pre><button class="copy-btn">Copy</button><code># Ping test
 Test-NetConnection google.com
 
@@ -195,10 +254,10 @@ Test-NetConnection google.com -Port 443
 # Trace route
 Test-NetConnection google.com -TraceRoute
 
-# Check RDP port
+# Check RDP port (Remote Desktop)
 Test-NetConnection -ComputerName 192.168.1.10 -Port 3389
 
-# Check SMB port
+# Check SMB port (file sharing)
 Test-NetConnection -ComputerName 192.168.1.20 -Port 445</code></pre>
 </div>
 
@@ -215,11 +274,67 @@ tracert google.com</code></pre>
 <pre><button class="copy-btn">Copy</button><code># Test SSL connection
 openssl s_client -connect example.com:443
 
-# View SMTP certificates
+# View SMTP certificates (shows full chain)
 openssl s_client -showcerts -connect smtp.example.com:587 &lt;NUL -starttls smtp
 
 # Extract certificate to PEM
 openssl s_client -showcerts -connect api.example.com:443 &lt;NUL | openssl x509 -outform PEM &gt; cert.pem</code></pre>
+<div class="note">
+  📌 <strong>Certificate chain explained:</strong><br><br>
+  1. <strong>Leaf cert</strong> — Proves the server's identity<br>
+  2. <strong>Intermediate cert</strong> — Trusted middleman linking the server cert to a root<br>
+  3. <strong>Root cert</strong> — Ultimate trust anchor; already trusted by your OS/browser
+</div>
+</div>
+
+<!-- ===================== SSH ===================== -->
+<div class="section">
+<h2>SSH – Secure Shell</h2>
+<pre><button class="copy-btn">Copy</button><code># Connect to a remote machine
+ssh username@hostname
+
+# Connect to a Raspberry Pi
+ssh pi@192.168.0.100
+ssh pi@raspberrypi
+
+# Execute a remote command and exit
+ssh user@host "ls -l"</code></pre>
+<div class="note">⚙️ <strong>How remote commands work:</strong> SSH logs in → executes the command → returns output → exits automatically.</div>
+</div>
+
+<!-- ===================== SCP ===================== -->
+<div class="section">
+<h2>SCP – Secure File Transfer</h2>
+<pre><button class="copy-btn">Copy</button><code># Copy local file to remote machine
+scp file.txt user@host:/remote/path/
+
+# Copy file from remote to local
+scp user@host:/remote/path/file.txt .
+
+# Copy entire directory recursively
+scp -r local-folder/ user@host:/remote/path/</code></pre>
+</div>
+
+<!-- ===================== QUICK REFERENCE ===================== -->
+<div class="section">
+<h2>📎 Quick Reference</h2>
+<table class="ref-table">
+    <thead>
+        <tr>
+            <th>Tool</th>
+            <th>Purpose</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td><code>curl</code></td><td>HTTP/HTTPS/FTP/MQTT requests from the terminal</td></tr>
+        <tr><td><code>nmap</code></td><td>Network scanning and port discovery</td></tr>
+        <tr><td><code>Test-NetConnection</code></td><td>PowerShell ping, port test, and traceroute</td></tr>
+        <tr><td><code>tracert</code></td><td>Trace the network route to a host</td></tr>
+        <tr><td><code>openssl</code></td><td>Inspect and test SSL/TLS certificates</td></tr>
+        <tr><td><code>ssh</code></td><td>Secure remote shell access</td></tr>
+        <tr><td><code>scp</code></td><td>Secure file transfer over SSH</td></tr>
+    </tbody>
+</table>
 </div>
 
 <!-- ===================== SCRIPT ===================== -->
