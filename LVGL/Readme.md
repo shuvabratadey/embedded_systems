@@ -210,6 +210,7 @@ lv_obj_send_event(btn, LV_EVENT_CLICKED, NULL);
 
 ```c
 lv_obj_set_style_bg_color(obj, lv_color_hex(0x0000FF), 0);
+lv_obj_set_style_bg_color(obj, lv_color_make(66, 138, 245), 0);
 ```
 
 ## Border
@@ -222,6 +223,7 @@ lv_obj_set_style_border_width(obj, 2, 0);
 
 ```c
 lv_obj_set_style_border_color(obj, lv_color_hex(0xFF0000), 0);
+lv_obj_set_style_border_color(obj, lv_color_make(66, 138, 245), 0);
 ```
 
 ## Radius
