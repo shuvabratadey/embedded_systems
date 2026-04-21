@@ -48,6 +48,11 @@ Then access individual tutorials:
   `https://shuvabratadey.github.io/embedded_systems/uart_communication/`
 
   * Click here to [🔗Open UART Simulator](https://shuvabratadey.github.io/embedded_systems/uart_communication/UART_Communication_Simulator.html)
+ 
+* [🔗OBD-II Protocol](https://shuvabratadey.github.io/embedded_systems/OBD-II/) →
+  `https://shuvabratadey.github.io/embedded_systems/OBD-II/`
+
+  * Click here to [🔗Open OBD-II Simulator](https://shuvabratadey.github.io/embedded_systems/OBD-II/obd2_launcher.html)
 
 * [🔗LVGL](https://shuvabratadey.github.io/embedded_systems/LVGL/) →
   `https://shuvabratadey.github.io/embedded_systems/LVGL/`
@@ -57,9 +62,6 @@ Then access individual tutorials:
 
 * [🔗Cmake Guidance](https://shuvabratadey.github.io/embedded_systems/cmake/) →
   `https://shuvabratadey.github.io/embedded_systems/cmake/`
-
-* [🔗OBD-II](https://shuvabratadey.github.io/embedded_systems/OBD-II/) →
-  `https://shuvabratadey.github.io/embedded_systems/OBD-II/`
 
 ---
 
