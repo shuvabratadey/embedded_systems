@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OBD-II Bluetooth Debug Console</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --border: #2a395a;
+      --text: #e8eefc;
+      --muted: #9fb0d1;
+      --accent: #69a8ff;
+      --accent-2: #7ef0c6;
+      --danger: #ff7a7a;
+      --warn: #ffc85c;
+      --ok: #69e38f;
+      --shadow: 0 10px 30px rgba(0,0,0,.28);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(105,168,255,0.18), transparent 30%),
+        radial-gradient(circle at top left, rgba(126,240,198,0.12), transparent 25%),
+        linear-gradient(180deg, #08101d, #0d1627 60%, #0a1220);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 22px;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.7rem, 2.4vw, 2.8rem);
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 14px rgba(255,200,92,0.5);
+    }
+
+    .dot.connected {
+      background: var(--ok);
+      box-shadow: 0 0 14px rgba(105,227,143,0.5);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 400px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(255,255,255,.02);
+    }
+
+    .panel-header h2, .panel-header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-size: 0.92rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      transition: .2s ease;
+    }
+
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(105,168,255,.16);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 11px 14px;
+      background: #243454;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .15s ease, opacity .15s ease, background .2s ease, border-color .2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    .primary {
+      background: linear-gradient(180deg, #3b7cff, #2b63d9);
+    }
+
+    .success {
+      background: linear-gradient(180deg, #2fbf7b, #239c63);
+    }
+
+    .warning {
+      background: linear-gradient(180deg, #e9a83f, #cc8821);
+    }
+
+    .danger {
+      background: linear-gradient(180deg, #f06868, #cf4c4c);
+    }
+
+    .ghost {
+      background: rgba(255,255,255,.05);
+      border-color: var(--border);
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .small {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      padding: 14px;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: .82rem;
+      margin-bottom: 6px;
+    }
+
+    .kpi .value {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,.03);
+      min-height: 110px;
+    }
+
+    .card h4 {
+      margin: 0 0 6px;
+      font-size: .95rem;
+    }
+
+    .card .value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .terminal {
+      height: 320px;
+      overflow: auto;
+      background: #060b15;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .92rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .log-rx { color: #9ed0ff; }
+    .log-tx { color: #a9ffcc; }
+    .log-warn { color: #ffd67d; }
+    .log-error { color: #ff9d9d; }
+    .log-info { color: #d5def0; }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+      background: rgba(255,255,255,.02);
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: .84rem;
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+      position: sticky;
+      top: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cmd-btn {
+      text-align: left;
+      padding: 12px;
+      min-height: 72px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+    }
+
+    .cmd-btn strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px;
+      border: 1px dashed rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,.02);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+      .cards, .command-grid, .kpis { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div>
+        <h1>OBD-II Bluetooth Debug Console</h1>
+        <p>
+          Connect to a Bluetooth serial OBD-II adapter such as an ELM327-compatible device, inspect live vehicle data,
+          read diagnostic trouble codes, decode responses, and send raw AT / OBD commands with explanations.
+        </p>
+      </div>
+      <div class="status-pill">
+        <span id="statusDot" class="dot"></span>
+        <span id="connectionState">Disconnected</span>
+      </div>
+    </section>
+
+    <div class="grid">
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Connection</h2>
+            <span class="badge">Web Serial</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="baudRate">Baud rate</label>
+              <select id="baudRate">
+                <option value="9600">9600</option>
+                <option value="38400">38400</option>
+                <option value="115200" selected>115200</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="portSelect">Available paired / granted serial ports</label>
+              <select id="portSelect"></select>
+              <div class="helper">
+                Browsers cannot silently list every Bluetooth device on your laptop. Use <b>Request Port</b> to choose your OBD-II Bluetooth serial adapter if it exposes a serial profile.
+              </div>
+            </div>
+
+            <div class="row">
+              <button id="refreshPortsBtn" class="ghost">Refresh Ports</button>
+              <button id="requestPortBtn" class="primary">Request Port</button>
+              <button id="connectBtn" class="success">Connect</button>
+              <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+            </div>
+
+            <div class="footer-note">
+              Recommended sequence after pairing adapter with the laptop: pair device in OS → open this page in a Chromium browser → Request Port → Connect → Initialize adapter.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Adapter Setup</h3>
+            <span class="badge">ELM327</span>
+          </div>
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:10px;">
+              <button id="initElmBtn" class="primary" disabled>Initialize Adapter</button>
+              <button id="readVinBtn" class="ghost" disabled>Read VIN</button>
+              <button id="readDtcBtn" class="warning" disabled>Read DTC</button>
+              <button id="clearDtcBtn" class="danger" disabled>Clear DTC</button>
+            </div>
+            <div class="helper">
+              Initialization sends common ELM327 commands such as <code>ATZ</code>, <code>ATE0</code>, <code>ATL0</code>, <code>ATS0</code>, <code>ATH1</code>, and <code>ATSP0</code>.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Custom Command</h3>
+            <span class="badge">AT / OBD-II</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="customCommand">Command</label>
+              <input id="customCommand" type="text" placeholder="Example: 010C or ATDP" />
+            </div>
+            <div class="row">
+              <button id="sendCustomBtn" class="primary" disabled>Send Command</button>
+              <button id="explainLastBtn" class="ghost">Explain Last Response</button>
+            </div>
+            <div class="helper" style="margin-top:10px;">
+              Examples: <code>010C</code> engine RPM, <code>010D</code> vehicle speed, <code>03</code> stored trouble codes, <code>0902</code> VIN, <code>ATDP</code> current protocol.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Quick Commands</h3>
+            <span class="badge">One click</span>
+          </div>
+          <div class="panel-body">
+            <div class="command-grid" id="quickCommands"></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="stack">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Vehicle Overview</h2>
+            <span class="badge" id="protocolBadge">Protocol: —</span>
+          </div>
+          <div class="panel-body">
+            <div class="kpis">
+              <div class="kpi">
+                <div class="label">VIN</div>
+                <div class="value" id="vinValue">—</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Stored DTC Count</div>
+                <div class="value" id="dtcCountValue">0</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Last Command</div>
+                <div class="value" id="lastCommandValue">—</div>
+              </div>
+            </div>
+
+            <div class="cards">
+              <div class="card">
+                <h4>Engine RPM</h4>
+                <div class="value" id="rpmValue">—</div>
+                <div class="small">PID 010C</div>
+              </div>
+              <div class="card">
+                <h4>Vehicle Speed</h4>
+                <div class="value" id="speedValue">—</div>
+                <div class="small">PID 010D</div>
+              </div>
+              <div class="card">
+                <h4>Coolant Temperature</h4>
+                <div class="value" id="tempValue">—</div>
+                <div class="small">PID 0105</div>
+              </div>
+              <div class="card">
+                <h4>Battery / Control Module Voltage</h4>
+                <div class="value" id="voltageValue">—</div>
+                <div class="small">AT RV or PID-dependent</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Live Diagnostics</h3>
+            <div class="row">
+              <button id="sampleDataBtn" class="success" disabled>Poll Common PIDs</button>
+              <button id="stopPollingBtn" class="ghost" disabled>Stop Polling</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="helper">
+              Polls common parameters: coolant temperature, RPM, speed, and battery voltage. You can add more PIDs in the quick-command list below in code.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Decoded Trouble Codes</h3>
+            <span class="badge">Mode 03</span>
+          </div>
+          <div class="panel-body">
+            <div id="dtcContainer" class="empty">No DTC data loaded yet.</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Command / Response Analysis</h3>
+            <span class="badge">Human-readable</span>
+          </div>
+          <div class="panel-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Command</th>
+                    <th>Raw Response</th>
+                    <th>Meaning</th>
+                    <th>Explanation</th>
+                  </tr>
+                </thead>
+                <tbody id="analysisTableBody">
+                  <tr>
+                    <td colspan="4" class="small">No commands analyzed yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Terminal</h3>
+            <div class="row">
+              <button id="clearLogBtn" class="ghost">Clear Log</button>
+              <button id="saveLogBtn" class="ghost">Download Log</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="terminal" class="terminal"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const supportsSerial = 'serial' in navigator;
+
+    const state = {
+      port: null,
+      reader: null,
+      writer: null,
+      readLoopRunning: false,
+      connected: false,
+      buffer: '',
+      pendingResolver: null,
+      pendingCommand: null,
+      pendingTimer: null,
+      lastResponse: '',
+      lastCommand: '',
+      pollInterval: null,
+      logLines: []
+    };
+
+    const ui = {
+      statusDot: document.getElementById('statusDot'),
+      connectionState: document.getElementById('connectionState'),
+      portSelect: document.getElementById('portSelect'),
+      baudRate: document.getElementById('baudRate'),
+      refreshPortsBtn: document.getElementById('refreshPortsBtn'),
+      requestPortBtn: document.getElementById('requestPortBtn'),
+      connectBtn: document.getElementById('connectBtn'),
+      disconnectBtn: document.getElementById('disconnectBtn'),
+      initElmBtn: document.getElementById('initElmBtn'),
+      readVinBtn: document.getElementById('readVinBtn'),
+      readDtcBtn: document.getElementById('readDtcBtn'),
+      clearDtcBtn: document.getElementById('clearDtcBtn'),
+      customCommand: document.getElementById('customCommand'),
+      sendCustomBtn: document.getElementById('sendCustomBtn'),
+      explainLastBtn: document.getElementById('explainLastBtn'),
+      terminal: document.getElementById('terminal'),
+      analysisTableBody: document.getElementById('analysisTableBody'),
+      protocolBadge: document.getElementById('protocolBadge'),
+      vinValue: document.getElementById('vinValue'),
+      dtcCountValue: document.getElementById('dtcCountValue'),
+      lastCommandValue: document.getElementById('lastCommandValue'),
+      rpmValue: document.getElementById('rpmValue'),
+      speedValue: document.getElementById('speedValue'),
+      tempValue: document.getElementById('tempValue'),
+      voltageValue: document.getElementById('voltageValue'),
+      dtcContainer: document.getElementById('dtcContainer'),
+      sampleDataBtn: document.getElementById('sampleDataBtn'),
+      stopPollingBtn: document.getElementById('stopPollingBtn'),
+      clearLogBtn: document.getElementById('clearLogBtn'),
+      saveLogBtn: document.getElementById('saveLogBtn'),
+      quickCommands: document.getElementById('quickCommands')
+    };
+
+    const quickCommands = [
+      { label: 'Protocol', cmd: 'ATDP', desc: 'Show current OBD protocol.' },
+      { label: 'Adapter Voltage', cmd: 'ATRV', desc: 'Read adapter supply voltage.' },
+      { label: 'Read VIN', cmd: '0902', desc: 'Request VIN over Mode 09 PID 02.' },
+      { label: 'Read DTC', cmd: '03', desc: 'Read stored diagnostic trouble codes.' },
+      { label: 'Coolant Temp', cmd: '0105', desc: 'Engine coolant temperature.' },
+      { label: 'Engine RPM', cmd: '010C', desc: 'Current engine RPM.' },
+      { label: 'Vehicle Speed', cmd: '010D', desc: 'Current vehicle speed.' },
+      { label: 'Fuel Level', cmd: '012F', desc: 'Remaining fuel level input.' },
+      { label: 'Throttle Pos', cmd: '0111', desc: 'Absolute throttle position.' }
+    ];
+
+    function init() {
+      if (!supportsSerial) {
+        alert('This browser does not support the Web Serial API. Use a Chromium-based browser such as Chrome or Edge on desktop.');
+      }
+      renderQuickCommands();
+      attachEvents();
+      refreshPorts();
+      log('info', 'Ready. Pair your Bluetooth OBD-II adapter with the OS, then click Request Port.');
+    }
+
+    function attachEvents() {
+      ui.refreshPortsBtn.addEventListener('click', refreshPorts);
+      ui.requestPortBtn.addEventListener('click', requestPort);
+      ui.connectBtn.addEventListener('click', connectSelectedPort);
+      ui.disconnectBtn.addEventListener('click', disconnectPort);
+      ui.initElmBtn.addEventListener('click', initializeElm327);
+      ui.readVinBtn.addEventListener('click', async () => analyzeAndRender('0902', await sendCommand('0902')));
+      ui.readDtcBtn.addEventListener('click', async () => analyzeAndRender('03', await sendCommand('03')));
+      ui.clearDtcBtn.addEventListener('click', async () => analyzeAndRender('04', await sendCommand('04')));
+      ui.sendCustomBtn.addEventListener('click', async () => {
+        const cmd = ui.customCommand.value.trim();
+        if (!cmd) return;
+        const response = await sendCommand(cmd);
+        analyzeAndRender(cmd, response);
+      });
+      ui.explainLastBtn.addEventListener('click', () => {
+        if (!state.lastCommand || !state.lastResponse) return;
+        analyzeAndRender(state.lastCommand, state.lastResponse, true);
+      });
+      ui.sampleDataBtn.addEventListener('click', startPolling);
+      ui.stopPollingBtn.addEventListener('click', stopPolling);
+      ui.clearLogBtn.addEventListener('click', () => {
+        state.logLines = [];
+        ui.terminal.innerHTML = '';
+      });
+      ui.saveLogBtn.addEventListener('click', saveLogToFile);
+
+      if (supportsSerial && navigator.serial?.addEventListener) {
+        navigator.serial.addEventListener('connect', refreshPorts);
+        navigator.serial.addEventListener('disconnect', refreshPorts);
+      }
+    }
+
+    function renderQuickCommands() {
+      ui.quickCommands.innerHTML = '';
+      quickCommands.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'cmd-btn';
+        btn.disabled = true;
+        btn.dataset.command = item.cmd;
+        btn.innerHTML = `<strong>${item.label}</strong><span class="small">${item.cmd} — ${item.desc}</span>`;
+        btn.addEventListener('click', async () => {
+          const response = await sendCommand(item.cmd);
+          analyzeAndRender(item.cmd, response);
+        });
+        ui.quickCommands.appendChild(btn);
+      });
+    }
+
+    async function refreshPorts() {
+      if (!supportsSerial) return;
+      const ports = await navigator.serial.getPorts();
+      ui.portSelect.innerHTML = '';
+
+      if (!ports.length) {
+        const opt = document.createElement('option');
+        opt.textContent = 'No granted ports yet';
+        opt.value = '';
+        ui.portSelect.appendChild(opt);
+      } else {
+        ports.forEach((port, index) => {
+          port.__appId = `port-${index}`;
+          const info = port.getInfo ? port.getInfo() : {};
+          const opt = document.createElement('option');
+          opt.value = port.__appId;
+          opt.textContent = `Port ${index + 1} ${formatPortInfo(info)}`;
+          ui.portSelect.appendChild(opt);
+        });
+      }
+
+      window.__ports = ports;
+      log('info', `Port list refreshed. ${ports.length} accessible port(s) found.`);
+    }
+
+    async function requestPort() {
+      try {
+        const port = await navigator.serial.requestPort({});
+        log('info', `Port granted: ${formatPortInfo(port.getInfo ? port.getInfo() : {})}`);
+        await refreshPorts();
+      } catch (err) {
+        log('warn', `Port request canceled or failed: ${err.message}`);
+      }
+    }
+
+    async function connectSelectedPort() {
+      const selectedId = ui.portSelect.value;
+      const port = (window.__ports || []).find(p => p.__appId === selectedId) || (window.__ports || [])[0];
+
+      if (!port) {
+        log('warn', 'No serial port selected.');
+        return;
+      }
+
+      try {
+        await port.open({
+          baudRate: Number(ui.baudRate.value),
+          dataBits: 8,
+          stopBits: 1,
+          parity: 'none',
+          flowControl: 'none',
+          bufferSize: 255
+        });
+
+        state.port = port;
+        state.writer = port.writable.getWriter();
+        state.readLoopRunning = true;
+        startReadLoop();
+        setConnected(true);
+        log('info', `Connected at ${ui.baudRate.value} baud.`);
+      } catch (err) {
+        log('error', `Connection failed: ${err.message}`);
+      }
+    }
+
+    async function disconnectPort() {
+      stopPolling();
+      setConnected(false);
+
+      try {
+        state.readLoopRunning = false;
+        if (state.reader) {
+          try { await state.reader.cancel(); } catch (_) {}
+          try { state.reader.releaseLock(); } catch (_) {}
+          state.reader = null;
+        }
+        if (state.writer) {
+          try { state.writer.releaseLock(); } catch (_) {}
+          state.writer = null;
+        }
+        if (state.port) {
+          try { await state.port.close(); } catch (_) {}
+          state.port = null;
+        }
+        log('info', 'Disconnected from adapter.');
+      } catch (err) {
+        log('error', `Disconnect error: ${err.message}`);
+      }
+    }
+
+    function setConnected(connected) {
+      state.connected = connected;
+      ui.statusDot.classList.toggle('connected', connected);
+      ui.connectionState.textContent = connected ? 'Connected' : 'Disconnected';
+      ui.connectBtn.disabled = connected;
+      ui.disconnectBtn.disabled = !connected;
+      ui.initElmBtn.disabled = !connected;
+      ui.readVinBtn.disabled = !connected;
+      ui.readDtcBtn.disabled = !connected;
+      ui.clearDtcBtn.disabled = !connected;
+      ui.sendCustomBtn.disabled = !connected;
+      ui.sampleDataBtn.disabled = !connected;
+      Array.from(ui.quickCommands.querySelectorAll('button')).forEach(btn => btn.disabled = !connected);
+    }
+
+    async function startReadLoop() {
+      const decoder = new TextDecoder();
+      try {
+        while (state.port?.readable && state.readLoopRunning) {
+          state.reader = state.port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await state.reader.read();
+              if (done) break;
+              if (value) {
+                const text = decoder.decode(value, { stream: true });
+                handleIncomingData(text);
+              }
+            }
+          } finally {
+            try { state.reader.releaseLock(); } catch (_) {}
+            state.reader = null;
+          }
+        }
+      } catch (err) {
+        log('error', `Read loop error: ${err.message}`);
+      }
+    }
+
+    function handleIncomingData(chunk) {
+      state.buffer += chunk;
+
+      if (chunk.trim()) {
+        log('rx', chunk.replace(/\r/g, '\\r').replace(/\n/g, '\\n\n'));
+      }
+
+      if (state.buffer.includes('>')) {
+        const full = state.buffer;
+        state.buffer = '';
+        const cleaned = sanitizeElmResponse(full);
+        state.lastResponse = cleaned;
+
+        if (state.pendingResolver) {
+          clearTimeout(state.pendingTimer);
+          const resolve = state.pendingResolver;
+          state.pendingResolver = null;
+          state.pendingCommand = null;
+          resolve(cleaned);
+        }
+      }
+    }
+
+    async function writeLine(text) {
+      if (!state.writer) throw new Error('No active writer.');
+      const encoder = new TextEncoder();
+      await state.writer.write(encoder.encode(text + '\r'));
+    }
+
+    async function sendCommand(cmd, timeout = 3000) {
+      if (!state.connected) {
+        log('warn', `Cannot send ${cmd}: not connected.`);
+        return 'ERROR: Not connected';
+      }
+      if (state.pendingResolver) {
+        log('warn', 'A previous command is still pending.');
+        return 'ERROR: Busy';
+      }
+
+      state.lastCommand = cmd;
+      ui.lastCommandValue.textContent = cmd;
+      log('tx', cmd);
+
+      return new Promise(async (resolve) => {
+        state.pendingResolver = resolve;
+        state.pendingCommand = cmd;
+        state.pendingTimer = setTimeout(() => {
+          if (state.pendingResolver) {
+            state.pendingResolver = null;
+            state.pendingCommand = null;
+            log('warn', `Timeout waiting for response to ${cmd}`);
+            resolve('TIMEOUT');
+          }
+        }, timeout);
+
+        try {
+          await writeLine(cmd);
+        } catch (err) {
+          clearTimeout(state.pendingTimer);
+          state.pendingResolver = null;
+          state.pendingCommand = null;
+          log('error', `Write failed: ${err.message}`);
+          resolve(`ERROR: ${err.message}`);
+        }
+      });
+    }
+
+    async function initializeElm327() {
+      const commands = ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH1', 'ATSP0', 'ATDP'];
+      for (const cmd of commands) {
+        const response = await sendCommand(cmd, 4000);
+        analyzeAndRender(cmd, response);
+      }
+      log('info', 'Adapter initialization sequence finished.');
+    }
+
+    async function startPolling() {
+      stopPolling();
+      ui.stopPollingBtn.disabled = false;
+      const poll = async () => {
+        if (!state.connected) return;
+        for (const cmd of ['0105', '010C', '010D', 'ATRV']) {
+          const response = await sendCommand(cmd, 2500);
+          analyzeAndRender(cmd, response);
+        }
+      };
+      await poll();
+      state.pollInterval = setInterval(poll, 2500);
+      log('info', 'Live polling started.');
+    }
+
+    function stopPolling() {
+      if (state.pollInterval) {
+        clearInterval(state.pollInterval);
+        state.pollInterval = null;
+        log('info', 'Live polling stopped.');
+      }
+      ui.stopPollingBtn.disabled = true;
+    }
+
+    function analyzeAndRender(command, rawResponse, forceAppend = false) {
+      const analysis = interpretResponse(command, rawResponse);
+      renderAnalysisRow(command, rawResponse, analysis, forceAppend);
+      updateOverviewFromAnalysis(command, analysis);
+      if (analysis.type === 'dtc') {
+        renderDtcList(analysis.dtcCodes || []);
+      }
+      if (analysis.type === 'protocol' && analysis.value) {
+        ui.protocolBadge.textContent = `Protocol: ${analysis.value}`;
+      }
+      return analysis;
+    }
+
+    function interpretResponse(command, rawResponse) {
+      const cmd = normalizeCmd(command);
+      const cleaned = (rawResponse || '').trim();
+      const upper = cleaned.toUpperCase();
+
+      if (!cleaned) {
+        return { type: 'generic', meaning: 'No response', explanation: 'No data was returned by the adapter or ECU.' };
+      }
+      if (upper.includes('NO DATA')) {
+        return { type: 'generic', meaning: 'No data', explanation: 'The ECU did not provide data for this request. The PID may be unsupported or ignition state may be wrong.' };
+      }
+      if (upper.includes('UNABLE TO CONNECT')) {
+        return { type: 'generic', meaning: 'Unable to connect', explanation: 'The adapter is powered but could not establish protocol communication with the vehicle ECU.' };
+      }
+      if (upper.includes('ERROR') || upper.includes('?')) {
+        return { type: 'generic', meaning: 'Adapter or command error', explanation: 'The adapter rejected the command or communication failed. Check spacing, protocol, and vehicle support.' };
+      }
+
+      if (cmd === 'ATDP') {
+        return {
+          type: 'protocol',
+          value: cleaned,
+          meaning: 'Current OBD protocol',
+          explanation: 'This is the transport protocol currently selected by the ELM327 adapter for ECU communication.'
+        };
+      }
+
+      if (cmd === 'ATRV' || cmd === 'ATRV') {
+        return {
+          type: 'voltage',
+          value: cleaned,
+          meaning: `Adapter supply voltage: ${cleaned}`,
+          explanation: 'This usually reflects the vehicle battery / supply voltage seen by the adapter.'
+        };
+      }
+
+      if (cmd === '0902') {
+        const vin = decodeVin(cleaned);
+        return {
+          type: 'vin',
+          value: vin || 'Unavailable',
+          meaning: vin ? `Vehicle VIN: ${vin}` : 'VIN could not be decoded',
+          explanation: vin
+            ? 'Mode 09 PID 02 returns the Vehicle Identification Number from supported ECUs.'
+            : 'The response did not contain a clean VIN payload. Some adapters or ECUs split VIN frames differently.'
+        };
+      }
+
+      if (cmd === '03') {
+        const dtcCodes = decodeDTCs(cleaned);
+        return {
+          type: 'dtc',
+          dtcCodes,
+          meaning: dtcCodes.length ? `${dtcCodes.length} stored code(s) detected` : 'No stored trouble codes detected',
+          explanation: dtcCodes.length
+            ? 'Mode 03 requests stored emission-related Diagnostic Trouble Codes.'
+            : 'Mode 03 returned no active stored codes in the current response.'
+        };
+      }
+
+      if (cmd === '04') {
+        return {
+          type: 'generic',
+          meaning: 'Clear DTC request sent',
+          explanation: 'Mode 04 requests clearing stored trouble codes and emission-related freeze-frame data. Vehicle ignition and ECU conditions can affect the outcome.'
+        };
+      }
+
+      if (cmd === '010C') {
+        const bytes = getMode01DataBytes(cleaned, '41 0C');
+        if (bytes.length >= 2) {
+          const rpm = ((bytes[0] * 256) + bytes[1]) / 4;
+          return {
+            type: 'rpm',
+            value: `${rpm.toFixed(0)} rpm`,
+            numericValue: rpm,
+            meaning: `Engine RPM is ${rpm.toFixed(0)} rpm`,
+            explanation: 'Formula for PID 0C: ((A * 256) + B) / 4.'
+          };
+        }
+      }
+
+      if (cmd === '010D') {
+        const bytes = getMode01DataBytes(cleaned, '41 0D');
+        if (bytes.length >= 1) {
+          const speed = bytes[0];
+          return {
+            type: 'speed',
+            value: `${speed} km/h`,
+            numericValue: speed,
+            meaning: `Vehicle speed is ${speed} km/h`,
+            explanation: 'Formula for PID 0D: A, in km/h.'
+          };
+        }
+      }
+
+      if (cmd === '0105') {
+        const bytes = getMode01DataBytes(cleaned, '41 05');
+        if (bytes.length >= 1) {
+          const temp = bytes[0] - 40;
+          return {
+            type: 'coolant',
+            value: `${temp} °C`,
+            numericValue: temp,
+            meaning: `Coolant temperature is ${temp} °C`,
+            explanation: 'Formula for PID 05: A - 40.'
+          };
+        }
+      }
+
+      if (cmd === '012F') {
+        const bytes = getMode01DataBytes(cleaned, '41 2F');
+        if (bytes.length >= 1) {
+          const fuel = (bytes[0] * 100) / 255;
+          return {
+            type: 'fuel',
+            value: `${fuel.toFixed(1)} %`,
+            meaning: `Fuel level input is ${fuel.toFixed(1)} %`,
+            explanation: 'Formula for PID 2F: (100 / 255) * A.'
+          };
+        }
+      }
+
+      if (cmd === '0111') {
+        const bytes = getMode01DataBytes(cleaned, '41 11');
+        if (bytes.length >= 1) {
+          const throttle = (bytes[0] * 100) / 255;
+          return {
+            type: 'throttle',
+            value: `${throttle.toFixed(1)} %`,
+            meaning: `Throttle position is ${throttle.toFixed(1)} %`,
+            explanation: 'Formula for PID 11: (100 / 255) * A.'
+          };
+        }
+      }
+
+      return {
+        type: 'generic',
+        meaning: 'Raw response captured',
+        explanation: 'The command response was received but does not yet have a dedicated decoder in this page. You can still inspect the raw response in the terminal.'
+      };
+    }
+
+    function updateOverviewFromAnalysis(command, analysis) {
+      if (!analysis) return;
+      switch (analysis.type) {
+        case 'vin':
+          ui.vinValue.textContent = analysis.value || '—';
+          break;
+        case 'dtc':
+          ui.dtcCountValue.textContent = String((analysis.dtcCodes || []).length);
+          break;
+        case 'rpm':
+          ui.rpmValue.textContent = analysis.value || '—';
+          break;
+        case 'speed':
+          ui.speedValue.textContent = analysis.value || '—';
+          break;
+        case 'coolant':
+          ui.tempValue.textContent = analysis.value || '—';
+          break;
+        case 'voltage':
+          ui.voltageValue.textContent = analysis.value || '—';
+          break;
+      }
+    }
+
+    function renderAnalysisRow(command, rawResponse, analysis, forceAppend = false) {
+      const tbody = ui.analysisTableBody;
+      const noDataCell = tbody.querySelector('td[colspan="4"]');
+      if (noDataCell) tbody.innerHTML = '';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code>${escapeHtml(command)}</code></td>
+        <td><code>${escapeHtml(rawResponse || '—')}</code></td>
+        <td>${escapeHtml(analysis.meaning || '—')}</td>
+        <td>${escapeHtml(analysis.explanation || '—')}</td>
+      `;
+
+      if (!forceAppend && tbody.children.length > 18) {
+        tbody.removeChild(tbody.lastChild);
+      }
+      tbody.prepend(tr);
+    }
+
+    function renderDtcList(codes) {
+      if (!codes.length) {
+        ui.dtcContainer.className = 'empty';
+        ui.dtcContainer.textContent = 'No stored trouble codes detected.';
+        return;
+      }
+
+      ui.dtcContainer.className = '';
+      ui.dtcContainer.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>DTC</th>
+                <th>Likely Meaning</th>
+                <th>Explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${codes.map(code => {
+                const info = explainDTC(code);
+                return `
+                  <tr>
+                    <td><strong>${escapeHtml(code)}</strong></td>
+                    <td>${escapeHtml(info.title)}</td>
+                    <td>${escapeHtml(info.explanation)}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function decodeVin(response) {
+      const cleaned = response
+        .replace(/SEARCHING\.{0,3}/gi, ' ')
+        .replace(/NO DATA/gi, ' ')
+        .replace(/[^0-9A-F ]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const bytes = cleaned.split(' ').filter(Boolean);
+      let vinHex = [];
+
+      for (let i = 0; i < bytes.length - 2; i++) {
+        if (bytes[i] === '49' && bytes[i + 1] === '02') {
+          for (let j = i + 3; j < bytes.length; j++) {
+            vinHex.push(bytes[j]);
+          }
+        }
+      }
+
+      const vin = vinHex
+        .map(h => parseInt(h, 16))
+        .filter(n => Number.isFinite(n) && n >= 32 && n <= 126)
+        .map(n => String.fromCharCode(n))
+        .join('')
+        .replace(/[^A-Z0-9]/gi, '');
+
+      return vin.length >= 11 ? vin : '';
+    }
+
+    function decodeDTCs(response) {
+      const cleaned = response
+        .replace(/SEARCHING\.{0,3}/gi, ' ')
+        .replace(/NO DATA/gi, ' ')
+        .replace(/[^0-9A-F ]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const bytes = cleaned.split(' ').filter(Boolean);
+      const result = [];
+      let start = bytes.findIndex((b, i) => b === '43');
+      if (start === -1) return result;
+
+      const payload = bytes.slice(start + 1);
+      for (let i = 0; i < payload.length; i += 2) {
+        const a = payload[i];
+        const b = payload[i + 1];
+        if (!a || !b) break;
+        if (a === '00' && b === '00') continue;
+        result.push(bytesToDTC(a, b));
+      }
+      return result;
+    }
+
+    function bytesToDTC(aHex, bHex) {
+      const a = parseInt(aHex, 16);
+      const b = parseInt(bHex, 16);
+      const systemMap = ['P', 'C', 'B', 'U'];
+      const system = systemMap[(a & 0xC0) >> 6];
+      const d1 = (a & 0x30) >> 4;
+      const d2 = a & 0x0F;
+      const d3 = (b & 0xF0) >> 4;
+      const d4 = b & 0x0F;
+      return `${system}${d1}${d2}${d3}${d4}`;
+    }
+
+    function explainDTC(code) {
+      const known = {
+        'P0100': {
+          title: 'Mass or Volume Air Flow Circuit Malfunction',
+          explanation: 'The ECU detected an abnormal signal in the MAF sensor circuit.'
+        },
+        'P0110': {
+          title: 'Intake Air Temperature Circuit Malfunction',
+          explanation: 'The intake air temperature signal is outside expected operating range.'
+        },
+        'P0128': {
+          title: 'Coolant Thermostat Below Regulating Temperature',
+          explanation: 'Engine warm-up is slower than expected, often linked to thermostat performance.'
+        },
+        'P0300': {
+          title: 'Random / Multiple Cylinder Misfire Detected',
+          explanation: 'Misfires were detected across multiple cylinders or without a single-cylinder pattern.'
+        },
+        'P0420': {
+          title: 'Catalyst System Efficiency Below Threshold',
+          explanation: 'Catalyst efficiency appears lower than expected, commonly flagged by oxygen sensor comparison.'
+        },
+        'P0442': {
+          title: 'EVAP System Small Leak Detected',
+          explanation: 'A small leak was detected in the evaporative emissions system.'
+        },
+        'P0500': {
+          title: 'Vehicle Speed Sensor Malfunction',
+          explanation: 'The ECU is receiving an implausible or missing vehicle speed signal.'
+        }
+      };
+
+      if (known[code]) return known[code];
+
+      const domainMap = {
+        P: 'Powertrain',
+        C: 'Chassis',
+        B: 'Body',
+        U: 'Network'
+      };
+      const domain = domainMap[code[0]] || 'Unknown domain';
+      const generic = code[1] === '0' ? 'generic SAE code' : 'manufacturer-specific code';
+      return {
+        title: `${domain} fault (${generic})`,
+        explanation: `This code belongs to the ${domain.toLowerCase()} family. For exact service action, check the service manual for ${code}, because many codes beyond the generic set are manufacturer-specific.`
+      };
+    }
+
+    function getMode01DataBytes(response, header) {
+      const cleaned = response
+        .replace(/SEARCHING\.{0,3}/gi, ' ')
+        .replace(/[^0-9A-F ]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const bytes = cleaned.split(' ').filter(Boolean);
+      const headerBytes = header.split(' ');
+      const foundAt = bytes.findIndex((b, i) => b === headerBytes[0] && bytes[i + 1] === headerBytes[1]);
+      if (foundAt === -1) return [];
+      return bytes.slice(foundAt + 2).map(h => parseInt(h, 16)).filter(n => Number.isFinite(n));
+    }
+
+    function sanitizeElmResponse(raw) {
+      return raw
+        .replace(/>/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function normalizeCmd(cmd) {
+      return String(cmd || '').trim().toUpperCase().replace(/\s+/g, '');
+    }
+
+    function formatPortInfo(info) {
+      const parts = [];
+      if (info.usbVendorId) parts.push(`VID:${info.usbVendorId}`);
+      if (info.usbProductId) parts.push(`PID:${info.usbProductId}`);
+      if (info.bluetoothServiceClassId) parts.push(`BT:${info.bluetoothServiceClassId}`);
+      return parts.length ? `(${parts.join(', ')})` : '(serial device)';
+    }
+
+    function log(type, text) {
+      const map = {
+        info: 'log-info',
+        tx: 'log-tx',
+        rx: 'log-rx',
+        warn: 'log-warn',
+        error: 'log-error'
+      };
+      const time = new Date().toLocaleTimeString();
+      const entry = `[${time}] ${text}`;
+      state.logLines.push(entry);
+      const line = document.createElement('div');
+      line.className = map[type] || 'log-info';
+      line.textContent = entry;
+      ui.terminal.appendChild(line);
+      ui.terminal.scrollTop = ui.terminal.scrollHeight;
+    }
+
+    function saveLogToFile() {
+      const blob = new Blob([state.logLines.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'obd2-session-log.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBD-II Debug Tool</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  margin: 0;
+  padding: 20px;
+}
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+}
+input {
+  background: #0f172a;
+  color: #fff;
+  border: 1px solid #334155;
+}
+button {
+  background: #38bdf8;
+  color: black;
+  cursor: pointer;
+}
+button:hover {
+  background: #0ea5e9;
+}
+.result {
+  margin-top: 15px;
+  padding: 15px;
+  background: #020617;
+  border-radius: 8px;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🚗 OBD-II Debug Tool</h1>
+
+<div class="card">
+<h2>Enter Raw OBD Response</h2>
+<input id="inputData" placeholder="Example: 41 0C 1A F8 or 43 01 C0 09">
+<button onclick="decode()">Decode</button>
+<div id="output" class="result"></div>
+</div>
+
+<div class="card">
+<h2>Quick Commands</h2>
+<ul>
+<li>010C → Engine RPM</li>
+<li>010D → Vehicle Speed</li>
+<li>0105 → Coolant Temperature</li>
+<li>03 → Read Trouble Codes</li>
+<li>04 → Clear Trouble Codes</li>
+</ul>
+</div>
+</div>
+
+<script>
+function hexToInt(h) {
+  return parseInt(h, 16);
+}
+
+function decodeDTC(bytes) {
+  let b1 = hexToInt(bytes[0]);
+  let b2 = hexToInt(bytes[1]);
+
+  let type = ['P','C','B','U'][(b1 & 0xC0) >> 6];
+  let d1 = (b1 & 0x30) >> 4;
+  let d2 = (b1 & 0x0F);
+  let d3 = (b2 & 0xF0) >> 4;
+  let d4 = (b2 & 0x0F);
+
+  return `${type}${d1}${d2}${d3}${d4}`;
+}
+
+function decode() {
+  let input = document.getElementById("inputData").value.trim();
+  let out = document.getElementById("output");
+
+  if (!input) {
+    out.innerText = "Enter data first";
+    return;
+  }
+
+  let data = input.split(/\s+/);
+
+  let result = "";
+
+  if (data[0] === '41') {
+    let pid = data[1];
+
+    if (pid === '0C') {
+      let A = hexToInt(data[2]);
+      let B = hexToInt(data[3]);
+      let rpm = ((A * 256) + B) / 4;
+      result += `Mode: 01 (Live Data)\nPID: 0C (RPM)\nRPM: ${rpm}`;
+    }
+    else if (pid === '0D') {
+      let speed = hexToInt(data[2]);
+      result += `Mode: 01\nPID: 0D (Speed)\nSpeed: ${speed} km/h`;
+    }
+    else if (pid === '05') {
+      let temp = hexToInt(data[2]) - 40;
+      result += `Mode: 01\nPID: 05 (Coolant Temp)\nTemp: ${temp} °C`;
+    }
+    else {
+      result += "Unknown PID";
+    }
+  }
+  else if (data[0] === '43') {
+    result += "Mode: 03 (DTC Read)\n";
+
+    if (data[1] === '00') {
+      result += "No Trouble Codes";
+    } else {
+      for (let i = 1; i < data.length; i += 2) {
+        if (data[i+1]) {
+          let code = decodeDTC([data[i], data[i+1]]);
+          result += `DTC: ${code}\n`;
+        }
+      }
+    }
+  }
+  else if (data[0] === '7F') {
+    let mode = data[1];
+    let err = data[2];
+
+    let errors = {
+      '10': 'General Reject',
+      '11': 'Service Not Supported',
+      '12': 'Subfunction Invalid',
+      '20': 'Conditions Not Correct',
+      '22': 'Conditions Not Correct / Sequence Error'
+    };
+
+    result += `Negative Response\nMode: ${mode}\nError: ${err} (${errors[err] || 'Unknown'})`;
+  }
+  else {
+    result += "Unknown Response Format";
+  }
+
+  out.innerText = result;
+}
+</script>
+</body>
+</html>

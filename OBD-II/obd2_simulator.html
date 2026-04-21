@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OBD-II Simulator</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2b;
+      --panel-2: #162238;
+      --border: #26354f;
+      --text: #e8eefc;
+      --muted: #9fb0d1;
+      --accent: #4f8cff;
+      --accent-2: #72e0a8;
+      --danger: #ff6b6b;
+      --shadow: 0 12px 32px rgba(0,0,0,.25);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--sans);
+      background: linear-gradient(180deg, #08101d 0%, #0d1627 100%);
+      color: var(--text);
+    }
+
+    body { padding: 14px; }
+
+    .container {
+      width: 100%;
+      height: calc(100vh - 28px);
+      max-width: 1450px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      min-height: 60px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(18px, 1.6vw, 24px);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: clamp(10px, 0.85vw, 13px);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(114,224,168,.08);
+      border: 1px solid rgba(114,224,168,.22);
+      border-radius: 999px;
+      color: #c9f7dd;
+      font-size: clamp(10px, 0.85vw, 13px);
+      min-height: 40px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 6px rgba(114,224,168,.12);
+    }
+
+    .app-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 330px 420px 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 1200px) {
+      html, body { overflow: auto; }
+      .container {
+        height: auto;
+        min-height: calc(100vh - 28px);
+      }
+      .app-grid { grid-template-columns: 1fr; }
+      .column { min-height: 320px; }
+      .card { max-height: 70vh; }
+    }
+
+    @media (max-height: 820px) {
+      .container {
+        height: calc(100vh - 20px);
+      }
+      .app-grid {
+        grid-template-columns: 300px 390px 1fr;
+        gap: 12px;
+      }
+      .card-header {
+        padding: 12px 14px 8px;
+      }
+      .card-body {
+        padding: 12px 14px 14px;
+      }
+      .terminal {
+        min-height: 220px;
+      }
+      .decoded-live {
+        min-height: 180px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      button {
+        white-space: normal;
+        text-overflow: clip;
+        line-height: 1.1;
+        padding: 4px 8px;
+      }
+      .button-row.three,
+      .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .column {
+      min-height: 0;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      flex: 0 0 auto;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: clamp(13px, 1vw, 16px);
+    }
+
+    .card-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: clamp(10px, 0.78vw, 12px);
+      line-height: 1.4;
+    }
+
+    .card-body {
+      padding: 14px 16px 16px;
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #3b5279 #0f1728;
+    }
+
+    .card-body::-webkit-scrollbar,
+    .terminal::-webkit-scrollbar,
+    .dtc-selected-list::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .card-body::-webkit-scrollbar-track,
+    .terminal::-webkit-scrollbar-track,
+    .dtc-selected-list::-webkit-scrollbar-track {
+      background: #0f1728;
+      border-radius: 999px;
+    }
+
+    .card-body::-webkit-scrollbar-thumb,
+    .terminal::-webkit-scrollbar-thumb,
+    .dtc-selected-list::-webkit-scrollbar-thumb {
+      background: #3b5279;
+      border-radius: 999px;
+      border: 2px solid #0f1728;
+    }
+
+    select, input, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    select, input {
+      height: clamp(34px, 2.4vw, 40px);
+      padding: 0 12px;
+      font-size: clamp(10px, 0.82vw, 13px);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(79,140,255,.12);
+    }
+
+    button {
+      min-height: clamp(34px, 2.4vw, 40px);
+      height: auto;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: clamp(9px, 0.8vw, 13px);
+      line-height: 1.15;
+      transition: .2s ease;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .button-row.three { grid-template-columns: repeat(3, 1fr); }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #5a95ff 0%, #3f7ff6 100%);
+      border-color: #4a86f7;
+    }
+
+    .btn-secondary { background: #1a2740; }
+
+    .btn-success {
+      background: rgba(114,224,168,.12);
+      border-color: rgba(114,224,168,.25);
+      color: #d3f7e3;
+    }
+
+    .btn-danger {
+      background: rgba(255,107,107,.1);
+      border-color: rgba(255,107,107,.25);
+      color: #ffd1d1;
+    }
+
+    .mini-note {
+      font-size: clamp(9px, 0.72vw, 11px);
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+
+    .field { margin-bottom: 12px; }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: clamp(10px, 0.78vw, 12px);
+      color: var(--muted);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .quick-actions button {
+      font-size: clamp(9px, 0.76vw, 12px);
+    }
+
+    .edit-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .vehicle-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .stat-box .label {
+      color: var(--muted);
+      font-size: clamp(9px, 0.72vw, 11px);
+      margin-bottom: 4px;
+    }
+
+    .stat-box .value {
+      font-size: clamp(12px, 1vw, 16px);
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .dtc-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: end;
+      margin-top: 16px;
+      margin-bottom: 10px;
+    }
+
+    .dtc-selected-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 90px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .dtc-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: clamp(9px, 0.76vw, 12px);
+      max-width: 100%;
+      cursor: help;
+    }
+
+    .dtc-chip .remove {
+      border: none;
+      background: transparent;
+      color: #ffb3b3;
+      width: auto;
+      min-height: auto;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .terminal {
+      background: #07101c;
+      border: 1px solid #1c2b43;
+      border-radius: 14px;
+      height: 100%;
+      min-height: 270px;
+      overflow: auto;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: clamp(10px, 0.78vw, 12px);
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      scrollbar-width: thin;
+      scrollbar-color: #3b5279 #07101c;
+    }
+
+    .line { margin-bottom: 6px; }
+    .line.rx { color: #8ad4ff; }
+    .line.tx { color: #ffd27a; }
+    .line.info { color: #b7c7e8; }
+    .line.error { color: #ff9f9f; }
+
+    .decoded-live {
+      height: 100%;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .decoded-live h3 {
+      margin: 0 0 10px;
+      font-size: clamp(13px, 1vw, 16px);
+    }
+
+    .decoded-meta {
+      color: var(--muted);
+      font-size: clamp(10px, 0.78vw, 12px);
+      margin-bottom: 10px;
+      font-family: var(--mono);
+      line-height: 1.5;
+    }
+
+    .decoded-value {
+      font-size: clamp(18px, 1.8vw, 28px);
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .decoded-desc {
+      color: #d8e2f8;
+      font-size: clamp(11px, 0.9vw, 14px);
+      line-height: 1.55;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: clamp(9px, 0.72vw, 11px);
+      line-height: 1.45;
+    }
+
+    code.inline {
+      font-family: var(--mono);
+      background: rgba(255,255,255,.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">
+        <h1>OBD-II Protocol Simulator</h1>
+        <p>Send commands to a simulated car or bike ECU and inspect live protocol responses.</p>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span>Simulation Ready</span>
+      </div>
+    </div>
+
+    <div class="app-grid">
+      <div class="column">
+        <div class="card">
+          <div class="card-header">
+            <h2>Simulator Setup</h2>
+            <p>Select a vehicle profile and active protocol.</p>
+          </div>
+          <div class="card-body">
+            <div class="field">
+              <label for="vehicleType">Vehicle Type</label>
+              <select id="vehicleType">
+                <option value="car">Car</option>
+                <option value="bike">Bike</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="vehicleProfile">Vehicle Profile</label>
+              <select id="vehicleProfile"></select>
+            </div>
+
+            <div class="field">
+              <label for="protocolMode">OBD-II Protocol</label>
+              <select id="protocolMode">
+                <option value="AUTO">Automatic</option>
+                <option value="ISO9141-2">ISO 9141-2</option>
+                <option value="KWP2000">ISO 14230-4 KWP2000</option>
+                <option value="CAN11-500">ISO 15765-4 CAN (11 bit ID, 500 kbps)</option>
+                <option value="CAN29-500">ISO 15765-4 CAN (29 bit ID, 500 kbps)</option>
+              </select>
+            </div>
+
+            <div class="button-row">
+              <button id="loadProfileBtn" class="btn-primary">Load Profile</button>
+              <button id="randomizeBtn" class="btn-secondary">Randomize</button>
+            </div>
+
+            <div class="button-row">
+              <button id="toggleIgnitionBtn" class="btn-success">Ignition ON</button>
+              <button id="toggleEngineBtn" class="btn-danger">Engine OFF</button>
+            </div>
+
+            <div class="vehicle-stats" id="vehicleStats"></div>
+
+            <div class="mini-note">
+              Quick training commands: <code class="inline">ATZ</code>, <code class="inline">ATI</code>, <code class="inline">ATDP</code>, <code class="inline">010C</code>, <code class="inline">010D</code>, <code class="inline">0105</code>, <code class="inline">03</code>, <code class="inline">0902</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="card">
+          <div class="card-header">
+            <h2>Editable Vehicle Data</h2>
+            <p>Update simulator values manually. OBD replies will use these current settings.</p>
+          </div>
+          <div class="card-body">
+            <div class="edit-grid">
+              <div class="field">
+                <label for="editProtocol">Protocol</label>
+                <select id="editProtocol">
+                  <option value="AUTO">Automatic</option>
+                  <option value="ISO9141-2">ISO 9141-2</option>
+                  <option value="KWP2000">KWP2000</option>
+                  <option value="CAN11-500">CAN11-500</option>
+                  <option value="CAN29-500">CAN29-500</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="editFuel">Fuel</label>
+                <select id="editFuel">
+                  <option value="Petrol">Petrol</option>
+                  <option value="Diesel">Diesel</option>
+                  <option value="CNG">CNG</option>
+                  <option value="Electric">Electric</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="editRpm">RPM</label>
+                <input id="editRpm" type="number" min="0" max="12000" step="1" />
+              </div>
+              <div class="field">
+                <label for="editSpeed">Speed (km/h)</label>
+                <input id="editSpeed" type="number" min="0" max="300" step="1" />
+              </div>
+              <div class="field">
+                <label for="editCoolant">Coolant (°C)</label>
+                <input id="editCoolant" type="number" min="-40" max="215" step="1" />
+              </div>
+              <div class="field">
+                <label for="editBattery">Battery (V)</label>
+                <input id="editBattery" type="number" min="0" max="24" step="0.1" />
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button id="applyDataBtn" class="btn-primary">Apply Changes</button>
+              <button id="syncDataBtn" class="btn-secondary">Sync Current</button>
+            </div>
+
+            <div class="card-header" style="padding-left:0;padding-right:0;padding-top:16px;border-bottom:none;">
+              <h2>DTC Error Codes</h2>
+              <p>Select fault codes to simulate. Hover a selected code to see its explanation.</p>
+            </div>
+
+            <div class="dtc-toolbar">
+              <div class="field" style="margin-bottom:0;">
+                <label for="dtcSelect">Select Error Code</label>
+                <select id="dtcSelect"></select>
+              </div>
+              <button id="addDtcBtn" class="btn-primary">Add Code</button>
+              <button id="clearDtcsBtn" class="btn-secondary">Clear All</button>
+            </div>
+
+            <div id="selectedDtcs" class="dtc-selected-list"></div>
+
+            <div class="card-header" style="padding-left:0;padding-right:0;padding-top:16px;border-bottom:none;">
+              <h2>Command Console</h2>
+              <p>Send commands to the simulator.</p>
+            </div>
+
+            <div class="field">
+              <label for="commandInput">Command</label>
+              <input id="commandInput" type="text" placeholder="Example: 010C" value="010C" />
+            </div>
+
+            <div class="quick-actions">
+              <button data-cmd="ATZ" class="btn-secondary">ATZ</button>
+              <button data-cmd="ATI" class="btn-secondary">ATI</button>
+              <button data-cmd="010C" class="btn-secondary">RPM</button>
+              <button data-cmd="010D" class="btn-secondary">Speed</button>
+              <button data-cmd="0105" class="btn-secondary">Coolant</button>
+              <button data-cmd="010B" class="btn-secondary">MAP</button>
+              <button data-cmd="0142" class="btn-secondary">Bat V</button>
+              <button data-cmd="03" class="btn-secondary">DTCs</button>
+              <button data-cmd="0902" class="btn-secondary">VIN</button>
+            </div>
+
+            <div class="button-row three">
+              <button id="sendBtn" class="btn-success">Send</button>
+              <button id="clearTerminalBtn" class="btn-secondary">Clear Terminal</button>
+              <button id="clearDecodedBtn" class="btn-secondary">Clear Result</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="card" style="flex:1.2;">
+          <div class="card-header">
+            <h2>Terminal</h2>
+            <p>Raw adapter and ECU communication.</p>
+          </div>
+          <div class="card-body">
+            <div id="terminal" class="terminal"></div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:0.9;">
+          <div class="card-header">
+            <h2>Decoded Result</h2>
+            <p>Shows only the current response, not previous ones.</p>
+          </div>
+          <div class="card-body">
+            <div id="decodedResults" class="decoded-live">
+              <h3>Waiting for Command</h3>
+              <div class="decoded-meta">Command: - | Raw: -</div>
+              <div class="decoded-value">No data yet</div>
+              <div class="decoded-desc">Send a command to the simulator to see the latest decoded output here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      This simulator is designed for learning typical ELM327 and OBD-II behavior. All major panels now support independent scrolling, and the layout adjusts more smoothly to different screen sizes.
+    </div>
+  </div>
+
+  <script>
+    const dtcLibrary = {
+      P0100: 'Mass or Volume Air Flow Circuit Malfunction.',
+      P0101: 'Mass or Volume Air Flow Circuit Range or Performance Problem.',
+      P0102: 'Mass or Volume Air Flow Circuit Low Input.',
+      P0103: 'Mass or Volume Air Flow Circuit High Input.',
+      P0115: 'Engine Coolant Temperature Circuit Malfunction.',
+      P0117: 'Engine coolant temperature circuit low input.',
+      P0120: 'Throttle/Pedal Position Sensor/Switch A Circuit Malfunction.',
+      P0122: 'Throttle/Pedal Position Sensor/Switch A Circuit Low Input.',
+      P0130: 'O2 Sensor Circuit Malfunction Bank 1 Sensor 1.',
+      P0171: 'System Too Lean on bank 1. The engine may be getting too much air or too little fuel.',
+      P0201: 'Injector Circuit Malfunction Cylinder 1.',
+      P0300: 'Random or multiple cylinder misfire detected.',
+      P0301: 'Cylinder 1 misfire detected.',
+      P0335: 'Crankshaft Position Sensor A Circuit Malfunction.',
+      P0401: 'Exhaust Gas Recirculation Flow Insufficient Detected.',
+      P0420: 'Catalyst system efficiency below threshold on bank 1.',
+      P0442: 'Evaporative emission control system leak detected, small leak.',
+      P0455: 'Evaporative Emission Control System Leak Detected, gross leak.',
+      P0500: 'Vehicle speed sensor malfunction.',
+      P0562: 'System voltage low.',
+      P0700: 'Transmission Control System Malfunction.',
+      P2453: 'Diesel particulate filter pressure sensor A circuit range or performance.',
+
+      B0020: 'Driver frontal deployment loop stage 2 resistance above threshold.',
+      B0028: 'Right side airbag deployment control circuit.',
+      B0092: 'Passenger presence system fault.',
+      B1000: 'Electronic Control Unit malfunction.',
+      B1001: 'Option configuration error.',
+      B1015: 'Driver deployment loop short to battery.',
+      B1020: 'Passenger deployment loop open.',
+      B1101: 'Internal defect in instrument cluster module.',
+      B1201: 'Fuel sender circuit fault.',
+      B1231: 'Theft deterrent system activation fault.',
+      B1318: 'Battery voltage low at body control module.',
+      B1325: 'Control module power circuit low voltage.',
+      B1342: 'ECU is defective or memory fault detected.',
+      B1402: 'Seat belt buckle switch circuit fault.',
+      B1421: 'Wiper motor park switch circuit failure.',
+      B1600: 'PATS ignition key transponder signal missing.',
+      B1676: 'Battery pack voltage out of range.',
+      B1801: 'Driver seat occupant classification sensor fault.',
+      B1932: 'Airbag diagnostic monitor internal fault.',
+      B2103: 'Front wiper motor relay circuit short to ground.',
+
+      C0035: 'Left front wheel speed sensor circuit malfunction.',
+      C0040: 'Right front wheel speed sensor circuit malfunction.',
+      C0045: 'Left rear wheel speed sensor circuit malfunction.',
+      C0050: 'Right rear wheel speed sensor circuit malfunction.',
+      C0110: 'Pump motor circuit malfunction in ABS module.',
+      C0131: 'ABS pressure circuit failure.',
+      C0161: 'ABS or traction control brake switch circuit malfunction.',
+      C0186: 'Lateral accelerometer circuit fault.',
+      C0200: 'Right front wheel speed signal missing or erratic.',
+      C0244: 'Traction control system request signal fault.',
+      C0281: 'Brake switch circuit stability system fault.',
+      C0299: 'Brake booster performance problem.',
+      C0300: 'Rear propeller shaft speed sensor malfunction.',
+      C0460: 'Steering position sensor malfunction.',
+      C0545: 'Steering wheel angle sensor not initialized.',
+      C0561: 'System disabled information stored.',
+      C0800: 'Control module power circuit low voltage.',
+      C0899: 'Device voltage low.',
+      C1110: 'Pump motor battery voltage low.',
+      C1234: 'Wheel speed sensor erratic performance.',
+
+      U0001: 'High speed CAN communication bus.',
+      U0010: 'Medium speed CAN communication bus.',
+      U0073: 'Control module communication bus off.',
+      U0100: 'Lost communication with ECM or PCM A.',
+      U0101: 'Lost communication with TCM.',
+      U0121: 'Lost communication with anti-lock brake system control module.',
+      U0140: 'Lost communication with body control module.',
+      U0151: 'Lost communication with restraints control module.',
+      U0164: 'Lost communication with HVAC control module.',
+      U0184: 'Lost communication with radio.',
+      U0212: 'Lost communication with steering column control module.',
+      U0235: 'Lost communication with cruise control front distance range sensor.',
+      U0401: 'Invalid data received from ECM or PCM.',
+      U0415: 'Invalid data received from anti-lock brake system control module.',
+      U0422: 'Invalid data received from body control module.',
+      U1000: 'Class 2 communication malfunction.',
+      U1016: 'Loss of communications with PCM.',
+      U1100: 'SCP communication bus fault.',
+      U1110: 'Vehicle speed data invalid or missing.',
+      U1900: 'CAN communication bus fault receive error.'
+    };
+
+    const vehicleProfiles = {
+      car: [
+        {
+          id: 'petrol_hatchback',
+          name: 'Petrol Hatchback 1.2L',
+          protocol: 'CAN11-500',
+          vin: 'MA1AB2CD3EF456789',
+          ecuName: 'SIM ECU CAR-01',
+          fuelType: 'Petrol',
+          coolant: 88,
+          speed: 0,
+          rpm: 0,
+          throttle: 12,
+          map: 32,
+          intakeTemp: 31,
+          battery: 12.4,
+          dtcs: ['P0301', 'P0420']
+        },
+        {
+          id: 'diesel_suv',
+          name: 'Diesel SUV 2.0L',
+          protocol: 'CAN29-500',
+          vin: 'MB8SUV20DIE123456',
+          ecuName: 'SIM ECU SUV-02',
+          fuelType: 'Diesel',
+          coolant: 84,
+          speed: 0,
+          rpm: 0,
+          throttle: 10,
+          map: 40,
+          intakeTemp: 29,
+          battery: 12.6,
+          dtcs: ['P2453']
+        }
+      ],
+      bike: [
+        {
+          id: 'sport_bike_150',
+          name: 'Bike 150cc FI',
+          protocol: 'ISO9141-2',
+          vin: 'BIKE150FI20260001',
+          ecuName: 'SIM ECU BIKE-150',
+          fuelType: 'Petrol',
+          coolant: 76,
+          speed: 0,
+          rpm: 0,
+          throttle: 8,
+          map: 28,
+          intakeTemp: 33,
+          battery: 12.3,
+          dtcs: ['P0122']
+        },
+        {
+          id: 'touring_bike_350',
+          name: 'Bike 350cc Touring',
+          protocol: 'KWP2000',
+          vin: 'BIKE350TR20260002',
+          ecuName: 'SIM ECU BIKE-350',
+          fuelType: 'Petrol',
+          coolant: 82,
+          speed: 0,
+          rpm: 0,
+          throttle: 7,
+          map: 30,
+          intakeTemp: 30,
+          battery: 12.5,
+          dtcs: []
+        }
+      ]
+    };
+
+    let sim = {
+      ignitionOn: true,
+      engineOn: false,
+      profile: structuredClone(vehicleProfiles.car[0]),
+      selectedProtocol: 'AUTO',
+      echo: true,
+      linefeeds: false,
+      spaces: true,
+      headers: false,
+      lastCommand: null
+    };
+
+    const vehicleType = document.getElementById('vehicleType');
+    const vehicleProfile = document.getElementById('vehicleProfile');
+    const protocolMode = document.getElementById('protocolMode');
+    const loadProfileBtn = document.getElementById('loadProfileBtn');
+    const randomizeBtn = document.getElementById('randomizeBtn');
+    const toggleIgnitionBtn = document.getElementById('toggleIgnitionBtn');
+    const toggleEngineBtn = document.getElementById('toggleEngineBtn');
+    const vehicleStats = document.getElementById('vehicleStats');
+    const editProtocol = document.getElementById('editProtocol');
+    const editFuel = document.getElementById('editFuel');
+    const editRpm = document.getElementById('editRpm');
+    const editSpeed = document.getElementById('editSpeed');
+    const editCoolant = document.getElementById('editCoolant');
+    const editBattery = document.getElementById('editBattery');
+    const applyDataBtn = document.getElementById('applyDataBtn');
+    const syncDataBtn = document.getElementById('syncDataBtn');
+    const commandInput = document.getElementById('commandInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearTerminalBtn = document.getElementById('clearTerminalBtn');
+    const clearDecodedBtn = document.getElementById('clearDecodedBtn');
+    const terminal = document.getElementById('terminal');
+    const decodedResults = document.getElementById('decodedResults');
+    const dtcSelect = document.getElementById('dtcSelect');
+    const addDtcBtn = document.getElementById('addDtcBtn');
+    const clearDtcsBtn = document.getElementById('clearDtcsBtn');
+    const selectedDtcs = document.getElementById('selectedDtcs');
+
+    function appendTerminal(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `line ${type}`;
+      line.textContent = message;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function hexByte(n) {
+      return Math.max(0, Math.min(255, Math.round(n))).toString(16).toUpperCase().padStart(2, '0');
+    }
+
+    function populateProfiles() {
+      const list = vehicleProfiles[vehicleType.value];
+      vehicleProfile.innerHTML = '';
+      list.forEach((profile, index) => {
+        const opt = document.createElement('option');
+        opt.value = profile.id;
+        opt.textContent = profile.name;
+        if (index === 0) opt.selected = true;
+        vehicleProfile.appendChild(opt);
+      });
+    }
+
+    function getActiveProtocol() {
+      return sim.selectedProtocol === 'AUTO' ? sim.profile.protocol : sim.selectedProtocol;
+    }
+
+    function renderStats() {
+      const p = sim.profile;
+      vehicleStats.innerHTML = `
+        <div class="stat-box"><div class="label">Protocol</div><div class="value">${escapeHtml(getActiveProtocol())}</div></div>
+        <div class="stat-box"><div class="label">Fuel</div><div class="value">${escapeHtml(p.fuelType)}</div></div>
+        <div class="stat-box"><div class="label">RPM</div><div class="value">${escapeHtml(p.rpm)}</div></div>
+        <div class="stat-box"><div class="label">Speed</div><div class="value">${escapeHtml(p.speed)} km/h</div></div>
+        <div class="stat-box"><div class="label">Coolant</div><div class="value">${escapeHtml(p.coolant)} °C</div></div>
+        <div class="stat-box"><div class="label">Battery</div><div class="value">${escapeHtml(Number(p.battery).toFixed(1))} V</div></div>
+      `;
+      toggleIgnitionBtn.textContent = sim.ignitionOn ? 'Ignition ON' : 'Ignition OFF';
+      toggleIgnitionBtn.className = sim.ignitionOn ? 'btn-success' : 'btn-danger';
+      toggleEngineBtn.textContent = sim.engineOn ? 'Engine ON' : 'Engine OFF';
+      toggleEngineBtn.className = sim.engineOn ? 'btn-success' : 'btn-danger';
+    }
+
+    function populateDtcSelect() {
+      dtcSelect.innerHTML = '';
+      Object.keys(dtcLibrary).forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = `${code} - ${dtcLibrary[code]}`;
+        dtcSelect.appendChild(opt);
+      });
+    }
+
+    function renderSelectedDtcs() {
+      if (!sim.profile.dtcs.length) {
+        selectedDtcs.innerHTML = '<div class="mini-note">No error codes selected.</div>';
+        return;
+      }
+      selectedDtcs.innerHTML = sim.profile.dtcs.map(code => `
+        <div class="dtc-chip" title="${escapeHtml(dtcLibrary[code] || 'No explanation available.')}">
+          <span>${escapeHtml(code)}</span>
+          <button class="remove" data-remove-dtc="${escapeHtml(code)}" title="Remove ${escapeHtml(code)}">×</button>
+        </div>
+      `).join('');
+
+      selectedDtcs.querySelectorAll('[data-remove-dtc]').forEach(btn => {
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const code = btn.getAttribute('data-remove-dtc');
+          sim.profile.dtcs = sim.profile.dtcs.filter(item => item !== code);
+          renderSelectedDtcs();
+          appendTerminal(`[INFO] Removed DTC ${code}.`, 'info');
+        });
+      });
+    }
+
+    function syncEditorsFromProfile() {
+      editProtocol.value = sim.selectedProtocol;
+      editFuel.value = sim.profile.fuelType;
+      editRpm.value = sim.profile.rpm;
+      editSpeed.value = sim.profile.speed;
+      editCoolant.value = sim.profile.coolant;
+      editBattery.value = Number(sim.profile.battery).toFixed(1);
+    }
+
+    function applyEditorsToProfile() {
+      sim.selectedProtocol = editProtocol.value;
+      protocolMode.value = editProtocol.value;
+      sim.profile.fuelType = editFuel.value;
+      sim.profile.rpm = Math.max(0, Number(editRpm.value || 0));
+      sim.profile.speed = Math.max(0, Number(editSpeed.value || 0));
+      sim.profile.coolant = Number(editCoolant.value || 0);
+      sim.profile.battery = Number(editBattery.value || 0);
+      if (sim.profile.rpm > 0 && sim.ignitionOn) sim.engineOn = true;
+      if (sim.profile.rpm === 0) sim.engineOn = false;
+      renderStats();
+      renderSelectedDtcs();
+      appendTerminal('[INFO] Simulator values updated by user.', 'info');
+    }
+
+    function loadSelectedProfile() {
+      const list = vehicleProfiles[vehicleType.value];
+      const found = list.find(item => item.id === vehicleProfile.value) || list[0];
+      sim.profile = structuredClone(found);
+      sim.selectedProtocol = protocolMode.value;
+      sim.ignitionOn = true;
+      sim.engineOn = false;
+      sim.echo = true;
+      sim.linefeeds = false;
+      sim.spaces = true;
+      sim.headers = false;
+      renderStats();
+      syncEditorsFromProfile();
+      renderSelectedDtcs();
+      appendTerminal(`[INFO] Loaded profile: ${sim.profile.name}`, 'info');
+      appendTerminal(`[INFO] Active protocol: ${getActiveProtocol()}`, 'info');
+    }
+
+    function randomizeLiveData() {
+      const p = sim.profile;
+      if (sim.engineOn) {
+        p.rpm = Math.max(780, Math.round(850 + Math.random() * 2800));
+        p.speed = Math.round(Math.random() * (vehicleType.value === 'bike' ? 110 : 140));
+        p.throttle = Math.round(6 + Math.random() * 70);
+        p.map = Math.round(24 + Math.random() * 70);
+        p.coolant = Math.round(Math.min(103, Math.max(72, p.coolant + (Math.random() * 4 - 2))));
+      } else if (sim.ignitionOn) {
+        p.rpm = 0;
+        p.speed = 0;
+        p.throttle = Math.round(4 + Math.random() * 12);
+        p.map = Math.round(26 + Math.random() * 10);
+      } else {
+        p.rpm = 0;
+        p.speed = 0;
+        p.throttle = 0;
+        p.map = 0;
+      }
+      p.intakeTemp = Math.round(28 + Math.random() * 10);
+      p.battery = Number((sim.engineOn ? 13.5 + Math.random() * 0.6 : 12.1 + Math.random() * 0.6).toFixed(1));
+      renderStats();
+      appendTerminal('[INFO] Live data randomized.', 'info');
+    }
+
+    function sanitizeCommand(cmd) {
+      return cmd.trim().toUpperCase().replace(/\s+/g, '');
+    }
+
+    function formatResponse(raw) {
+      if (!sim.spaces) return raw.replace(/\s+/g, '');
+      return raw.replace(/\s+/g, ' ').trim();
+    }
+
+    function stringToHexBytes(text) {
+      return text.split('').map(ch => ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')).join(' ');
+    }
+
+    function dtcToBytes(code) {
+      const typeMap = { P: 0, C: 1, B: 2, U: 3 };
+      const chars = code.toUpperCase().split('');
+      const type = typeMap[chars[0]] ?? 0;
+      const second = parseInt(chars[1], 16) || 0;
+      const third = parseInt(chars[2], 16) || 0;
+      const fourth = parseInt(chars[3], 16) || 0;
+      const fifth = parseInt(chars[4], 16) || 0;
+      const a = ((type & 0x03) << 6) | ((second & 0x03) << 4) | (third & 0x0F);
+      const b = ((fourth & 0x0F) << 4) | (fifth & 0x0F);
+      return `${hexByte(a)} ${hexByte(b)}`;
+    }
+
+    function buildPIDResponse(pid) {
+      const p = sim.profile;
+      switch (pid) {
+        case '00': return '41 00 BE 3F A8 13';
+        case '05': return `41 05 ${hexByte(p.coolant + 40)}`;
+        case '0B': return `41 0B ${hexByte(p.map)}`;
+        case '0C': {
+          const raw = Math.round(p.rpm * 4);
+          const a = (raw >> 8) & 0xFF;
+          const b = raw & 0xFF;
+          return `41 0C ${hexByte(a)} ${hexByte(b)}`;
+        }
+        case '0D': return `41 0D ${hexByte(p.speed)}`;
+        case '0F': return `41 0F ${hexByte(p.intakeTemp + 40)}`;
+        case '11': {
+          const val = Math.round((p.throttle / 100) * 255);
+          return `41 11 ${hexByte(val)}`;
+        }
+        case '42': {
+          const mv = Math.round(p.battery * 1000);
+          const a = (mv >> 8) & 0xFF;
+          const b = mv & 0xFF;
+          return `41 42 ${hexByte(a)} ${hexByte(b)}`;
+        }
+        default: return 'NO DATA';
+      }
+    }
+
+    function simulateResponse(command) {
+      const cmd = sanitizeCommand(command);
+      sim.lastCommand = cmd;
+      if (!cmd) return 'NO DATA';
+      if (!sim.ignitionOn && !cmd.startsWith('AT')) return 'NO DATA';
+
+      if (cmd === 'ATZ') {
+        sim.echo = true;
+        sim.linefeeds = false;
+        sim.spaces = true;
+        sim.headers = false;
+        return 'ELM327 v1.5';
+      }
+      if (cmd === 'ATI') return 'ELM327 v1.5 SIMULATOR';
+      if (cmd === 'AT@1') return sim.profile.ecuName;
+      if (cmd === 'ATDP') return getActiveProtocol();
+      if (cmd === 'ATDPN') return getActiveProtocol().startsWith('CAN') ? 'A6' : 'A3';
+      if (cmd === 'ATE0') { sim.echo = false; return 'OK'; }
+      if (cmd === 'ATE1') { sim.echo = true; return 'OK'; }
+      if (cmd === 'ATL0') { sim.linefeeds = false; return 'OK'; }
+      if (cmd === 'ATL1') { sim.linefeeds = true; return 'OK'; }
+      if (cmd === 'ATS0') { sim.spaces = false; return 'OK'; }
+      if (cmd === 'ATS1') { sim.spaces = true; return 'OK'; }
+      if (cmd === 'ATH0') { sim.headers = false; return 'OK'; }
+      if (cmd === 'ATH1') { sim.headers = true; return 'OK'; }
+      if (cmd === 'ATSP0') { sim.selectedProtocol = 'AUTO'; renderStats(); syncEditorsFromProfile(); return 'OK'; }
+      if (/^ATSP[0-9A-F]$/i.test(cmd)) return 'OK';
+      if (cmd === '0100') return buildPIDResponse('00');
+      if (/^01[0-9A-F]{2}$/.test(cmd)) return buildPIDResponse(cmd.slice(2, 4));
+      if (cmd === '03') {
+        if (!sim.profile.dtcs.length) return '43 00 00 00 00';
+        return `43 ${sim.profile.dtcs.map(dtcToBytes).join(' ')}`;
+      }
+      if (cmd === '04') {
+        sim.profile.dtcs = [];
+        return '44';
+      }
+      if (cmd === '0902') return `49 02 01 ${stringToHexBytes(sim.profile.vin)}`;
+      if (cmd === 'ATRV') return `${Number(sim.profile.battery).toFixed(1)}V`;
+      return 'NO DATA';
+    }
+
+    function decodeDTCs(bytes) {
+      const dtcs = [];
+      for (let i = 0; i < bytes.length; i += 2) {
+        const a = parseInt(bytes[i], 16);
+        const b = parseInt(bytes[i + 1] || '00', 16);
+        if (a === 0 && b === 0) continue;
+        const typeIndex = (a & 0xC0) >> 6;
+        const firstDigit = ['P', 'C', 'B', 'U'][typeIndex];
+        const secondDigit = ((a & 0x30) >> 4).toString();
+        const thirdDigit = (a & 0x0F).toString(16).toUpperCase();
+        const fourthDigit = ((b & 0xF0) >> 4).toString(16).toUpperCase();
+        const fifthDigit = (b & 0x0F).toString(16).toUpperCase();
+        dtcs.push(`${firstDigit}${secondDigit}${thirdDigit}${fourthDigit}${fifthDigit}`);
+      }
+      return dtcs;
+    }
+
+    function renderDecoded(result) {
+      decodedResults.innerHTML = `
+        <h3>${escapeHtml(result.title)}</h3>
+        <div class="decoded-meta">Command: ${escapeHtml(result.command)} | Raw: ${escapeHtml(result.raw)}</div>
+        <div class="decoded-value">${escapeHtml(result.value)}</div>
+        <div class="decoded-desc">${escapeHtml(result.description)}</div>
+      `;
+    }
+
+    function decodeResponse(command, response) {
+      const raw = response;
+      const clean = response.trim().toUpperCase();
+      const tokens = clean.split(/\s+/).filter(Boolean);
+      if (clean === 'OK') return { title: 'Adapter Acknowledgement', command, raw, value: 'OK', description: 'The simulated adapter accepted the command.' };
+      if (clean === 'NO DATA') return { title: 'No Data', command, raw, value: 'No ECU data', description: 'The ECU did not return data for this command in the current simulator state.' };
+      if (clean.startsWith('ELM327')) return { title: 'Adapter Identity', command, raw, value: clean, description: 'This is the identification string from the simulated ELM327 adapter.' };
+      if (clean === '44') return { title: 'Clear DTC Command', command, raw, value: 'Codes Cleared', description: 'Stored trouble codes were cleared successfully in the simulator.' };
+      if (command === '010C' && tokens[0] === '41' && tokens[1] === '0C') {
+        const rpm = ((parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16)) / 4;
+        return { title: 'Engine RPM', command, raw, value: `${rpm.toFixed(0)} RPM`, description: 'Calculated from bytes A and B using ((A × 256) + B) ÷ 4.' };
+      }
+      if (command === '010D' && tokens[0] === '41' && tokens[1] === '0D') {
+        const speed = parseInt(tokens[2], 16);
+        return { title: 'Vehicle Speed', command, raw, value: `${speed} km/h`, description: 'Vehicle speed is reported directly by byte A.' };
+      }
+      if (command === '0105' && tokens[0] === '41' && tokens[1] === '05') {
+        const coolant = parseInt(tokens[2], 16) - 40;
+        return { title: 'Coolant Temperature', command, raw, value: `${coolant} °C`, description: 'Engine coolant temperature is calculated as A − 40.' };
+      }
+      if (command === '010B' && tokens[0] === '41' && tokens[1] === '0B') {
+        const map = parseInt(tokens[2], 16);
+        return { title: 'Manifold Absolute Pressure', command, raw, value: `${map} kPa`, description: 'MAP is reported directly in kilopascals.' };
+      }
+      if (command === '03' && tokens[0] === '43') {
+        const dtcs = decodeDTCs(tokens.slice(1));
+        return { title: 'Stored Trouble Codes', command, raw, value: dtcs.length ? dtcs.join(', ') : 'No DTCs', description: dtcs.length ? 'These are the stored diagnostic trouble codes in the simulated ECU.' : 'There are no stored trouble codes in the simulated ECU.' };
+      }
+      if (command === '0902' && tokens[0] === '49' && tokens[1] === '02') {
+        // tokens[2] is the message index byte (01), skip it; remaining bytes are VIN ASCII
+        const vin = tokens.slice(3)
+          .map(h => String.fromCharCode(parseInt(h, 16)))
+          .filter(ch => ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) < 127)
+          .join('');
+        return { title: 'Vehicle Identification Number', command, raw, value: vin || '(empty)', description: 'The simulator returned the VIN from Mode 09 PID 02. Bytes after the message index are decoded as ASCII characters.' };
+      }
+      if ((command === '0142' || command === '142') && tokens[0] === '41' && tokens[1] === '42') {
+        const mv = (parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16);
+        const volts = (mv / 1000).toFixed(3);
+        return { title: 'Control Module Voltage (PID 42)', command, raw, value: `${volts} V`, description: 'Battery / control module voltage decoded from PID 42. Formula: (A × 256 + B) ÷ 1000.' };
+      }
+      if (command === 'ATDP') return { title: 'Protocol Detection', command, raw, value: raw, description: 'This shows the currently active OBD-II protocol in the simulator.' };
+      if (command === 'ATRV') return { title: 'Battery Voltage', command, raw, value: raw, description: 'This is the simulated adapter voltage reading.' };
+      return { title: 'Raw Simulator Response', command, raw, value: raw, description: 'A response was returned, but no special decoder was applied for this command.' };
+    }
+
+    function sendCommand(cmd = null) {
+      const command = sanitizeCommand(cmd ?? commandInput.value);
+      if (!command) return;
+      appendTerminal(`TX > ${command}`, 'tx');
+      const response = simulateResponse(command);
+      setTimeout(() => {
+        const formatted = formatResponse(response);
+        appendTerminal(`RX < ${formatted}`, 'rx');
+        renderDecoded(decodeResponse(command, formatted));
+        renderStats();
+        syncEditorsFromProfile();
+      }, 180);
+    }
+
+    function clearTerminal() {
+      terminal.innerHTML = '';
+    }
+
+    function clearDecoded() {
+      decodedResults.innerHTML = `
+        <h3>Waiting for Command</h3>
+        <div class="decoded-meta">Command: - | Raw: -</div>
+        <div class="decoded-value">No data yet</div>
+        <div class="decoded-desc">Send a command to the simulator to see the latest decoded output here.</div>
+      `;
+    }
+
+    vehicleType.addEventListener('change', () => {
+      populateProfiles();
+      loadSelectedProfile();
+    });
+
+    vehicleProfile.addEventListener('change', loadSelectedProfile);
+
+    protocolMode.addEventListener('change', () => {
+      sim.selectedProtocol = protocolMode.value;
+      renderStats();
+      syncEditorsFromProfile();
+      appendTerminal(`[INFO] Protocol changed to: ${getActiveProtocol()}`, 'info');
+    });
+
+    loadProfileBtn.addEventListener('click', loadSelectedProfile);
+    randomizeBtn.addEventListener('click', () => {
+      randomizeLiveData();
+      syncEditorsFromProfile();
+    });
+
+    addDtcBtn.addEventListener('click', () => {
+      const code = dtcSelect.value;
+      if (!code) return;
+      if (!sim.profile.dtcs.includes(code)) {
+        sim.profile.dtcs.push(code);
+        renderSelectedDtcs();
+        appendTerminal(`[INFO] Added DTC ${code}.`, 'info');
+      }
+    });
+
+    clearDtcsBtn.addEventListener('click', () => {
+      sim.profile.dtcs = [];
+      renderSelectedDtcs();
+      appendTerminal('[INFO] All DTCs cleared from simulator.', 'info');
+    });
+
+    toggleIgnitionBtn.addEventListener('click', () => {
+      sim.ignitionOn = !sim.ignitionOn;
+      if (!sim.ignitionOn) sim.engineOn = false;
+      renderStats();
+      syncEditorsFromProfile();
+      appendTerminal(`[INFO] Ignition ${sim.ignitionOn ? 'ON' : 'OFF'}.`, 'info');
+    });
+
+    toggleEngineBtn.addEventListener('click', () => {
+      if (!sim.ignitionOn) {
+        appendTerminal('[ERROR] Turn ignition ON before starting the engine.', 'error');
+        return;
+      }
+      sim.engineOn = !sim.engineOn;
+      if (sim.engineOn && sim.profile.rpm === 0) sim.profile.rpm = vehicleType.value === 'bike' ? 1450 : 850;
+      if (!sim.engineOn) {
+        sim.profile.rpm = 0;
+        sim.profile.speed = 0;
+      }
+      randomizeLiveData();
+      syncEditorsFromProfile();
+      appendTerminal(`[INFO] Engine ${sim.engineOn ? 'started' : 'stopped'}.`, 'info');
+    });
+
+    applyDataBtn.addEventListener('click', applyEditorsToProfile);
+    syncDataBtn.addEventListener('click', syncEditorsFromProfile);
+    sendBtn.addEventListener('click', () => sendCommand());
+    clearTerminalBtn.addEventListener('click', clearTerminal);
+    clearDecodedBtn.addEventListener('click', clearDecoded);
+
+    commandInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        sendCommand();
+      }
+    });
+
+    document.querySelectorAll('[data-cmd]').forEach(button => {
+      button.addEventListener('click', () => {
+        commandInput.value = button.dataset.cmd;
+        sendCommand(button.dataset.cmd);
+      });
+    });
+
+    populateProfiles();
+    populateDtcSelect();
+    loadSelectedProfile();
+    syncEditorsFromProfile();
+    clearDecoded();
+    appendTerminal('[INFO] OBD-II simulator ready.', 'info');
+    appendTerminal('[INFO] Send AT commands or Mode 01 / 03 / 09 requests to begin.', 'info');
+  </script>
+</body>
+</html>
