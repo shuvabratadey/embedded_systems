@@ -147,6 +147,7 @@
 <li><a href="#setting-up-serial-debug-assistant">Setting Up Serial Debug Assistant</a></li>
 <li><a href="#step-by-step-debugging-guide">Step-by-Step Debugging Guide</a></li>
 <li><a href="#obd2-pid-commands">OBD2 PID Commands</a></li>
+<li><a href="#how-to-read-obd-command-structure">Mode / PID Command Structure</a></li>
 <li><a href="#decoding-responses">Decoding Responses</a></li>
 <li><a href="#building-a-single-debug-command">Building a Single Debug Command</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -458,6 +459,69 @@ Receive: 7E8 01 44
 <hr>
 
 <h2 id="obd2-pid-commands">OBD2 PID Commands</h2>
+
+<p>Before looking at individual commands like <code>010C</code>, it helps to understand the <strong>service mode</strong> and the <strong>PID / sub-command</strong> structure:</p>
+
+<pre><code>01 0C
+│  └── PID / sub-command = 0C (Engine RPM)
+└───── Service mode      = 01 (Show current live data)</code></pre>
+
+<div class="table-wrap"><table><thead><tr><th>Service / Mode</th><th>Meaning</th><th>Example</th><th>What it Returns</th></tr></thead><tbody>
+<tr><td><code>01</code></td><td>Show current data / live sensor data</td><td><code>010C</code></td><td>Current ECU values like RPM, speed, coolant temp, throttle, etc.</td></tr>
+<tr><td><code>02</code></td><td>Show freeze frame data</td><td><code>020C</code></td><td>Sensor snapshot captured when a fault code was stored</td></tr>
+<tr><td><code>03</code></td><td>Read stored DTCs</td><td><code>03</code></td><td>Diagnostic Trouble Codes currently stored in ECU memory</td></tr>
+<tr><td><code>04</code></td><td>Clear stored DTCs and reset monitors</td><td><code>04</code></td><td>Clears trouble codes and readiness data</td></tr>
+<tr><td><code>07</code></td><td>Read pending DTCs</td><td><code>07</code></td><td>Faults detected but not yet matured into stored codes</td></tr>
+<tr><td><code>09</code></td><td>Vehicle information</td><td><code>0902</code></td><td>VIN, ECU name, calibration IDs, and similar info</td></tr>
+</tbody></table></div>
+
+<blockquote>💡 <strong>Important:</strong> In a command like <code>010C</code>, the first byte <code>01</code> is the <strong>mode/service</strong> and the second byte <code>0C</code> is the <strong>PID</strong> (parameter ID). So <code>01 0C</code> literally means: “In Mode 01, give me PID 0C.”</blockquote>
+
+<h3 id="how-to-read-obd-command-structure">How to Read OBD Command Structure</h3>
+
+<pre><code>Command format:
+[Mode] [PID]
+
+Examples:
+01 0C  → Mode 01 + PID 0C = Current Engine RPM
+01 0D  → Mode 01 + PID 0D = Current Vehicle Speed
+01 05  → Mode 01 + PID 05 = Current Coolant Temperature
+02 0C  → Mode 02 + PID 0C = Freeze-frame RPM
+09 02  → Mode 09 + PID 02 = VIN</code></pre>
+
+<p>When the ECU replies, it usually adds <code>0x40</code> to the requested mode to indicate a positive response:</p>
+
+<pre><code>Request:   01 0C
+Response:  41 0C 1A F8
+
+01  → requested mode = current data
+41  → positive response to mode 01
+0C  → echoed PID
+1A F8 → actual data bytes</code></pre>
+
+<h3 id="mode-01-vs-mode-02">Mode 01 vs Mode 02</h3>
+
+<div class="table-wrap"><table><thead><tr><th>Mode</th><th>Purpose</th><th>When to Use</th></tr></thead><tbody>
+<tr><td><code>01</code></td><td>Current live data</td><td>Use while engine is running to see real-time values changing live</td></tr>
+<tr><td><code>02</code></td><td>Freeze-frame data</td><td>Use after a fault to see the sensor values captured at the moment the DTC was recorded</td></tr>
+</tbody></table></div>
+
+<blockquote>Example: <code>010C</code> gives the <strong>current RPM</strong>. <code>020C</code> asks for the <strong>RPM stored in freeze frame</strong> when the ECU captured a fault snapshot.</blockquote>
+
+<h3 id="common-pid-subcommands">Common PID / Sub-Command Examples</h3>
+
+<div class="table-wrap"><table><thead><tr><th>Full Command</th><th>Mode</th><th>PID / Sub-command</th><th>Description</th><th>Typical Formula</th></tr></thead><tbody>
+<tr><td><code>0105</code></td><td><code>01</code></td><td><code>05</code></td><td>Current coolant temperature</td><td><code>A - 40</code></td></tr>
+<tr><td><code>010C</code></td><td><code>01</code></td><td><code>0C</code></td><td>Current engine RPM</td><td><code>(256A + B) / 4</code></td></tr>
+<tr><td><code>010D</code></td><td><code>01</code></td><td><code>0D</code></td><td>Current vehicle speed</td><td><code>A</code></td></tr>
+<tr><td><code>0111</code></td><td><code>01</code></td><td><code>11</code></td><td>Current throttle position</td><td><code>A × 100 / 255</code></td></tr>
+<tr><td><code>012F</code></td><td><code>01</code></td><td><code>2F</code></td><td>Current fuel level</td><td><code>A × 100 / 255</code></td></tr>
+<tr><td><code>0205</code></td><td><code>02</code></td><td><code>05</code></td><td>Freeze-frame coolant temperature</td><td><code>A - 40</code></td></tr>
+<tr><td><code>020C</code></td><td><code>02</code></td><td><code>0C</code></td><td>Freeze-frame engine RPM</td><td><code>(256A + B) / 4</code></td></tr>
+<tr><td><code>020D</code></td><td><code>02</code></td><td><code>0D</code></td><td>Freeze-frame vehicle speed</td><td><code>A</code></td></tr>
+<tr><td><code>0902</code></td><td><code>09</code></td><td><code>02</code></td><td>Vehicle Identification Number (VIN)</td><td>ASCII decode</td></tr>
+</tbody></table></div>
+
 
 <h3 id="mode-01-current-live-data">Mode 01 — Current Live Data</h3>
 
