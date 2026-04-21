@@ -509,7 +509,31 @@
             <div class="vehicle-stats" id="vehicleStats"></div>
 
             <div class="mini-note">
-              Quick training commands: <code class="inline">ATZ</code>, <code class="inline">ATI</code>, <code class="inline">ATDP</code>, <code class="inline">010C</code>, <code class="inline">010D</code>, <code class="inline">0105</code>, <code class="inline">03</code>, <code class="inline">0902</code>.
+              Quick training commands:
+              <code class="inline">ATZ</code>,
+              <code class="inline">ATI</code>,
+              <code class="inline">AT@1</code>,
+              <code class="inline">AT@2</code>,
+              <code class="inline">ATDP</code>,
+              <code class="inline">ATDPN</code>,
+              <code class="inline">ATWS</code>,
+              <code class="inline">ATD</code>,
+              <code class="inline">ATIGN</code>,
+              <code class="inline">ATE0</code>,
+              <code class="inline">ATH1</code>,
+              <code class="inline">010C</code>,
+              <code class="inline">010D</code>,
+              <code class="inline">0105</code>,
+              <code class="inline">010F</code>,
+              <code class="inline">0111</code>,
+              <code class="inline">011F</code>,
+              <code class="inline">012F</code>,
+              <code class="inline">0142</code>,
+              <code class="inline">0146</code>,
+              <code class="inline">03</code>,
+              <code class="inline">04</code>,
+              <code class="inline">0902</code>,
+              <code class="inline">090A</code>.
             </div>
           </div>
         </div>
@@ -594,13 +618,33 @@
             <div class="quick-actions">
               <button data-cmd="ATZ" class="btn-secondary">ATZ</button>
               <button data-cmd="ATI" class="btn-secondary">ATI</button>
+              <button data-cmd="ATDP" class="btn-secondary">ATDP</button>
+              <button data-cmd="AT@1" class="btn-secondary">AT@1</button>
+
+              <button data-cmd="AT@2" class="btn-secondary">AT@2</button>
+              <button data-cmd="ATWS" class="btn-secondary">ATWS</button>
+              <button data-cmd="ATD" class="btn-secondary">ATD</button>
+              <button data-cmd="ATIGN" class="btn-secondary">ATIGN</button>
+
               <button data-cmd="010C" class="btn-secondary">RPM</button>
               <button data-cmd="010D" class="btn-secondary">Speed</button>
               <button data-cmd="0105" class="btn-secondary">Coolant</button>
-              <button data-cmd="010B" class="btn-secondary">MAP</button>
+              <button data-cmd="010F" class="btn-secondary">IAT</button>
+
+              <button data-cmd="0111" class="btn-secondary">Throttle</button>
+              <button data-cmd="011F" class="btn-secondary">RunTime</button>
+              <button data-cmd="012F" class="btn-secondary">Fuel</button>
               <button data-cmd="0142" class="btn-secondary">Bat V</button>
+
+              <button data-cmd="0146" class="btn-secondary">Ambient</button>
               <button data-cmd="03" class="btn-secondary">DTCs</button>
+              <button data-cmd="04" class="btn-secondary">Clear DTC</button>
               <button data-cmd="0902" class="btn-secondary">VIN</button>
+
+              <button data-cmd="090A" class="btn-secondary">ECU Name</button>
+              <button data-cmd="ATSP1" class="btn-secondary">SP1</button>
+              <button data-cmd="ATSP2" class="btn-secondary">SP2</button>
+              <button data-cmd="ATSP6" class="btn-secondary">SP6</button>
             </div>
 
             <div class="button-row three">
@@ -608,6 +652,20 @@
               <button id="clearTerminalBtn" class="btn-secondary">Clear Terminal</button>
               <button id="clearDecodedBtn" class="btn-secondary">Clear Result</button>
             </div>
+            <div class="card-header" style="padding-left:0;padding-right:0;padding-top:16px;border-bottom:none;">
+            <h2>Raw Response Decoder</h2>
+            <p>Paste a real scanner response and decode it directly.</p>
+          </div>
+
+          <div class="field">
+            <label for="rawResponseInput">Raw OBD-II Response</label>
+            <input id="rawResponseInput" type="text" placeholder='Example: 43 03 01 04 20' />
+          </div>
+
+          <div class="button-row">
+            <button id="decodeRawBtn" class="btn-primary">Decode Response</button>
+            <button id="useSampleRawBtn" class="btn-secondary">Load Sample</button>
+          </div>
           </div>
         </div>
       </div>
@@ -641,7 +699,7 @@
     </div>
 
     <div class="footer-note">
-      This simulator is designed for learning typical ELM327 and OBD-II behavior. All major panels now support independent scrolling, and the layout adjusts more smoothly to different screen sizes.
+      This simulator is designed for learning typical ELM327 and OBD-II behavior. Added more AT and PID commands for better testing and training.
     </div>
   </div>
 
@@ -729,8 +787,7 @@
       U0422: 'Invalid data received from body control module.',
       U1000: 'Class 2 communication malfunction.',
       U1016: 'Loss of communications with PCM.',
-      U1100: 'SCP communication bus fault.',
-      U1110: 'Vehicle speed data invalid or missing.',
+      U1100: 'Vehicle speed data invalid or missing.',
       U1900: 'CAN communication bus fault receive error.'
     };
 
@@ -843,6 +900,9 @@
     const addDtcBtn = document.getElementById('addDtcBtn');
     const clearDtcsBtn = document.getElementById('clearDtcsBtn');
     const selectedDtcs = document.getElementById('selectedDtcs');
+    const rawResponseInput = document.getElementById('rawResponseInput');
+    const decodeRawBtn = document.getElementById('decodeRawBtn');
+    const useSampleRawBtn = document.getElementById('useSampleRawBtn');
 
     function appendTerminal(message, type = 'info') {
       const line = document.createElement('div');
@@ -1035,11 +1095,24 @@
           const b = raw & 0xFF;
           return `41 0C ${hexByte(a)} ${hexByte(b)}`;
         }
-        case '0D': return `41 0D ${hexByte(p.speed)}`;
-        case '0F': return `41 0F ${hexByte(p.intakeTemp + 40)}`;
+        case '0D':
+          return `41 0D ${hexByte(p.speed)}`;
+        case '0F':
+          return `41 0F ${hexByte(p.intakeTemp + 40)}`;
         case '11': {
           const val = Math.round((p.throttle / 100) * 255);
           return `41 11 ${hexByte(val)}`;
+        }
+        case '1F': {
+          const runTime = sim.engineOn ? 540 : 0;
+          const a = (runTime >> 8) & 0xFF;
+          const b = runTime & 0xFF;
+          return `41 1F ${hexByte(a)} ${hexByte(b)}`;
+        }
+        case '2F': {
+          const fuelLevel = vehicleType.value === 'bike' ? 45 : 62;
+          const raw = Math.round((fuelLevel / 100) * 255);
+          return `41 2F ${hexByte(raw)}`;
         }
         case '42': {
           const mv = Math.round(p.battery * 1000);
@@ -1047,7 +1120,12 @@
           const b = mv & 0xFF;
           return `41 42 ${hexByte(a)} ${hexByte(b)}`;
         }
-        default: return 'NO DATA';
+        case '46': {
+          const ambient = 30;
+          return `41 46 ${hexByte(ambient + 40)}`;
+        }
+        default:
+          return 'NO DATA';
       }
     }
 
@@ -1062,12 +1140,63 @@
         sim.linefeeds = false;
         sim.spaces = true;
         sim.headers = false;
+        sim.selectedProtocol = 'AUTO';
+        renderStats();
+        syncEditorsFromProfile();
         return 'ELM327 v1.5';
       }
+
+      if (cmd === 'ATWS') return 'ELM327 v1.5';
       if (cmd === 'ATI') return 'ELM327 v1.5 SIMULATOR';
       if (cmd === 'AT@1') return sim.profile.ecuName;
+      if (cmd === 'AT@2') return 'OBDII SIM';
+
+      if (cmd === 'ATD') {
+        sim.echo = true;
+        sim.linefeeds = false;
+        sim.spaces = true;
+        sim.headers = false;
+        return 'OK';
+      }
+
+      if (cmd === 'ATRV') return `${Number(sim.profile.battery).toFixed(1)}V`;
+      if (cmd === 'ATIGN') return sim.ignitionOn ? 'ON' : 'OFF';
+
       if (cmd === 'ATDP') return getActiveProtocol();
       if (cmd === 'ATDPN') return getActiveProtocol().startsWith('CAN') ? 'A6' : 'A3';
+
+      if (cmd === 'ATSP0') {
+        sim.selectedProtocol = 'AUTO';
+        renderStats();
+        syncEditorsFromProfile();
+        return 'OK';
+      }
+      if (cmd === 'ATSP1') {
+        sim.selectedProtocol = 'ISO9141-2';
+        renderStats();
+        syncEditorsFromProfile();
+        return 'OK';
+      }
+      if (cmd === 'ATSP2') {
+        sim.selectedProtocol = 'KWP2000';
+        renderStats();
+        syncEditorsFromProfile();
+        return 'OK';
+      }
+      if (cmd === 'ATSP6') {
+        sim.selectedProtocol = 'CAN11-500';
+        renderStats();
+        syncEditorsFromProfile();
+        return 'OK';
+      }
+      if (cmd === 'ATSP7') {
+        sim.selectedProtocol = 'CAN29-500';
+        renderStats();
+        syncEditorsFromProfile();
+        return 'OK';
+      }
+      if (/^ATSP[0-9A-F]$/i.test(cmd)) return 'OK';
+
       if (cmd === 'ATE0') { sim.echo = false; return 'OK'; }
       if (cmd === 'ATE1') { sim.echo = true; return 'OK'; }
       if (cmd === 'ATL0') { sim.linefeeds = false; return 'OK'; }
@@ -1076,20 +1205,28 @@
       if (cmd === 'ATS1') { sim.spaces = true; return 'OK'; }
       if (cmd === 'ATH0') { sim.headers = false; return 'OK'; }
       if (cmd === 'ATH1') { sim.headers = true; return 'OK'; }
-      if (cmd === 'ATSP0') { sim.selectedProtocol = 'AUTO'; renderStats(); syncEditorsFromProfile(); return 'OK'; }
-      if (/^ATSP[0-9A-F]$/i.test(cmd)) return 'OK';
+
+      if (cmd === 'ATMA') return 'BUS MONITOR NOT SUPPORTED IN SIM';
+      if (cmd === 'ATINFO') return `PROTO:${getActiveProtocol()} VIN:${sim.profile.vin}`;
+
       if (cmd === '0100') return buildPIDResponse('00');
       if (/^01[0-9A-F]{2}$/.test(cmd)) return buildPIDResponse(cmd.slice(2, 4));
+
       if (cmd === '03') {
         if (!sim.profile.dtcs.length) return '43 00 00 00 00';
         return `43 ${sim.profile.dtcs.map(dtcToBytes).join(' ')}`;
       }
+
       if (cmd === '04') {
         sim.profile.dtcs = [];
+        renderSelectedDtcs();
         return '44';
       }
+
       if (cmd === '0902') return `49 02 01 ${stringToHexBytes(sim.profile.vin)}`;
-      if (cmd === 'ATRV') return `${Number(sim.profile.battery).toFixed(1)}V`;
+      if (cmd === '0900') return '49 00 C0 00 00 00';
+      if (cmd === '090A') return `49 0A 01 ${stringToHexBytes(sim.profile.ecuName)}`;
+
       return 'NO DATA';
     }
 
@@ -1110,6 +1247,171 @@
       return dtcs;
     }
 
+    function normalizeRawResponse(raw) {
+      return String(raw)
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-F0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function decodeExternalRawResponse(rawInput) {
+      const raw = normalizeRawResponse(rawInput);
+
+      if (!raw) {
+        return {
+          title: 'Raw Response Decoder',
+          command: 'External Raw Decode',
+          raw: '-',
+          value: 'No data',
+          description: 'Paste a raw OBD-II response to decode it.'
+        };
+      }
+
+      const tokens = raw.split(' ').filter(Boolean);
+
+      if (!tokens.length) {
+        return {
+          title: 'Raw Response Decoder',
+          command: 'External Raw Decode',
+          raw,
+          value: 'Invalid response',
+          description: 'The pasted text does not look like a valid hexadecimal OBD-II response.'
+        };
+      }
+
+      // Mode 03 response: Stored DTCs
+      if (tokens[0] === '43') {
+        const dtcs = decodeDTCs(tokens.slice(1));
+        // const explained = dtcs.map(code => `${code} - ${dtcLibrary[code] || 'Unknown code description.'}`);
+        const explained = dtcs.map((code, index) => `${index + 1}. ${code} - ${dtcLibrary[code] || 'Unknown code description.'}`);
+
+        return {
+          title: 'Decoded Stored Trouble Codes',
+          command: 'Mode 03 Raw Response',
+          raw,
+          value: dtcs.length ? dtcs.join(', ') : 'No DTCs',
+          description: dtcs.length
+            ? explained.join(' | ')
+            : 'This response indicates there are no stored trouble codes.'
+        };
+      }
+
+      // Mode 01 PID 0C RPM
+      if (tokens[0] === '41' && tokens[1] === '0C' && tokens.length >= 4) {
+        const rpm = ((parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16)) / 4;
+        return {
+          title: 'Decoded Engine RPM',
+          command: 'Mode 01 PID 0C',
+          raw,
+          value: `${rpm.toFixed(0)} RPM`,
+          description: 'Calculated using ((A × 256) + B) ÷ 4.'
+        };
+      }
+
+      // Mode 01 PID 0D Speed
+      if (tokens[0] === '41' && tokens[1] === '0D' && tokens.length >= 3) {
+        const speed = parseInt(tokens[2], 16);
+        return {
+          title: 'Decoded Vehicle Speed',
+          command: 'Mode 01 PID 0D',
+          raw,
+          value: `${speed} km/h`,
+          description: 'Vehicle speed is reported directly by byte A.'
+        };
+      }
+
+      // Mode 01 PID 05 Coolant
+      if (tokens[0] === '41' && tokens[1] === '05' && tokens.length >= 3) {
+        const coolant = parseInt(tokens[2], 16) - 40;
+        return {
+          title: 'Decoded Coolant Temperature',
+          command: 'Mode 01 PID 05',
+          raw,
+          value: `${coolant} °C`,
+          description: 'Coolant temperature is calculated as A − 40.'
+        };
+      }
+
+      // Mode 01 PID 0F Intake Air Temp
+      if (tokens[0] === '41' && tokens[1] === '0F' && tokens.length >= 3) {
+        const intake = parseInt(tokens[2], 16) - 40;
+        return {
+          title: 'Decoded Intake Air Temperature',
+          command: 'Mode 01 PID 0F',
+          raw,
+          value: `${intake} °C`,
+          description: 'Intake air temperature is calculated as A − 40.'
+        };
+      }
+
+      // Mode 01 PID 11 Throttle
+      if (tokens[0] === '41' && tokens[1] === '11' && tokens.length >= 3) {
+        const throttle = ((parseInt(tokens[2], 16) * 100) / 255).toFixed(1);
+        return {
+          title: 'Decoded Throttle Position',
+          command: 'Mode 01 PID 11',
+          raw,
+          value: `${throttle} %`,
+          description: 'Throttle position is calculated as A × 100 ÷ 255.'
+        };
+      }
+
+      // Mode 01 PID 42 Control Module Voltage
+      if (tokens[0] === '41' && tokens[1] === '42' && tokens.length >= 4) {
+        const mv = (parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16);
+        const volts = (mv / 1000).toFixed(3);
+        return {
+          title: 'Decoded Control Module Voltage',
+          command: 'Mode 01 PID 42',
+          raw,
+          value: `${volts} V`,
+          description: 'Voltage is calculated as (A × 256 + B) ÷ 1000.'
+        };
+      }
+
+      // Mode 09 PID 02 VIN
+      if (tokens[0] === '49' && tokens[1] === '02' && tokens.length >= 4) {
+        const vin = tokens.slice(3)
+          .map(h => String.fromCharCode(parseInt(h, 16)))
+          .filter(ch => ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) < 127)
+          .join('');
+
+        return {
+          title: 'Decoded VIN',
+          command: 'Mode 09 PID 02',
+          raw,
+          value: vin || '(empty)',
+          description: 'VIN decoded from ASCII bytes after the frame index byte.'
+        };
+      }
+
+      // Mode 09 PID 0A ECU Name
+      if (tokens[0] === '49' && tokens[1] === '0A' && tokens.length >= 4) {
+        const ecuName = tokens.slice(3)
+          .map(h => String.fromCharCode(parseInt(h, 16)))
+          .filter(ch => ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) < 127)
+          .join('');
+
+        return {
+          title: 'Decoded ECU Name',
+          command: 'Mode 09 PID 0A',
+          raw,
+          value: ecuName || '(empty)',
+          description: 'ECU name decoded from ASCII bytes after the frame index byte.'
+        };
+      }
+
+      return {
+        title: 'Unknown Raw Response',
+        command: 'External Raw Decode',
+        raw,
+        value: raw,
+        description: 'The response format is not recognized yet. You can extend the decoder with more Mode 01, 03, 07, and 09 response patterns.'
+      };
+    }
+
     function renderDecoded(result) {
       decodedResults.innerHTML = `
         <h3>${escapeHtml(result.title)}</h3>
@@ -1123,46 +1425,260 @@
       const raw = response;
       const clean = response.trim().toUpperCase();
       const tokens = clean.split(/\s+/).filter(Boolean);
-      if (clean === 'OK') return { title: 'Adapter Acknowledgement', command, raw, value: 'OK', description: 'The simulated adapter accepted the command.' };
-      if (clean === 'NO DATA') return { title: 'No Data', command, raw, value: 'No ECU data', description: 'The ECU did not return data for this command in the current simulator state.' };
-      if (clean.startsWith('ELM327')) return { title: 'Adapter Identity', command, raw, value: clean, description: 'This is the identification string from the simulated ELM327 adapter.' };
-      if (clean === '44') return { title: 'Clear DTC Command', command, raw, value: 'Codes Cleared', description: 'Stored trouble codes were cleared successfully in the simulator.' };
+
+      if (clean === 'OK') {
+        return {
+          title: 'Adapter Acknowledgement',
+          command, raw,
+          value: 'OK',
+          description: 'The simulated adapter accepted the command.'
+        };
+      }
+
+      if (clean === 'NO DATA') {
+        return {
+          title: 'No Data',
+          command, raw,
+          value: 'No ECU data',
+          description: 'The ECU did not return data for this command in the current simulator state.'
+        };
+      }
+
+      if (clean.startsWith('ELM327')) {
+        return {
+          title: 'Adapter Identity',
+          command, raw,
+          value: clean,
+          description: 'This is the identification string from the simulated ELM327 adapter.'
+        };
+      }
+
+      if (clean === '44') {
+        return {
+          title: 'Clear DTC Command',
+          command, raw,
+          value: 'Codes Cleared',
+          description: 'Stored trouble codes were cleared successfully in the simulator.'
+        };
+      }
+
       if (command === '010C' && tokens[0] === '41' && tokens[1] === '0C') {
         const rpm = ((parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16)) / 4;
-        return { title: 'Engine RPM', command, raw, value: `${rpm.toFixed(0)} RPM`, description: 'Calculated from bytes A and B using ((A × 256) + B) ÷ 4.' };
+        return {
+          title: 'Engine RPM',
+          command, raw,
+          value: `${rpm.toFixed(0)} RPM`,
+          description: 'Calculated from bytes A and B using ((A × 256) + B) ÷ 4.'
+        };
       }
+
       if (command === '010D' && tokens[0] === '41' && tokens[1] === '0D') {
         const speed = parseInt(tokens[2], 16);
-        return { title: 'Vehicle Speed', command, raw, value: `${speed} km/h`, description: 'Vehicle speed is reported directly by byte A.' };
+        return {
+          title: 'Vehicle Speed',
+          command, raw,
+          value: `${speed} km/h`,
+          description: 'Vehicle speed is reported directly by byte A.'
+        };
       }
+
       if (command === '0105' && tokens[0] === '41' && tokens[1] === '05') {
         const coolant = parseInt(tokens[2], 16) - 40;
-        return { title: 'Coolant Temperature', command, raw, value: `${coolant} °C`, description: 'Engine coolant temperature is calculated as A − 40.' };
+        return {
+          title: 'Coolant Temperature',
+          command, raw,
+          value: `${coolant} °C`,
+          description: 'Engine coolant temperature is calculated as A − 40.'
+        };
       }
+
       if (command === '010B' && tokens[0] === '41' && tokens[1] === '0B') {
         const map = parseInt(tokens[2], 16);
-        return { title: 'Manifold Absolute Pressure', command, raw, value: `${map} kPa`, description: 'MAP is reported directly in kilopascals.' };
+        return {
+          title: 'Manifold Absolute Pressure',
+          command, raw,
+          value: `${map} kPa`,
+          description: 'MAP is reported directly in kilopascals.'
+        };
       }
+
+      if (command === '010F' && tokens[0] === '41' && tokens[1] === '0F') {
+        const intake = parseInt(tokens[2], 16) - 40;
+        return {
+          title: 'Intake Air Temperature',
+          command, raw,
+          value: `${intake} °C`,
+          description: 'Intake air temperature is calculated as A − 40.'
+        };
+      }
+
+      if (command === '0111' && tokens[0] === '41' && tokens[1] === '11') {
+        const throttle = ((parseInt(tokens[2], 16) * 100) / 255).toFixed(1);
+        return {
+          title: 'Throttle Position',
+          command, raw,
+          value: `${throttle} %`,
+          description: 'Throttle position is calculated as A × 100 ÷ 255.'
+        };
+      }
+
+      if (command === '011F' && tokens[0] === '41' && tokens[1] === '1F') {
+        const secs = (parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16);
+        return {
+          title: 'Run Time Since Engine Start',
+          command, raw,
+          value: `${secs} s`,
+          description: 'Calculated from bytes A and B using (A × 256) + B.'
+        };
+      }
+
+      if (command === '012F' && tokens[0] === '41' && tokens[1] === '2F') {
+        const fuel = ((parseInt(tokens[2], 16) * 100) / 255).toFixed(1);
+        return {
+          title: 'Fuel Level',
+          command, raw,
+          value: `${fuel} %`,
+          description: 'Fuel level is calculated as A × 100 ÷ 255.'
+        };
+      }
+
+      if ((command === '0142' || command === '142') && tokens[0] === '41' && tokens[1] === '42') {
+        const mv = (parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16);
+        const volts = (mv / 1000).toFixed(3);
+        return {
+          title: 'Control Module Voltage (PID 42)',
+          command, raw,
+          value: `${volts} V`,
+          description: 'Battery / control module voltage decoded from PID 42. Formula: (A × 256 + B) ÷ 1000.'
+        };
+      }
+
+      if (command === '0146' && tokens[0] === '41' && tokens[1] === '46') {
+        const ambient = parseInt(tokens[2], 16) - 40;
+        return {
+          title: 'Ambient Air Temperature',
+          command, raw,
+          value: `${ambient} °C`,
+          description: 'Ambient air temperature is calculated as A − 40.'
+        };
+      }
+
       if (command === '03' && tokens[0] === '43') {
         const dtcs = decodeDTCs(tokens.slice(1));
-        return { title: 'Stored Trouble Codes', command, raw, value: dtcs.length ? dtcs.join(', ') : 'No DTCs', description: dtcs.length ? 'These are the stored diagnostic trouble codes in the simulated ECU.' : 'There are no stored trouble codes in the simulated ECU.' };
+        return {
+          title: 'Stored Trouble Codes',
+          command, raw,
+          value: dtcs.length ? dtcs.join(', ') : 'No DTCs',
+          description: dtcs.length
+            ? 'These are the stored diagnostic trouble codes in the simulated ECU.'
+            : 'There are no stored trouble codes in the simulated ECU.'
+        };
       }
+
       if (command === '0902' && tokens[0] === '49' && tokens[1] === '02') {
-        // tokens[2] is the message index byte (01), skip it; remaining bytes are VIN ASCII
         const vin = tokens.slice(3)
           .map(h => String.fromCharCode(parseInt(h, 16)))
           .filter(ch => ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) < 127)
           .join('');
-        return { title: 'Vehicle Identification Number', command, raw, value: vin || '(empty)', description: 'The simulator returned the VIN from Mode 09 PID 02. Bytes after the message index are decoded as ASCII characters.' };
+        return {
+          title: 'Vehicle Identification Number',
+          command, raw,
+          value: vin || '(empty)',
+          description: 'The simulator returned the VIN from Mode 09 PID 02. Bytes after the message index are decoded as ASCII characters.'
+        };
       }
-      if ((command === '0142' || command === '142') && tokens[0] === '41' && tokens[1] === '42') {
-        const mv = (parseInt(tokens[2], 16) * 256) + parseInt(tokens[3], 16);
-        const volts = (mv / 1000).toFixed(3);
-        return { title: 'Control Module Voltage (PID 42)', command, raw, value: `${volts} V`, description: 'Battery / control module voltage decoded from PID 42. Formula: (A × 256 + B) ÷ 1000.' };
+
+      if (command === '090A' && tokens[0] === '49' && tokens[1] === '0A') {
+        const name = tokens.slice(3)
+          .map(h => String.fromCharCode(parseInt(h, 16)))
+          .filter(ch => ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) < 127)
+          .join('');
+        return {
+          title: 'ECU Name',
+          command, raw,
+          value: name || '(empty)',
+          description: 'Mode 09 PID 0A decoded as ASCII text.'
+        };
       }
-      if (command === 'ATDP') return { title: 'Protocol Detection', command, raw, value: raw, description: 'This shows the currently active OBD-II protocol in the simulator.' };
-      if (command === 'ATRV') return { title: 'Battery Voltage', command, raw, value: raw, description: 'This is the simulated adapter voltage reading.' };
-      return { title: 'Raw Simulator Response', command, raw, value: raw, description: 'A response was returned, but no special decoder was applied for this command.' };
+
+      if (command === 'ATDP') {
+        return {
+          title: 'Protocol Detection',
+          command, raw,
+          value: raw,
+          description: 'This shows the currently active OBD-II protocol in the simulator.'
+        };
+      }
+
+      if (command === 'ATDPN') {
+        return {
+          title: 'Protocol Number',
+          command, raw,
+          value: raw,
+          description: 'This shows the numeric adapter code for the active protocol.'
+        };
+      }
+
+      if (command === 'ATRV') {
+        return {
+          title: 'Battery Voltage',
+          command, raw,
+          value: raw,
+          description: 'This is the simulated adapter voltage reading.'
+        };
+      }
+
+      if (command === 'AT@1') {
+        return {
+          title: 'ECU Name',
+          command, raw,
+          value: raw,
+          description: 'This is the simulated ECU identifier string.'
+        };
+      }
+
+      if (command === 'AT@2') {
+        return {
+          title: 'Device Identifier',
+          command, raw,
+          value: raw,
+          description: 'This is the programmable identifier string of the simulator.'
+        };
+      }
+
+      if (command === 'ATD') {
+        return {
+          title: 'Defaults Restored',
+          command, raw,
+          value: 'Defaults Applied',
+          description: 'Adapter formatting settings were restored to default values.'
+        };
+      }
+
+      if (command === 'ATWS') {
+        return {
+          title: 'Warm Start',
+          command, raw,
+          value: raw,
+          description: 'The simulated adapter performed a warm restart.'
+        };
+      }
+
+      if (command === 'ATIGN') {
+        return {
+          title: 'Ignition Status',
+          command, raw,
+          value: raw,
+          description: 'This reports the current simulated ignition state.'
+        };
+      }
+
+      return {
+        title: 'Raw Simulator Response',
+        command, raw,
+        value: raw,
+        description: 'A response was returned, but no special decoder was applied for this command.'
+      };
     }
 
     function sendCommand(cmd = null) {
@@ -1207,6 +1723,7 @@
     });
 
     loadProfileBtn.addEventListener('click', loadSelectedProfile);
+
     randomizeBtn.addEventListener('click', () => {
       randomizeLiveData();
       syncEditorsFromProfile();
@@ -1270,6 +1787,25 @@
         commandInput.value = button.dataset.cmd;
         sendCommand(button.dataset.cmd);
       });
+    });
+
+    decodeRawBtn.addEventListener('click', () => {
+      const raw = rawResponseInput.value;
+      const result = decodeExternalRawResponse(raw);
+      appendTerminal(`RAW DECODE > ${normalizeRawResponse(raw) || '(empty)'}`, 'tx');
+      appendTerminal(`RAW RESULT < ${result.value}`, 'rx');
+      renderDecoded(result);
+    });
+
+    useSampleRawBtn.addEventListener('click', () => {
+      rawResponseInput.value = '43 03 01 04 20';
+    });
+
+    rawResponseInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        decodeRawBtn.click();
+      }
     });
 
     populateProfiles();
