@@ -58,6 +58,9 @@ Then access individual tutorials:
 * [🔗Cmake Guidance](https://shuvabratadey.github.io/embedded_systems/cmake/) →
   `https://shuvabratadey.github.io/embedded_systems/cmake/`
 
+* [🔗OBD-II](https://shuvabratadey.github.io/embedded_systems/OBD-II/) →
+  `https://shuvabratadey.github.io/embedded_systems/OBD-II/`
+
 ---
 
 ## 📂 Repository Structure
@@ -103,6 +106,14 @@ embedded_systems/
 │
 │── cmake/
 │   ├── cmake_build_example
+│   ├── index.html
+│   └── README.md
+│
+│── cmake/
+│   ├── obd2_launcher.html
+│   ├── obd2_web_serial_dashboard.html
+│   ├── obd2_simulator.html
+│   ├── obd_2_response_check_tool.html
 │   ├── index.html
 │   └── README.md
 ```
