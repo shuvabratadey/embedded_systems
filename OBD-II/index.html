@@ -117,6 +117,62 @@
         transform: translateY(-2px) scale(1.05);
         box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
     }
+
+    .errorCodeLink:link,
+.errorCodeLink:visited {
+  background: linear-gradient(135deg, #ff5f6d, #d32f2f);
+  color: #ffffff;
+  padding: 12px 28px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+/* Hover effect */
+.errorCodeLink:hover {
+  background: linear-gradient(135deg, #ff3b4d, #b71c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Click effect */
+.errorCodeLink:active {
+  transform: translateY(1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.morreInfoLink:link,
+.morreInfoLink:visited {
+  background: linear-gradient(135deg, #42a5f5, #1e88e5);
+  color: #ffffff;
+  padding: 12px 28px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+/* Hover effect */
+.morreInfoLink:hover {
+  background: linear-gradient(135deg, #2196f3, #1565c0);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Click effect */
+.morreInfoLink:active {
+  transform: translateY(1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
   </style>
 </head>
 <body>
@@ -455,11 +511,11 @@ Receive: 7E8 06 43 01 P0300 00 00
 Receive: 7E8 01 44
          &gt;</code></pre>
 <blockquote>⚠️ <strong>Warning:</strong> Clearing DTCs also resets all readiness monitors. The vehicle may fail an emissions test until all monitors complete their drive cycles.</blockquote>
-
+<a class="errorCodeLink" href="https://b0200.enginefaultcode.com/" target="_blank">Search Engine Fault Codes Here</a>
 <hr>
 
 <h2 id="obd2-pid-commands">OBD2 PID Commands</h2>
-
+<a class="morreInfoLink" href="https://www.scantool.net/scantool/downloads/103/elm327dsh.pdf" target="_blank">More Info Here</a>
 <p>Before looking at individual commands like <code>010C</code>, it helps to understand the <strong>service mode</strong> and the <strong>PID / sub-command</strong> structure:</p>
 
 <pre><code>01 0C
