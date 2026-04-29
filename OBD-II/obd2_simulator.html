@@ -1775,11 +1775,13 @@
     clearTerminalBtn.addEventListener('click', clearTerminal);
     clearDecodedBtn.addEventListener('click', clearDecoded);
 
-    commandInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        sendCommand();
-      }
+    commandInput.addEventListener('input', (e) => {
+      let value = e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+
+      // Group into pairs
+      value = value.match(/.{1,2}/g)?.join(' ') || '';
+
+      e.target.value = value;
     });
 
     document.querySelectorAll('[data-cmd]').forEach(button => {
