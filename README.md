@@ -34,6 +34,9 @@ Then access individual tutorials:
 * [🔗ESP32 SPIFFS](https://shuvabratadey.github.io/embedded_systems/ESP32_SPIFFS/) →
   `https://shuvabratadey.github.io/embedded_systems/ESP32_SPIFFS/`
 
+* [🔗ESP32 BLE](https://shuvabratadey.github.io/embedded_systems/ESP32_BLE/) →
+  `https://shuvabratadey.github.io/embedded_systems/ESP32_BLE/`
+
 * [🔗I²C Protocol](https://shuvabratadey.github.io/embedded_systems/i2c_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/i2c_communication/`
 
@@ -81,6 +84,12 @@ embedded_systems/
 │
 │── ESP32_SPIFFS/
 │   ├── index.html
+│   └── README.md
+│
+│── ESP32_BLE/
+│   ├── ESP_BLE
+│   ├── index.html
+│   └── BLE_Code_Generator.html
 │   └── README.md
 │
 │── i2c_communication/
