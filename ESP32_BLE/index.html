@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP-IDF BLE Tutorial — Complete GATT Server & Client Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2128;
+    --bg4: #21262d;
+    --border: #30363d;
+    --border2: #3d444d;
+    --text: #e6edf3;
+    --text2: #848d97;
+    --text3: #656d76;
+    --accent: #00d4aa;
+    --accent2: #00b894;
+    --accent3: #55efc4;
+    --blue: #58a6ff;
+    --blue2: #1f6feb;
+    --purple: #bc8cff;
+    --orange: #f0883e;
+    --red: #ff7b72;
+    --yellow: #e3b341;
+    --green: #3fb950;
+    --pink: #f778ba;
+    --code-bg: #0d1117;
+    --tag-bg: rgba(0,212,170,0.12);
+    --tag-text: #00d4aa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 0 0 2rem 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--bg2);
+    z-index: 1;
+  }
+  .sidebar-header .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 0.4rem;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; color: #0d1117; flex-shrink: 0;
+  }
+  .sidebar-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
+  .sidebar-subtitle { font-size: 11px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+
+  .nav-section { padding: 1rem 0 0.5rem; }
+  .nav-section-label {
+    padding: 0 1.25rem;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 0.3rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-link {
+    display: block; padding: 0.35rem 1.25rem;
+    font-size: 13px; color: var(--text2);
+    text-decoration: none; border-left: 2px solid transparent;
+    transition: all 0.15s; line-height: 1.4;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.03); border-left-color: var(--border2); }
+  .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,170,0.06); }
+  .nav-link.sub { padding-left: 2rem; font-size: 12px; }
+
+  /* Main content */
+  .main {
+    margin-left: 260px;
+    max-width: 960px;
+    padding: 0 2.5rem 6rem;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 4rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--tag-bg); color: var(--tag-text);
+    border: 1px solid rgba(0,212,170,0.25);
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 500; margin-bottom: 1.25rem;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem; font-weight: 800;
+    line-height: 1.15; margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, var(--accent3) 50%, var(--blue) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-desc {
+    font-size: 17px; color: var(--text2); line-height: 1.7;
+    max-width: 680px; margin-bottom: 2rem;
+  }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag {
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    padding: 4px 10px; border-radius: 4px;
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .tag.blue { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: var(--blue); }
+  .tag.green { background: rgba(63,185,80,0.1); border-color: rgba(63,185,80,0.3); color: var(--green); }
+  .tag.purple { background: rgba(188,140,255,0.1); border-color: rgba(188,140,255,0.3); color: var(--purple); }
+  .tag.orange { background: rgba(240,136,62,0.1); border-color: rgba(240,136,62,0.3); color: var(--orange); }
+
+  /* Sections */
+  .section { margin-bottom: 4rem; scroll-margin-top: 1.5rem; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 1.5rem; padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--accent2); background: var(--tag-bg);
+    border: 1px solid rgba(0,212,170,0.2);
+    padding: 3px 8px; border-radius: 4px; flex-shrink: 0;
+  }
+  .section h2 {
+    font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700;
+    color: var(--text); line-height: 1.25;
+  }
+  .section h3 {
+    font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 600;
+    color: var(--text); margin: 2rem 0 0.75rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before {
+    content: ''; display: block; width: 3px; height: 18px;
+    background: var(--accent); border-radius: 2px; flex-shrink: 0;
+  }
+  .section h4 {
+    font-size: 0.9rem; font-weight: 500; color: var(--text2);
+    margin: 1.5rem 0 0.5rem; font-family: 'JetBrains Mono', monospace;
+  }
+  p { margin-bottom: 1rem; color: var(--text2); }
+  strong { color: var(--text); font-weight: 500; }
+
+  /* Info boxes */
+  .box {
+    border-radius: 8px; padding: 1rem 1.25rem;
+    margin: 1.25rem 0; border-left: 3px solid;
+    font-size: 14px;
+  }
+  .box.info { background: rgba(88,166,255,0.07); border-color: var(--blue); }
+  .box.tip { background: rgba(0,212,170,0.07); border-color: var(--accent); }
+  .box.warn { background: rgba(227,179,65,0.07); border-color: var(--yellow); }
+  .box.danger { background: rgba(255,123,114,0.07); border-color: var(--red); }
+  .box-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .box.info .box-title { color: var(--blue); }
+  .box.tip .box-title { color: var(--accent); }
+  .box.warn .box-title { color: var(--yellow); }
+  .box.danger .box-title { color: var(--red); }
+  .box p { margin: 0; }
+
+  /* Code blocks */
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px; overflow-x: auto;
+    margin: 1.25rem 0; position: relative;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
+    background: var(--bg2); border-radius: 7px 7px 0 0;
+  }
+  .code-lang {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .code-dots { display: flex; gap: 5px; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .code-dots span:nth-child(1) { background: #ff5f57; }
+  .code-dots span:nth-child(2) { background: #febc2e; }
+  .code-dots span:nth-child(3) { background: #28c840; }
+  pre code {
+    display: block; padding: 1.25rem 1.25rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    line-height: 1.7; color: var(--text);
+    tab-size: 4;
+  }
+  code { font-family: 'JetBrains Mono', monospace; }
+  p code, li code {
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; font-size: 13px;
+    color: var(--accent3);
+  }
+
+  /* Syntax highlighting */
+  .kw { color: #ff79c6; }
+  .fn { color: #50fa7b; }
+  .str { color: #f1fa8c; }
+  .cmt { color: #6272a4; font-style: italic; }
+  .num { color: #bd93f9; }
+  .type { color: #8be9fd; }
+  .mac { color: #ffb86c; }
+  .def { color: #ff79c6; }
+  .var { color: #f8f8f2; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 1.25rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    background: var(--bg3); padding: 0.7rem 1rem;
+    text-align: left; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.65rem 1rem; border-bottom: 1px solid var(--border);
+    color: var(--text2); vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td code { font-size: 12px; }
+  td strong { color: var(--text); }
+
+  /* Cards grid */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.1rem;
+  }
+  .card-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .card h4 { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--text); margin: 0 0 0.4rem; }
+  .card p { font-size: 12.5px; color: var(--text3); margin: 0; line-height: 1.5; }
+
+  /* Step list */
+  .steps { list-style: none; margin: 1rem 0; }
+  .steps li {
+    display: flex; gap: 1rem; padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .steps li:last-child { border-bottom: none; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--tag-bg); border: 1px solid rgba(0,212,170,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    font-weight: 600; color: var(--accent); flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content h4 { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 0.3rem; }
+  .step-content p { font-size: 13.5px; margin: 0; color: var(--text2); }
+
+  /* Arch diagram */
+  .arch-diagram {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+    margin: 1.25rem 0; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; overflow-x: auto;
+  }
+  .arch-row { display: flex; align-items: center; gap: 0; margin: 4px 0; }
+  .arch-box {
+    padding: 6px 14px; border-radius: 5px;
+    border: 1px solid; text-align: center; white-space: nowrap; min-width: 100px;
+  }
+  .arch-box.app { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.4); color: var(--blue); }
+  .arch-box.profile { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.3); color: var(--accent); }
+  .arch-box.service { background: rgba(188,140,255,0.1); border-color: rgba(188,140,255,0.3); color: var(--purple); }
+  .arch-box.char { background: rgba(240,136,62,0.1); border-color: rgba(240,136,62,0.3); color: var(--orange); }
+  .arch-box.desc { background: rgba(247,120,186,0.1); border-color: rgba(247,120,186,0.3); color: var(--pink); }
+  .arch-arrow { color: var(--text3); padding: 0 8px; }
+  .arch-label { color: var(--text3); margin-left: 10px; font-size: 11px; }
+
+  /* UUID display */
+  .uuid-display {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    display: flex; align-items: center; gap: 1rem; margin: 0.5rem 0;
+    flex-wrap: wrap;
+  }
+  .uuid-label { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .uuid-val { color: var(--purple); }
+
+  /* Inline list */
+  ul.doc-list { list-style: none; margin: 0.5rem 0 1rem; }
+  ul.doc-list li {
+    padding: 0.35rem 0 0.35rem 1.25rem; color: var(--text2);
+    font-size: 14px; position: relative;
+  }
+  ul.doc-list li::before {
+    content: '›'; position: absolute; left: 0;
+    color: var(--accent); font-weight: 700;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; vertical-align: 1px;
+  }
+  .badge.r { background: rgba(255,123,114,0.15); color: var(--red); }
+  .badge.w { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .badge.n { background: rgba(0,212,170,0.15); color: var(--accent); }
+  .badge.i { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge.rw { background: rgba(227,179,65,0.15); color: var(--yellow); }
+
+  /* Prop table shorthand */
+  .prop-row { display: flex; gap: 1rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+  .prop-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent3); min-width: 200px; flex-shrink: 0; }
+  .prop-desc { font-size: 13.5px; color: var(--text2); }
+
+  /* TOC in hero */
+  .toc-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem; margin: 2rem 0 0;
+  }
+  .toc-item {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.85rem 1rem;
+    text-decoration: none; transition: all 0.15s;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .toc-item:hover { border-color: var(--accent2); background: rgba(0,212,170,0.05); }
+  .toc-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent2); flex-shrink: 0; margin-top: 1px; }
+  .toc-text { font-size: 12.5px; color: var(--text2); line-height: 1.4; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 0 1.25rem 4rem; }
+    .hero h1 { font-size: 2rem; }
+  }
+
+  .link-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #22d3ee, #38bdf8);
+      color: #020617;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: 0.3s ease;
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+      cursor: pointer;
+  }
+  .link-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
+      color: #020617;
+  }
+  /* Security info special styling */
+  .key-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.1rem 1.25rem;
+    margin: 0.75rem 0; display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .key-emoji { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+  .key-title { font-weight: 500; color: var(--text); font-size: 14px; margin-bottom: 0.25rem; }
+  .key-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">BT</div>
+      <div>
+        <div class="sidebar-title">ESP-IDF BLE Guide</div>
+        <div class="sidebar-subtitle">v5.x · ESP32 Series</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Introduction</div>
+    <a href="#intro" class="nav-link">What is Bluetooth LE?</a>
+    <a href="#concepts" class="nav-link">Core Concepts</a>
+    <a href="#gatt-arch" class="nav-link">GATT Architecture</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Project Setup</div>
+    <a href="#create-project" class="nav-link">Create Project</a>
+    <a href="#menuconfig" class="nav-link">menuconfig Settings</a>
+    <a href="#cmake" class="nav-link">CMakeLists.txt</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">GATT Server</div>
+    <a href="#server-overview" class="nav-link">Server Overview</a>
+    <a href="#gatts-events" class="nav-link">GATTS Events</a>
+    <a href="#add-service" class="nav-link">Add a Service</a>
+    <a href="#add-char" class="nav-link">Add Characteristics</a>
+    <a href="#char-props" class="nav-link">Read / Write / Notify</a>
+    <a href="#user-desc" class="nav-link">User Description</a>
+    <a href="#cccd" class="nav-link">CCCD (Notify Enable)</a>
+    <a href="#indicate" class="nav-link">Indications</a>
+    <a href="#full-server" class="nav-link">Complete Example</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">GATT Client</div>
+    <a href="#client-overview" class="nav-link">Client Overview</a>
+    <a href="#gattc-events" class="nav-link">GATTC Events</a>
+    <a href="#scan-connect" class="nav-link">Scan & Connect</a>
+    <a href="#discover" class="nav-link">Discover Services</a>
+    <a href="#read-write-client" class="nav-link">Read / Write</a>
+    <a href="#notify-client" class="nav-link">Enable Notifications</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Security</div>
+    <a href="#security-overview" class="nav-link">Pairing & Bonding</a>
+    <a href="#io-cap" class="nav-link">IO Capabilities</a>
+    <a href="#sec-modes" class="nav-link">Security Modes</a>
+    <a href="#bonding-code" class="nav-link">Bonding in Code</a>
+    <a href="#bond-mgmt" class="nav-link">Bond Management</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Reference</div>
+    <a href="#troubleshoot" class="nav-link">Troubleshooting</a>
+    <a href="#glossary" class="nav-link">Glossary</a>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">📡 ESP-IDF · Bluetooth Low Energy · Complete Tutorial</div>
+    <h1>ESP32 BLE<br>Developer Guide</h1>
+    <p class="hero-desc">A comprehensive, step-by-step tutorial covering everything you need to build a production-ready BLE GATT Server and Client on ESP32 with ESP-IDF. From theory to bonded connections.</p>
+    <div class="hero-tags">
+      <span class="tag blue">ESP-IDF v5.x</span>
+      <span class="tag green">GATT Server</span>
+      <span class="tag green">GATT Client</span>
+      <span class="tag purple">Pairing & Bonding</span>
+      <span class="tag orange">Notifications & Indications</span>
+      <span class="tag">C Language</span>
+      <span class="tag">ESP32 / ESP32-S3 / ESP32-C3</span>
+    </div>
+
+    <div class="toc-grid">
+      <a href="#intro" class="toc-item"><span class="toc-num">01</span><span class="toc-text">BLE Concepts & Architecture</span></a>
+      <a href="#create-project" class="toc-item"><span class="toc-num">02</span><span class="toc-text">Project Setup & menuconfig</span></a>
+      <a href="#server-overview" class="toc-item"><span class="toc-num">03</span><span class="toc-text">GATT Server Implementation</span></a>
+      <a href="#add-service" class="toc-item"><span class="toc-num">04</span><span class="toc-text">Services & Characteristics</span></a>
+      <a href="#char-props" class="toc-item"><span class="toc-num">05</span><span class="toc-text">Read / Write / Notify / Indicate</span></a>
+      <a href="#client-overview" class="toc-item"><span class="toc-num">06</span><span class="toc-text">GATT Client Implementation</span></a>
+      <a href="#security-overview" class="toc-item"><span class="toc-num">07</span><span class="toc-text">Pairing, Bonding & Security</span></a>
+      <a href="#glossary" class="toc-item"><span class="toc-num">08</span><span class="toc-text">Glossary & Reference</span></a>
+    </div>
+  </div>
+
+
+  <!-- Section 1: Introduction -->
+  <section class="section" id="intro">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>What is Bluetooth Low Energy?</h2>
+    </div>
+
+    <p>Bluetooth Low Energy (BLE), introduced in Bluetooth 4.0, is a wireless communication protocol optimised for devices that must operate on tiny batteries for months or years. Unlike Classic Bluetooth, BLE uses short radio bursts rather than continuous streams, keeping current draw in the microamp range during idle periods.</p>
+
+    <p>ESP32 (all variants) includes a dual-mode Bluetooth radio. ESP-IDF exposes BLE through the <strong>Bluedroid</strong> stack (default) or, on newer chips, through the lighter <strong>NimBLE</strong> stack. This guide focuses on Bluedroid, which closely mirrors the Bluetooth SIG specification.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h4>Low Energy</h4>
+        <p>Designed for duty-cycled operation. A coin cell can last 1–5 years depending on connection interval.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📡</div>
+        <h4>2.4 GHz ISM</h4>
+        <p>Uses 40 × 2 MHz channels; 3 advertising channels and 37 data channels with frequency hopping.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📏</div>
+        <h4>Range</h4>
+        <p>Typically 10–100 m line-of-sight. BLE Long Range (Coded PHY) extends to 300–400 m.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔗</div>
+        <h4>Roles</h4>
+        <p>Peripheral advertises and acts as server. Central scans, connects, and acts as client.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+  <h2>🌐 ESP-IDF BLE Code Generator Link</h2>
+  <p><a href="BLE_Code_Generator.html" class="link-btn">🔗 Open BLE Code Generator</a></p>
+  </section>  
+
+  <!-- Section: Core Concepts -->
+  <section class="section" id="concepts">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Core Concepts: GAP, GATT, Services & Characteristics</h2>
+    </div>
+
+    <h3>GAP — Generic Access Profile</h3>
+    <p>GAP controls how devices <strong>advertise themselves, discover each other, and establish connections</strong>. A device in the <em>Peripheral</em> role broadcasts advertising packets every N milliseconds. A <em>Central</em> scans these packets, optionally filters by device name or UUID, and initiates a connection.</p>
+
+    <div class="box tip">
+      <div class="box-title">💡 Advertising Interval</div>
+      <p>Shorter intervals (e.g. 20 ms) make the device discoverable faster but consume more power. For IoT sensors, 500–1000 ms is a common balance. Minimum is 20 ms, maximum is 10.24 s.</p>
+    </div>
+
+    <h3>GATT — Generic Attribute Profile</h3>
+    <p>GATT defines how data is <strong>structured, read, written, and notified</strong> over a BLE connection. All application data exchange happens through GATT. GATT uses a client/server model:</p>
+    <ul class="doc-list">
+      <li><strong>GATT Server</strong> — holds a database of attributes (your ESP32 sensor node).</li>
+      <li><strong>GATT Client</strong> — reads/writes attributes on the server (your phone app or another ESP32).</li>
+    </ul>
+
+    <h3>The GATT Hierarchy</h3>
+    <div class="arch-diagram">
+      <div style="color:var(--text3); margin-bottom:1rem; font-size:11px; text-transform:uppercase; letter-spacing:.06em;">Attribute hierarchy — top to bottom</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="arch-box app" style="width:140px;">Application</div>
+          <span class="arch-label">Your firmware — registers one or more Profiles</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; padding-left:20px;">
+          <div class="arch-box profile" style="width:120px;">GATT Profile</div>
+          <span class="arch-label">Logical grouping (e.g. Heart Rate Profile). Contains services.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; padding-left:40px;">
+          <div class="arch-box service" style="width:100px;">Service</div>
+          <span class="arch-label">Related functionality (e.g. Battery Service UUID 0x180F). Contains characteristics.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; padding-left:60px;">
+          <div class="arch-box char" style="width:120px;">Characteristic</div>
+          <span class="arch-label">A single data point (e.g. Battery Level UUID 0x2A19). Contains a value + descriptors.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; padding-left:80px;">
+          <div class="arch-box desc" style="width:100px;">Descriptor</div>
+          <span class="arch-label">Metadata about a characteristic (e.g. CCCD 0x2902, User Description 0x2901).</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>UUIDs</h3>
+    <p>Every service, characteristic, and descriptor is identified by a <strong>UUID (Universally Unique Identifier)</strong>. Bluetooth SIG defines 16-bit UUIDs for standard services (e.g. <code>0x180F</code> = Battery Service). Custom vendor services use full 128-bit UUIDs.</p>
+
+    <div class="uuid-display">
+      <span class="uuid-label">16-bit</span>
+      <span class="uuid-val">0x180F</span>
+      <span class="uuid-label" style="margin-left:1rem;">128-bit</span>
+      <span class="uuid-val">12345678-1234-1234-1234-123456789ABC</span>
+    </div>
+
+    <div class="box info">
+      <div class="box-title">ℹ️ 16-bit vs 128-bit UUIDs</div>
+      <p>16-bit UUIDs are shorthand — they are actually 128-bit with the Bluetooth Base UUID <code>0000XXXX-0000-1000-8000-00805F9B34FB</code>. Use 16-bit for standard SIG-defined services, 128-bit for anything custom.</p>
+    </div>
+
+    <h3>Handles</h3>
+    <p>In the actual ATT (Attribute Protocol) layer, every attribute is referenced by a 16-bit <strong>handle</strong> — a sequential number assigned when services are registered. The handle is what the protocol actually uses over the air; UUIDs are looked up in the attribute table.</p>
+  </section>
+
+
+  <!-- Section: GATT Architecture -->
+  <section class="section" id="gatt-arch">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>ESP-IDF BLE Stack Architecture</h2>
+    </div>
+
+    <p>ESP-IDF's BLE stack (Bluedroid) is layered. Understanding the layers helps you know which API to call:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Layer</th><th>API Prefix</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Application</strong></td><td><code>—</code></td><td>Your C code. Registers callbacks and calls API functions.</td></tr>
+          <tr><td><strong>GATTS/GATTC</strong></td><td><code>esp_ble_gatts_*</code> / <code>esp_ble_gattc_*</code></td><td>Create services, characteristics, read/write, notify.</td></tr>
+          <tr><td><strong>GAP</strong></td><td><code>esp_ble_gap_*</code></td><td>Advertising, scanning, connection parameters, security.</td></tr>
+          <tr><td><strong>Bluedroid Core</strong></td><td><code>esp_bluedroid_*</code></td><td>Stack lifecycle: init, enable, deinit.</td></tr>
+          <tr><td><strong>Controller</strong></td><td><code>esp_bt_controller_*</code></td><td>Hardware controller: init, enable, memory config.</td></tr>
+          <tr><td><strong>ESP-IDF NVS</strong></td><td><code>nvs_flash_*</code></td><td>Non-volatile storage — required for bonding keys.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Characteristic Properties Bitmask</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Constant</th><th>Value</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge r">READ</span></td><td><code>ESP_GATT_CHAR_PROP_BIT_READ</code></td><td><code>0x02</code></td><td>Client can read the characteristic value.</td></tr>
+          <tr><td><span class="badge w">WRITE</span></td><td><code>ESP_GATT_CHAR_PROP_BIT_WRITE</code></td><td><code>0x08</code></td><td>Client can write with acknowledgement.</td></tr>
+          <tr><td><span class="badge w">WRITE NR</span></td><td><code>ESP_GATT_CHAR_PROP_BIT_WRITE_NR</code></td><td><code>0x04</code></td><td>Write without response (faster, no ACK).</td></tr>
+          <tr><td><span class="badge n">NOTIFY</span></td><td><code>ESP_GATT_CHAR_PROP_BIT_NOTIFY</code></td><td><code>0x10</code></td><td>Server can push updates; no ACK from client.</td></tr>
+          <tr><td><span class="badge i">INDICATE</span></td><td><code>ESP_GATT_CHAR_PROP_BIT_INDICATE</code></td><td><code>0x20</code></td><td>Server pushes updates; client must ACK each one.</td></tr>
+          <tr><td>BROADCAST</td><td><code>ESP_GATT_CHAR_PROP_BIT_BROADCAST</code></td><td><code>0x01</code></td><td>Broadcast the characteristic in advertising packets.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- Section: Create Project -->
+  <section class="section" id="create-project">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Creating a BLE Project in ESP-IDF</h2>
+    </div>
+
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Install ESP-IDF v5.x</h4>
+          <p>Follow the official guide at <code>docs.espressif.com</code> to install the toolchain and set up your environment. Source the export script: <code>. $IDF_PATH/export.sh</code></p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Copy an example as your base</h4>
+          <p>Use the official GATT server example as a starting point. It demonstrates the full callback structure.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Set the target chip</h4>
+          <p>Run <code>idf.py set-target esp32</code> (or <code>esp32s3</code>, <code>esp32c3</code>, etc.) before configuring.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Configure via menuconfig</h4>
+          <p>Run <code>idf.py menuconfig</code> to enable the BLE stack and tune parameters.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>Build and flash</h4>
+          <p><code>idf.py build flash monitor</code> — compiles, flashes to chip, and opens serial monitor.</p>
+        </div>
+      </li>
+    </ul>
+
+    <h3>Minimal project directory structure</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">filesystem</span></div><code>my_ble_project/
+├── CMakeLists.txt          ← top-level cmake
+├── sdkconfig               ← generated by menuconfig
+├── main/
+│   ├── CMakeLists.txt      ← component cmake
+│   ├── main.c              ← app_main() entry point
+│   ├── gatts_demo.c        ← GATT server logic
+│   └── gattc_demo.c        ← GATT client logic (optional)
+└── components/             ← optional custom components</code></pre>
+
+    <h3>top-level CMakeLists.txt</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">cmake</span></div><code><span class="mac">cmake_minimum_required</span>(VERSION <span class="num">3.16</span>)
+<span class="kw">include</span>(<span class="str">$ENV{IDF_PATH}/tools/cmake/project.cmake</span>)
+<span class="fn">project</span>(my_ble_project)</code></pre>
+
+    <h3>main/CMakeLists.txt</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">cmake</span></div><code><span class="fn">idf_component_register</span>(
+    SRCS <span class="str">"main.c"</span> <span class="str">"gatts_demo.c"</span>
+    INCLUDE_DIRS <span class="str">"."</span>
+)</code></pre>
+  </section>
+
+
+  <!-- menuconfig -->
+  <section class="section" id="menuconfig">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>menuconfig — Required BLE Settings</h2>
+    </div>
+
+    <p>Run <code>idf.py menuconfig</code> and navigate to the settings below. Alternatively, add them directly to <code>sdkconfig.defaults</code> or <code>sdkconfig</code>.</p>
+
+    <h3>1 — Enable Bluetooth Controller</h3>
+    <div class="box warn">
+      <div class="box-title">⚠️ Memory Mode</div>
+      <p>On ESP32 (original), Classic BT and BLE share the controller memory. If you only need BLE, select <strong>BLE Only</strong> mode to recover ~45 KB of heap. On ESP32-C3/S3, only BLE is available.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>menuconfig path</th><th>Option / Value</th></tr></thead>
+        <tbody>
+          <tr><td><code>Component config → Bluetooth → Bluetooth</code></td><td>☑ Enable (check this first!)</td></tr>
+          <tr><td><code>→ Bluetooth controller → Bluetooth controller mode</code></td><td>Select <strong>BLE Only</strong></td></tr>
+          <tr><td><code>→ Bluetooth Host → Host</code></td><td>Select <strong>Bluedroid - Dual-mode</strong></td></tr>
+          <tr><td><code>→ Bluedroid Options → Classic Bluetooth</code></td><td>Uncheck if BLE-only</td></tr>
+          <tr><td><code>→ Bluedroid Options → BLE</code></td><td>☑ Enable BLE</td></tr>
+          <tr><td><code>→ Bluedroid Options → BLE Security Enable</code></td><td>☑ Enable (for bonding/pairing)</td></tr>
+          <tr><td><code>Component config → NVS</code></td><td>☑ Enable NVS (needed for bond storage)</td></tr>
+          <tr><td><code>Component config → ESP System → Task watchdog timer</code></td><td>Increase timeout if needed</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2 — Key sdkconfig.defaults entries</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">sdkconfig.defaults</span></div><code><span class="cmt"># Enable Bluetooth</span>
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+
+<span class="cmt"># BLE-only (recommended for most IoT projects)</span>
+CONFIG_BT_CTRL_MODE_BLE_ONLY=y
+
+<span class="cmt"># Security / Bonding</span>
+CONFIG_BT_BLE_SMP_ENABLE=y
+
+<span class="cmt"># NVS (required for bond key storage)</span>
+CONFIG_NVS_FLASH=y
+
+<span class="cmt"># Optional: increase log verbosity for debugging</span>
+CONFIG_LOG_DEFAULT_LEVEL_DEBUG=y</code></pre>
+
+    <h3>3 — Partition table</h3>
+    <p>BLE requires some flash for NVS (bonding keys). The default partition table usually works, but if you see NVS errors, use a custom partition table with at least 0x6000 bytes for NVS.</p>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">sdkconfig.defaults (partition)</span></div><code>CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=<span class="str">"partitions.csv"</span></code></pre>
+  </section>
+
+
+  <!-- GATT Server Overview -->
+  <section class="section" id="server-overview">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>GATT Server — Architecture & Initialisation</h2>
+    </div>
+
+    <p>A GATT Server on ESP32 consists of:</p>
+    <ul class="doc-list">
+      <li>One or more <strong>Application Profiles</strong> — each has a unique app ID and its own callback.</li>
+      <li>Each profile registers <strong>Services</strong>, which contain <strong>Characteristics</strong> and <strong>Descriptors</strong>.</li>
+      <li>ESP-IDF uses an event-driven model — you register a global callback and a per-profile callback.</li>
+    </ul>
+
+    <h3>Initialisation sequence</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c — main.c</span></div><code><span class="def">#include</span> <span class="str">"nvs_flash.h"</span>
+<span class="def">#include</span> <span class="str">"esp_bt.h"</span>
+<span class="def">#include</span> <span class="str">"esp_gap_ble_api.h"</span>
+<span class="def">#include</span> <span class="str">"esp_gatts_api.h"</span>
+<span class="def">#include</span> <span class="str">"esp_bt_main.h"</span>
+<span class="def">#include</span> <span class="str">"esp_gatt_common_api.h"</span>
+
+<span class="type">void</span> <span class="fn">app_main</span>(<span class="type">void</span>)
+{
+    <span class="cmt">// 1. Init NVS (required for bonding key storage)</span>
+    <span class="type">esp_err_t</span> ret = <span class="fn">nvs_flash_init</span>();
+    <span class="kw">if</span> (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">nvs_flash_erase</span>());
+        ret = <span class="fn">nvs_flash_init</span>();
+    }
+    <span class="fn">ESP_ERROR_CHECK</span>(ret);
+
+    <span class="cmt">// 2. Release Classic BT memory (BLE-only project)</span>
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_bt_controller_mem_release</span>(ESP_BT_MODE_CLASSIC_BT));
+
+    <span class="cmt">// 3. Initialise and enable BT controller</span>
+    <span class="type">esp_bt_controller_config_t</span> bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_bt_controller_init</span>(&bt_cfg));
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_bt_controller_enable</span>(ESP_BT_MODE_BLE));
+
+    <span class="cmt">// 4. Initialise and enable Bluedroid stack</span>
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_bluedroid_init</span>());
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_bluedroid_enable</span>());
+
+    <span class="cmt">// 5. Register GATTS and GAP callbacks</span>
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gatts_register_callback</span>(gatts_event_handler));
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gap_register_callback</span>(gap_event_handler));
+
+    <span class="cmt">// 6. Register application profile (app_id = 0)</span>
+    <span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gatts_app_register</span>(PROFILE_APP_ID));
+
+    <span class="cmt">// 7. Set MTU (optional — default 23, max 517)</span>
+    <span class="fn">esp_ble_gatt_set_local_mtu</span>(<span class="num">500</span>);
+}</code></pre>
+
+    <div class="box tip">
+      <div class="box-title">💡 MTU</div>
+      <p>MTU (Maximum Transmission Unit) is the largest payload per packet. Default is 23 bytes (20 bytes usable). Call <code>esp_ble_gatt_set_local_mtu(500)</code> early to allow the client to negotiate a larger MTU for faster bulk transfers.</p>
+    </div>
+  </section>
+
+
+  <!-- GATTS Events -->
+  <section class="section" id="gatts-events">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>GATTS Events Reference</h2>
+    </div>
+
+    <p>Your <code>gatts_event_handler</code> receives these events. Handle them in a <code>switch</code> statement:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Event</th><th>When it fires</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td><code>ESP_GATTS_REG_EVT</code></td><td>App profile registered</td><td>Create the service (<code>esp_ble_gatts_create_service</code>), start advertising.</td></tr>
+          <tr><td><code>ESP_GATTS_CREATE_EVT</code></td><td>Service table created</td><td>Start service (<code>esp_ble_gatts_start_service</code>), add characteristics.</td></tr>
+          <tr><td><code>ESP_GATTS_ADD_CHAR_EVT</code></td><td>Characteristic added</td><td>Save the attribute handle, optionally add descriptors.</td></tr>
+          <tr><td><code>ESP_GATTS_ADD_CHAR_DESCR_EVT</code></td><td>Descriptor added</td><td>Save descriptor handle.</td></tr>
+          <tr><td><code>ESP_GATTS_CONNECT_EVT</code></td><td>Client connected</td><td>Save <code>conn_id</code>, update connection parameters if needed.</td></tr>
+          <tr><td><code>ESP_GATTS_DISCONNECT_EVT</code></td><td>Client disconnected</td><td>Restart advertising.</td></tr>
+          <tr><td><code>ESP_GATTS_READ_EVT</code></td><td>Client reads a characteristic</td><td>Respond with <code>esp_ble_gatts_send_response</code>.</td></tr>
+          <tr><td><code>ESP_GATTS_WRITE_EVT</code></td><td>Client writes a characteristic</td><td>Process the data. Send response if <code>need_rsp</code> is true.</td></tr>
+          <tr><td><code>ESP_GATTS_EXEC_WRITE_EVT</code></td><td>Long write execute</td><td>Assemble and confirm the write.</td></tr>
+          <tr><td><code>ESP_GATTS_MTU_EVT</code></td><td>MTU negotiated</td><td>Record the negotiated MTU.</td></tr>
+          <tr><td><code>ESP_GATTS_CONF_EVT</code></td><td>Indication confirmed</td><td>Called after client ACKs an indication.</td></tr>
+          <tr><td><code>ESP_GATTS_START_EVT</code></td><td>Service started</td><td>Log success.</td></tr>
+          <tr><td><code>ESP_GATTS_SET_ATTR_VAL_EVT</code></td><td>Attribute value set</td><td>Confirm value was written to ATT database.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Event handler skeleton</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">void</span> <span class="fn">gatts_profile_event_handler</span>(
+    <span class="type">esp_gatts_cb_event_t</span> event,
+    <span class="type">esp_gatt_if_t</span> gatts_if,
+    <span class="type">esp_ble_gatts_cb_param_t</span> *param)
+{
+    <span class="kw">switch</span> (event) {
+    <span class="kw">case</span> ESP_GATTS_REG_EVT:
+        <span class="cmt">/* Register succeeded — create service here */</span>
+        <span class="fn">esp_ble_gatts_create_service</span>(gatts_if, &gl_profile_tab[PROFILE_A_APP_ID].service_id, GATTS_NUM_HANDLE);
+        <span class="cmt">/* Also start advertising */</span>
+        <span class="fn">esp_ble_gap_set_device_name</span>(SAMPLE_DEVICE_NAME);
+        <span class="fn">esp_ble_gap_config_adv_data</span>(&adv_data);
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_CREATE_EVT:
+        gl_profile_tab[PROFILE_A_APP_ID].service_handle = param->create.service_handle;
+        <span class="fn">esp_ble_gatts_start_service</span>(param->create.service_handle);
+        <span class="fn">esp_ble_gatts_add_char</span>(
+            param->create.service_handle,
+            &gatts_demo_char1_uuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+            ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_NOTIFY,
+            &gatts_demo_char1_val, NULL);
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_ADD_CHAR_EVT:
+        gl_profile_tab[PROFILE_A_APP_ID].char_handle = param->add_char.attr_handle;
+        <span class="cmt">/* Add CCCD descriptor to enable notifications */</span>
+        <span class="fn">esp_ble_gatts_add_char_descr</span>(
+            gl_profile_tab[PROFILE_A_APP_ID].service_handle,
+            &notify_descr_uuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, NULL, NULL);
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_READ_EVT:
+        <span class="fn">handle_read_event</span>(gatts_if, param);
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_WRITE_EVT:
+        <span class="fn">handle_write_event</span>(gatts_if, param);
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_CONNECT_EVT:
+        gl_profile_tab[PROFILE_A_APP_ID].conn_id = param->connect.conn_id;
+        <span class="kw">break</span>;
+
+    <span class="kw">case</span> ESP_GATTS_DISCONNECT_EVT:
+        <span class="fn">esp_ble_gap_start_advertising</span>(&adv_params);
+        <span class="kw">break</span>;
+
+    <span class="kw">default</span>:
+        <span class="kw">break</span>;
+    }
+}</code></pre>
+  </section>
+
+
+  <!-- Add a Service -->
+  <section class="section" id="add-service">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Step-by-Step: Adding a Service</h2>
+    </div>
+
+    <h3>1 — Define your service UUID</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* 16-bit SIG-standard service UUID (Battery Service) */</span>
+<span class="def">#define</span> GATTS_SERVICE_UUID_BATTERY   <span class="num">0x180F</span>
+
+<span class="cmt">/* OR — custom 128-bit UUID for your own service */</span>
+<span class="kw">static</span> <span class="type">uint8_t</span> service_uuid128[<span class="num">16</span>] = {
+    <span class="cmt">/* LSB first (little-endian) */</span>
+    <span class="num">0xAB</span>, <span class="num">0xCD</span>, <span class="num">0xEF</span>, <span class="num">0x12</span>, <span class="num">0x34</span>, <span class="num">0x56</span>,
+    <span class="num">0x78</span>, <span class="num">0x9A</span>, <span class="num">0xBC</span>, <span class="num">0xDE</span>, <span class="num">0xF0</span>, <span class="num">0x12</span>,
+    <span class="num">0x34</span>, <span class="num">0x56</span>, <span class="num">0x78</span>, <span class="num">0x9A</span>
+};</code></pre>
+
+    <h3>2 — Define the service ID structure</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">esp_gatt_srvc_id_t</span> battery_service_id = {
+    .id = {
+        .uuid = {
+            .len  = ESP_UUID_LEN_16,
+            .uuid = { .uuid16 = GATTS_SERVICE_UUID_BATTERY },
+        },
+        .inst_id = <span class="num">0</span>,   <span class="cmt">/* instance ID (0 for first instance) */</span>
+    },
+    .is_primary = <span class="kw">true</span>,   <span class="cmt">/* primary vs secondary service */</span>
+};</code></pre>
+
+    <h3>3 — Calculate and pass the number of handles</h3>
+    <div class="box info">
+      <div class="box-title">ℹ️ Handle Count Formula</div>
+      <p>Each attribute (service declaration, characteristic declaration, characteristic value, and each descriptor) needs one handle. Formula: <strong>1</strong> (service) + <strong>2</strong> × N_characteristics + N_descriptors. Example: 1 service + 2 characteristics + 2 CCCDs = 1 + 4 + 2 = <strong>7 handles</strong>. Always add a safety buffer (e.g. +2).</p>
+    </div>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="def">#define</span> GATTS_NUM_HANDLE_BATTERY  <span class="num">8</span>   <span class="cmt">/* 1 svc + 2 chars + 2 CCCDs + 2 user descs + 1 buffer */</span>
+
+<span class="cmt">/* Called inside ESP_GATTS_REG_EVT: */</span>
+<span class="fn">esp_ble_gatts_create_service</span>(
+    gatts_if,
+    &battery_service_id,
+    GATTS_NUM_HANDLE_BATTERY
+);</code></pre>
+
+    <h3>4 — Start the service</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* Called inside ESP_GATTS_CREATE_EVT: */</span>
+<span class="type">uint16_t</span> service_handle = param->create.service_handle;
+<span class="fn">esp_ble_gatts_start_service</span>(service_handle);</code></pre>
+  </section>
+
+
+  <!-- Add Characteristics -->
+  <section class="section" id="add-char">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Step-by-Step: Adding Characteristics</h2>
+    </div>
+
+    <h3>Define the characteristic UUID and initial value</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="def">#define</span> GATTS_CHAR_UUID_BATTERY_LEVEL  <span class="num">0x2A19</span>
+
+<span class="kw">static</span> <span class="type">esp_gatt_char_prop_t</span> a_property =
+    ESP_GATT_CHAR_PROP_BIT_READ |
+    ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+
+<span class="kw">static</span> <span class="type">uint8_t</span> char1_str[] = { <span class="num">0x64</span> };   <span class="cmt">/* initial value: 100 (%) */</span>
+
+<span class="kw">static</span> <span class="type">esp_attr_value_t</span> gatts_char_val = {
+    .attr_max_len = <span class="num">1</span>,
+    .attr_len     = <span class="kw">sizeof</span>(char1_str),
+    .attr_value   = char1_str,
+};
+
+<span class="kw">static</span> <span class="type">esp_bt_uuid_t</span> char_uuid = {
+    .len = ESP_UUID_LEN_16,
+    .uuid = { .uuid16 = GATTS_CHAR_UUID_BATTERY_LEVEL },
+};</code></pre>
+
+    <h3>Add the characteristic to the service</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* Called inside ESP_GATTS_CREATE_EVT (after esp_ble_gatts_start_service) */</span>
+<span class="fn">esp_ble_gatts_add_char</span>(
+    service_handle,        <span class="cmt">/* from ESP_GATTS_CREATE_EVT */</span>
+    &char_uuid,            <span class="cmt">/* characteristic UUID */</span>
+    ESP_GATT_PERM_READ,    <span class="cmt">/* ATT permission: who can access */</span>
+    a_property,            <span class="cmt">/* GATT property: what operations */</span>
+    &gatts_char_val,       <span class="cmt">/* initial value (or NULL) */</span>
+    NULL                   <span class="cmt">/* auto-response control (NULL = manual) */</span>
+);</code></pre>
+
+    <div class="box warn">
+      <div class="box-title">⚠️ Permission vs Property</div>
+      <p><strong>Permission</strong> (<code>ESP_GATT_PERM_*</code>) controls the ATT-layer access (READ, WRITE, READ_ENCRYPTED, etc.). <strong>Property</strong> (<code>ESP_GATT_CHAR_PROP_BIT_*</code>) is what's advertised in the characteristic declaration to the GATT client. Set permissions at least as permissive as what you advertise in properties.</p>
+    </div>
+
+    <h3>Permission constants quick reference</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Constant</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>ESP_GATT_PERM_READ</code></td><td>Read allowed (unencrypted)</td></tr>
+          <tr><td><code>ESP_GATT_PERM_READ_ENCRYPTED</code></td><td>Read allowed only when link is encrypted</td></tr>
+          <tr><td><code>ESP_GATT_PERM_READ_ENC_MITM</code></td><td>Read allowed when encrypted + authenticated</td></tr>
+          <tr><td><code>ESP_GATT_PERM_WRITE</code></td><td>Write allowed (unencrypted)</td></tr>
+          <tr><td><code>ESP_GATT_PERM_WRITE_ENCRYPTED</code></td><td>Write allowed only when link is encrypted</td></tr>
+          <tr><td><code>ESP_GATT_PERM_WRITE_ENC_MITM</code></td><td>Write allowed when encrypted + authenticated</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Save the attribute handle</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="type">uint16_t</span> char_handle;  <span class="cmt">/* store globally */</span>
+
+<span class="cmt">/* Inside ESP_GATTS_ADD_CHAR_EVT: */</span>
+<span class="kw">case</span> ESP_GATTS_ADD_CHAR_EVT:
+    <span class="kw">if</span> (param->add_char.status == ESP_GATT_OK) {
+        char_handle = param->add_char.attr_handle;
+        ESP_LOGI(TAG, <span class="str">"Characteristic added, handle: 0x%04x"</span>, char_handle);
+    }
+    <span class="kw">break</span>;</code></pre>
+  </section>
+
+
+  <!-- Read Write Notify -->
+  <section class="section" id="char-props">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Implementing Read, Write, Notify & Indicate</h2>
+    </div>
+
+    <h3>READ — Responding to a client read</h3>
+    <p>When a client reads your characteristic, <code>ESP_GATTS_READ_EVT</code> fires. You must call <code>esp_ble_gatts_send_response</code> unless you set <code>auto_rsp</code> when adding the characteristic.</p>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">case</span> ESP_GATTS_READ_EVT: {
+    ESP_LOGI(TAG, <span class="str">"READ handle=%d, conn=%d, trans=%d"</span>,
+        param->read.handle, param->read.conn_id, param->read.trans_id);
+
+    <span class="type">esp_gatt_rsp_t</span> rsp;
+    <span class="fn">memset</span>(&rsp, <span class="num">0</span>, <span class="kw">sizeof</span>(<span class="type">esp_gatt_rsp_t</span>));
+    rsp.attr_value.handle = param->read.handle;
+
+    <span class="cmt">/* Fill in your actual data */</span>
+    rsp.attr_value.len = <span class="num">1</span>;
+    rsp.attr_value.value[<span class="num">0</span>] = <span class="fn">get_battery_level</span>();  <span class="cmt">/* your function */</span>
+
+    <span class="fn">esp_ble_gatts_send_response</span>(
+        gatts_if,
+        param->read.conn_id,
+        param->read.trans_id,
+        ESP_GATT_OK,
+        &rsp);
+    <span class="kw">break</span>;
+}</code></pre>
+
+    <div class="box tip">
+      <div class="box-title">💡 Auto-response</div>
+      <p>Pass an <code>esp_attr_control_t</code> with <code>auto_rsp = ESP_GATT_AUTO_RSP</code> to <code>esp_ble_gatts_add_char</code> to let the BLE stack reply automatically with the stored attribute value. Use manual response (<code>ESP_GATT_RSP_BY_APP</code>) when you need to return live/computed data.</p>
+    </div>
+
+    <h3>WRITE — Handling a client write</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">case</span> ESP_GATTS_WRITE_EVT: {
+    ESP_LOGI(TAG, <span class="str">"WRITE handle=%d len=%d, is_prep=%d need_rsp=%d"</span>,
+        param->write.handle, param->write.len,
+        param->write.is_prep, param->write.need_rsp);
+
+    <span class="kw">if</span> (!param->write.is_prep) {
+        <span class="cmt">/* Normal write — process immediately */</span>
+        <span class="fn">handle_write_data</span>(param->write.value, param->write.len);
+
+        <span class="kw">if</span> (param->write.need_rsp) {
+            <span class="fn">esp_ble_gatts_send_response</span>(
+                gatts_if,
+                param->write.conn_id,
+                param->write.trans_id,
+                ESP_GATT_OK, NULL);
+        }
+    } <span class="kw">else</span> {
+        <span class="cmt">/* Prepared write (long write) — buffer it */</span>
+        <span class="fn">prepare_write_env_cb</span>(&prepare_write_env, gatts_if, param);
+    }
+    <span class="kw">break</span>;
+}</code></pre>
+
+    <h3>NOTIFY — Server pushes data to client</h3>
+    <p>Notifications are sent from your code whenever data changes. The client does <strong>not</strong> ACK them. Notifications only reach the client if they have enabled notifications via the CCCD descriptor.</p>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="type">uint8_t</span> notify_data[<span class="num">4</span>] = { <span class="num">0x01</span>, <span class="num">0x02</span>, <span class="num">0x03</span>, <span class="num">0x04</span> };
+
+<span class="fn">esp_ble_gatts_send_indicate</span>(
+    gatts_if,
+    conn_id,             <span class="cmt">/* saved from ESP_GATTS_CONNECT_EVT */</span>
+    char_handle,         <span class="cmt">/* attribute handle */</span>
+    <span class="kw">sizeof</span>(notify_data),
+    notify_data,
+    <span class="kw">false</span>               <span class="cmt">/* false = NOTIFY (no ACK), true = INDICATE (ACK required) */</span>
+);</code></pre>
+
+    <h3>INDICATE — Same API, with acknowledgement</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="fn">esp_ble_gatts_send_indicate</span>(
+    gatts_if, conn_id, char_handle,
+    <span class="kw">sizeof</span>(notify_data), notify_data,
+    <span class="kw">true</span>   <span class="cmt">/* ← true = INDICATION. Wait for ESP_GATTS_CONF_EVT before sending next */</span>
+);
+
+<span class="cmt">/* ESP_GATTS_CONF_EVT fires when client sends the ACK */</span>
+<span class="kw">case</span> ESP_GATTS_CONF_EVT:
+    <span class="kw">if</span> (param->conf.status != ESP_GATT_OK) {
+        ESP_LOGE(TAG, <span class="str">"Indication failed, status=%d"</span>, param->conf.status);
+    }
+    <span class="kw">break</span>;</code></pre>
+
+    <div class="box warn">
+      <div class="box-title">⚠️ Do not queue indications</div>
+      <p>You must wait for <code>ESP_GATTS_CONF_EVT</code> before sending another indication. Sending a second indication before the first is confirmed will result in an error. Use a flag or semaphore.</p>
+    </div>
+  </section>
+
+
+  <!-- User Description -->
+  <section class="section" id="user-desc">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>User Description Descriptor (0x2901)</h2>
+    </div>
+
+    <p>The <strong>Characteristic User Description</strong> descriptor (UUID <code>0x2901</code>) lets you attach a human-readable UTF-8 string to any characteristic. Phone apps and BLE debuggers will display this string next to the characteristic.</p>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">esp_bt_uuid_t</span> user_descr_uuid = {
+    .len = ESP_UUID_LEN_16,
+    .uuid = { .uuid16 = ESP_GATT_UUID_CHAR_DESCRIPTION },  <span class="cmt">/* 0x2901 */</span>
+};
+
+<span class="kw">static</span> <span class="type">uint8_t</span> user_desc[] = <span class="str">"Battery Level (%)"</span>;
+
+<span class="kw">static</span> <span class="type">esp_attr_value_t</span> user_descr_val = {
+    .attr_max_len = <span class="kw">sizeof</span>(user_desc),
+    .attr_len     = <span class="kw">sizeof</span>(user_desc) - <span class="num">1</span>,   <span class="cmt">/* exclude null terminator */</span>
+    .attr_value   = user_desc,
+};
+
+<span class="cmt">/* Add inside ESP_GATTS_ADD_CHAR_EVT after saving char_handle: */</span>
+<span class="fn">esp_ble_gatts_add_char_descr</span>(
+    service_handle,
+    &user_descr_uuid,
+    ESP_GATT_PERM_READ,   <span class="cmt">/* read-only */</span>
+    &user_descr_val,
+    NULL
+);</code></pre>
+  </section>
+
+
+  <!-- CCCD -->
+  <section class="section" id="cccd">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <h2>CCCD — Client Characteristic Configuration Descriptor (0x2902)</h2>
+    </div>
+
+    <p>The CCCD is a 2-byte descriptor that the <strong>client writes to enable notifications or indications</strong>. Without a CCCD, the client cannot turn on notifications even if the characteristic has the NOTIFY property.</p>
+
+    <ul class="doc-list">
+      <li>Client writes <code>0x0001</code> to enable <strong>Notifications</strong>.</li>
+      <li>Client writes <code>0x0002</code> to enable <strong>Indications</strong>.</li>
+      <li>Client writes <code>0x0000</code> to disable both.</li>
+    </ul>
+
+    <h3>Adding the CCCD</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">esp_bt_uuid_t</span> notify_descr_uuid = {
+    .len = ESP_UUID_LEN_16,
+    .uuid = { .uuid16 = ESP_GATT_UUID_CHAR_CLIENT_CONFIG },  <span class="cmt">/* 0x2902 */</span>
+};
+
+<span class="kw">static</span> <span class="type">uint8_t</span>  notify_ccc[<span class="num">2</span>]     = { <span class="num">0x00</span>, <span class="num">0x00</span> };  <span class="cmt">/* initially disabled */</span>
+<span class="kw">static</span> <span class="type">esp_attr_value_t</span> notify_ccc_val = {
+    .attr_max_len = <span class="num">2</span>,
+    .attr_len     = <span class="num">2</span>,
+    .attr_value   = notify_ccc,
+};
+
+<span class="cmt">/* Add after the characteristic: */</span>
+<span class="fn">esp_ble_gatts_add_char_descr</span>(
+    service_handle,
+    &notify_descr_uuid,
+    ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    &notify_ccc_val, NULL
+);</code></pre>
+
+    <h3>Detecting when the client enables notifications</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">bool</span> notify_enabled = <span class="kw">false</span>;
+
+<span class="kw">case</span> ESP_GATTS_WRITE_EVT:
+    <span class="kw">if</span> (param->write.handle == cccd_handle && param->write.len == <span class="num">2</span>) {
+        <span class="type">uint16_t</span> descr_value = (param->write.value[<span class="num">1</span>] << <span class="num">8</span>) | param->write.value[<span class="num">0</span>];
+        <span class="kw">if</span> (descr_value == <span class="num">0x0001</span>) {
+            notify_enabled = <span class="kw">true</span>;
+            ESP_LOGI(TAG, <span class="str">"Notifications ENABLED"</span>);
+        } <span class="kw">else if</span> (descr_value == <span class="num">0x0002</span>) {
+            notify_enabled = <span class="kw">true</span>;
+            ESP_LOGI(TAG, <span class="str">"Indications ENABLED"</span>);
+        } <span class="kw">else if</span> (descr_value == <span class="num">0x0000</span>) {
+            notify_enabled = <span class="kw">false</span>;
+            ESP_LOGI(TAG, <span class="str">"Notify/Indicate DISABLED"</span>);
+        }
+    }
+    <span class="kw">break</span>;</code></pre>
+  </section>
+
+
+  <!-- Full Server Example -->
+  <section class="section" id="full-server">
+    <div class="section-header">
+      <span class="section-num">13</span>
+      <h2>Complete GATT Server — Putting It All Together</h2>
+    </div>
+
+    <p>Below is a condensed but complete GATT server example: one service with a readable/writable/notifiable characteristic, a CCCD, and a user description. The advertising packet includes the service UUID so clients can filter by it.</p>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c — gatts_demo.c (condensed)</span></div><code><span class="def">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="def">#include</span> <span class="str">"esp_log.h"</span>
+<span class="def">#include</span> <span class="str">"esp_bt.h"</span>
+<span class="def">#include</span> <span class="str">"esp_gap_ble_api.h"</span>
+<span class="def">#include</span> <span class="str">"esp_gatts_api.h"</span>
+<span class="def">#include</span> <span class="str">"esp_bt_main.h"</span>
+
+<span class="def">#define</span> TAG              <span class="str">"GATTS_DEMO"</span>
+<span class="def">#define</span> DEVICE_NAME      <span class="str">"ESP32_BLE"</span>
+<span class="def">#define</span> SVC_UUID         <span class="num">0xFF00</span>
+<span class="def">#define</span> CHAR_UUID        <span class="num">0xFF01</span>
+<span class="def">#define</span> NUM_HANDLES      <span class="num">8</span>
+<span class="def">#define</span> APP_ID           <span class="num">0</span>
+
+<span class="kw">static</span> <span class="type">uint16_t</span> svc_handle, char_handle, cccd_handle, conn_id_g = <span class="num">0xFFFF</span>;
+<span class="kw">static</span> <span class="type">esp_gatt_if_t</span> gatts_if_g;
+<span class="kw">static</span> <span class="type">bool</span> notify_en = <span class="kw">false</span>;
+
+<span class="cmt">/* Advertising data — include SVC UUID for filtering */</span>
+<span class="kw">static</span> <span class="type">uint8_t</span> adv_service_uuid128[<span class="num">4</span>] = {
+    <span class="num">0x00</span>, <span class="num">0xFF</span>, <span class="num">0x00</span>, <span class="num">0xFF</span>
+};
+<span class="kw">static</span> <span class="type">esp_ble_adv_data_t</span> adv_data = {
+    .set_scan_rsp        = <span class="kw">false</span>,
+    .include_name        = <span class="kw">true</span>,
+    .include_txpower     = <span class="kw">false</span>,
+    .min_interval        = <span class="num">0x0006</span>,
+    .max_interval        = <span class="num">0x0010</span>,
+    .appearance          = <span class="num">0</span>,
+    .manufacturer_len    = <span class="num">0</span>,
+    .p_manufacturer_data = NULL,
+    .service_data_len    = <span class="num">0</span>,
+    .p_service_data      = NULL,
+    .service_uuid_len    = <span class="kw">sizeof</span>(adv_service_uuid128),
+    .p_service_uuid      = adv_service_uuid128,
+    .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
+};
+<span class="kw">static</span> <span class="type">esp_ble_adv_params_t</span> adv_params = {
+    .adv_int_min        = <span class="num">0x20</span>,
+    .adv_int_max        = <span class="num">0x40</span>,
+    .adv_type           = ADV_TYPE_IND,
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map        = ADV_CHNL_ALL,
+    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
+<span class="kw">static</span> <span class="type">void</span> <span class="fn">gap_event_handler</span>(<span class="type">esp_gap_ble_cb_event_t</span> event,
+                               <span class="type">esp_ble_gap_cb_param_t</span> *param)
+{
+    <span class="kw">if</span> (event == ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT)
+        <span class="fn">esp_ble_gap_start_advertising</span>(&adv_params);
+}
+
+<span class="kw">static</span> <span class="type">void</span> <span class="fn">gatts_event_handler</span>(<span class="type">esp_gatts_cb_event_t</span> event,
+                                  <span class="type">esp_gatt_if_t</span> gatts_if,
+                                  <span class="type">esp_ble_gatts_cb_param_t</span> *param)
+{
+    <span class="kw">switch</span>(event) {
+    <span class="kw">case</span> ESP_GATTS_REG_EVT: {
+        gatts_if_g = gatts_if;
+        <span class="fn">esp_ble_gap_set_device_name</span>(DEVICE_NAME);
+        <span class="fn">esp_ble_gap_config_adv_data</span>(&adv_data);
+        <span class="type">esp_gatt_srvc_id_t</span> svc_id = {
+            .id = { .uuid = { .len = ESP_UUID_LEN_16,
+                              .uuid = { .uuid16 = SVC_UUID } }, .inst_id = <span class="num">0</span> },
+            .is_primary = <span class="kw">true</span>
+        };
+        <span class="fn">esp_ble_gatts_create_service</span>(gatts_if, &svc_id, NUM_HANDLES);
+        <span class="kw">break</span>;
+    }
+    <span class="kw">case</span> ESP_GATTS_CREATE_EVT: {
+        svc_handle = param->create.service_handle;
+        <span class="fn">esp_ble_gatts_start_service</span>(svc_handle);
+        <span class="type">esp_bt_uuid_t</span> char_uuid = { .len = ESP_UUID_LEN_16,
+                                    .uuid = { .uuid16 = CHAR_UUID } };
+        <span class="type">uint8_t</span> val[] = { <span class="num">0x00</span> };
+        <span class="type">esp_attr_value_t</span> char_val = { .attr_max_len=<span class="num">20</span>, .attr_len=<span class="num">1</span>, .attr_value=val };
+        <span class="fn">esp_ble_gatts_add_char</span>(svc_handle, &char_uuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+            ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE |
+            ESP_GATT_CHAR_PROP_BIT_NOTIFY,
+            &char_val, NULL);
+        <span class="kw">break</span>;
+    }
+    <span class="kw">case</span> ESP_GATTS_ADD_CHAR_EVT: {
+        char_handle = param->add_char.attr_handle;
+        <span class="type">esp_bt_uuid_t</span> cccd_uuid = { .len = ESP_UUID_LEN_16,
+            .uuid = { .uuid16 = ESP_GATT_UUID_CHAR_CLIENT_CONFIG } };
+        <span class="type">uint8_t</span> ccc[] = { <span class="num">0x00</span>, <span class="num">0x00</span> };
+        <span class="type">esp_attr_value_t</span> ccc_val = { .attr_max_len=<span class="num">2</span>, .attr_len=<span class="num">2</span>, .attr_value=ccc };
+        <span class="fn">esp_ble_gatts_add_char_descr</span>(svc_handle, &cccd_uuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, &ccc_val, NULL);
+        <span class="kw">break</span>;
+    }
+    <span class="kw">case</span> ESP_GATTS_ADD_CHAR_DESCR_EVT:
+        cccd_handle = param->add_char_descr.attr_handle;
+        <span class="kw">break</span>;
+    <span class="kw">case</span> ESP_GATTS_CONNECT_EVT:
+        conn_id_g = param->connect.conn_id;
+        <span class="kw">break</span>;
+    <span class="kw">case</span> ESP_GATTS_DISCONNECT_EVT:
+        conn_id_g = <span class="num">0xFFFF</span>;
+        notify_en = <span class="kw">false</span>;
+        <span class="fn">esp_ble_gap_start_advertising</span>(&adv_params);
+        <span class="kw">break</span>;
+    <span class="kw">case</span> ESP_GATTS_READ_EVT: {
+        <span class="type">esp_gatt_rsp_t</span> rsp; <span class="fn">memset</span>(&rsp, <span class="num">0</span>, <span class="kw">sizeof</span>(rsp));
+        rsp.attr_value.handle = param->read.handle;
+        rsp.attr_value.len    = <span class="num">1</span>;
+        rsp.attr_value.value[<span class="num">0</span>] = <span class="num">42</span>;  <span class="cmt">/* replace with real data */</span>
+        <span class="fn">esp_ble_gatts_send_response</span>(gatts_if, param->read.conn_id,
+            param->read.trans_id, ESP_GATT_OK, &rsp);
+        <span class="kw">break</span>;
+    }
+    <span class="kw">case</span> ESP_GATTS_WRITE_EVT:
+        <span class="kw">if</span> (param->write.handle == cccd_handle && param->write.len == <span class="num">2</span>) {
+            notify_en = (param->write.value[<span class="num">0</span>] == <span class="num">0x01</span>);
+        }
+        <span class="kw">if</span> (param->write.need_rsp)
+            <span class="fn">esp_ble_gatts_send_response</span>(gatts_if, param->write.conn_id,
+                param->write.trans_id, ESP_GATT_OK, NULL);
+        <span class="kw">break</span>;
+    <span class="kw">default</span>: <span class="kw">break</span>;
+    }
+}
+
+<span class="cmt">/* Call this from a timer/task to push updates */</span>
+<span class="type">void</span> <span class="fn">ble_send_notify</span>(<span class="type">uint8_t</span> *data, <span class="type">uint16_t</span> len) {
+    <span class="kw">if</span> (notify_en && conn_id_g != <span class="num">0xFFFF</span>)
+        <span class="fn">esp_ble_gatts_send_indicate</span>(gatts_if_g, conn_id_g,
+            char_handle, len, data, <span class="kw">false</span>);
+}</code></pre>
+  </section>
+
+
+  <!-- GATT Client -->
+  <section class="section" id="client-overview">
+    <div class="section-header">
+      <span class="section-num">14</span>
+      <h2>GATT Client — Overview</h2>
+    </div>
+
+    <p>A GATT Client (Central role) scans for advertising packets, connects to a peripheral, discovers its services and characteristics, then reads/writes/subscribes to them. On ESP32 you use the <code>esp_ble_gattc_*</code> API.</p>
+
+    <div class="box info">
+      <div class="box-title">ℹ️ Typical client workflow</div>
+      <p><strong>Scan → Filter → Connect → Discover services → Find characteristic handle → Read/Write/Register notify</strong>. Each step is triggered by an event from the previous step — it's a state machine.</p>
+    </div>
+
+    <h3>GATTC initialisation</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* app_main (same BT init as server, then): */</span>
+<span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gattc_register_callback</span>(gattc_event_handler));
+<span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gap_register_callback</span>(gap_event_handler));
+<span class="fn">ESP_ERROR_CHECK</span>(<span class="fn">esp_ble_gattc_app_register</span>(PROFILE_A_APP_ID));</code></pre>
+  </section>
+
+
+  <!-- GATTC Events -->
+  <section class="section" id="gattc-events">
+    <div class="section-header">
+      <span class="section-num">15</span>
+      <h2>GATTC Events Reference</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Event</th><th>When it fires</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td><code>ESP_GATTC_REG_EVT</code></td><td>App profile registered</td><td>Start scanning (<code>esp_ble_gap_start_scanning</code>).</td></tr>
+          <tr><td><code>ESP_GATTC_CONNECT_EVT</code></td><td>ACL connection established</td><td>Call <code>esp_ble_gattc_open</code> to start GATT connection.</td></tr>
+          <tr><td><code>ESP_GATTC_OPEN_EVT</code></td><td>GATT connection opened</td><td>Check status, then call <code>esp_ble_gattc_search_service</code>.</td></tr>
+          <tr><td><code>ESP_GATTC_SEARCH_RES_EVT</code></td><td>One service found</td><td>Filter by UUID, save service start/end handles.</td></tr>
+          <tr><td><code>ESP_GATTC_SEARCH_CMPL_EVT</code></td><td>Service discovery done</td><td>Get characteristics: <code>esp_ble_gattc_get_char_by_uuid</code>.</td></tr>
+          <tr><td><code>ESP_GATTC_REG_FOR_NOTIFY_EVT</code></td><td>Registered for notify</td><td>Write <code>0x0001</code> to CCCD: <code>esp_ble_gattc_write_char_descr</code>.</td></tr>
+          <tr><td><code>ESP_GATTC_NOTIFY_EVT</code></td><td>Server sent notification/indication</td><td>Process <code>param->notify.value</code>.</td></tr>
+          <tr><td><code>ESP_GATTC_READ_CHAR_EVT</code></td><td>Read completed</td><td>Read <code>param->read.value</code>.</td></tr>
+          <tr><td><code>ESP_GATTC_WRITE_CHAR_EVT</code></td><td>Write completed</td><td>Check status.</td></tr>
+          <tr><td><code>ESP_GATTC_DISCONNECT_EVT</code></td><td>Connection closed</td><td>Restart scan or reconnect.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- Scan & Connect -->
+  <section class="section" id="scan-connect">
+    <div class="section-header">
+      <span class="section-num">16</span>
+      <h2>Client: Scan, Filter, and Connect</h2>
+    </div>
+
+    <h3>Start scanning in ESP_GATTC_REG_EVT</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">esp_ble_scan_params_t</span> scan_params = {
+    .scan_type          = BLE_SCAN_TYPE_ACTIVE,
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
+    .scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
+    .scan_interval      = <span class="num">0x50</span>,
+    .scan_window        = <span class="num">0x30</span>,
+    .scan_duplicate     = BLE_SCAN_DUPLICATE_DISABLE,
+};
+
+<span class="kw">case</span> ESP_GATTC_REG_EVT:
+    <span class="fn">esp_ble_gap_set_scan_params</span>(&scan_params);
+    <span class="kw">break</span>;</code></pre>
+
+    <h3>Filter scan results and connect in GAP callback</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="def">#define</span> TARGET_DEVICE_NAME  <span class="str">"ESP32_BLE"</span>
+
+<span class="kw">case</span> ESP_GAP_BLE_SCAN_RESULT_EVT: {
+    <span class="kw">if</span> (param->scan_rst.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
+        <span class="type">uint8_t</span> *adv = param->scan_rst.ble_adv;
+        <span class="type">uint8_t</span>  len = param->scan_rst.adv_data_len;
+
+        <span class="type">uint8_t</span> name_len = <span class="num">0</span>;
+        <span class="type">uint8_t</span> *name    = <span class="fn">esp_ble_resolve_adv_data</span>(adv,
+            ESP_BLE_AD_TYPE_NAME_CMPL, &name_len);
+
+        <span class="kw">if</span> (name && name_len == <span class="kw">strlen</span>(TARGET_DEVICE_NAME) &&
+            <span class="fn">strncmp</span>((<span class="type">char</span> *)name, TARGET_DEVICE_NAME, name_len) == <span class="num">0</span>) {
+
+            ESP_LOGI(TAG, <span class="str">"Found target device, connecting..."</span>);
+            <span class="fn">esp_ble_gap_stop_scanning</span>();
+            <span class="fn">esp_ble_gattc_open</span>(
+                gl_profile_tab[PROFILE_A_APP_ID].gattc_if,
+                param->scan_rst.bda,
+                param->scan_rst.ble_addr_type,
+                <span class="kw">true</span>);
+        }
+    }
+    <span class="kw">break</span>;
+}</code></pre>
+  </section>
+
+
+  <!-- Discover -->
+  <section class="section" id="discover">
+    <div class="section-header">
+      <span class="section-num">17</span>
+      <h2>Client: Discover Services & Characteristics</h2>
+    </div>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">static</span> <span class="type">uint16_t</span> svc_start_hdl, svc_end_hdl, char_hdl, cccd_hdl;
+
+<span class="kw">case</span> ESP_GATTC_OPEN_EVT:
+    <span class="kw">if</span> (param->open.status == ESP_GATT_OK) {
+        gl_profile_tab[PROFILE_A_APP_ID].conn_id = param->open.conn_id;
+        <span class="fn">esp_ble_gattc_search_service</span>(gattc_if, param->open.conn_id, NULL);
+        <span class="cmt">/* NULL = discover all services */</span>
+    }
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GATTC_SEARCH_RES_EVT:
+    <span class="kw">if</span> (param->search_res.srvc_id.uuid.uuid.uuid16 == SVC_UUID) {
+        svc_start_hdl = param->search_res.start_handle;
+        svc_end_hdl   = param->search_res.end_handle;
+    }
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GATTC_SEARCH_CMPL_EVT: {
+    <span class="type">esp_bt_uuid_t</span> char_uuid = { .len=ESP_UUID_LEN_16,
+                                .uuid={ .uuid16=CHAR_UUID } };
+    <span class="type">esp_gattc_char_elem_t</span> char_elem;
+    <span class="type">uint16_t</span> count = <span class="num">1</span>;
+    <span class="fn">esp_ble_gattc_get_char_by_uuid</span>(gattc_if,
+        gl_profile_tab[PROFILE_A_APP_ID].conn_id,
+        svc_start_hdl, svc_end_hdl, char_uuid, &char_elem, &count);
+    <span class="kw">if</span> (count > <span class="num">0</span>) {
+        char_hdl = char_elem.char_handle;
+        ESP_LOGI(TAG, <span class="str">"Characteristic found, handle 0x%04x"</span>, char_hdl);
+        <span class="cmt">/* Now find the CCCD */</span>
+        <span class="type">esp_bt_uuid_t</span> cccd_uuid = { .len=ESP_UUID_LEN_16,
+            .uuid={ .uuid16=ESP_GATT_UUID_CHAR_CLIENT_CONFIG } };
+        <span class="type">esp_gattc_descr_elem_t</span> descr_elem;
+        <span class="type">uint16_t</span> dcnt = <span class="num">1</span>;
+        <span class="fn">esp_ble_gattc_get_descr_by_char_handle</span>(gattc_if,
+            gl_profile_tab[PROFILE_A_APP_ID].conn_id,
+            char_hdl, cccd_uuid, &descr_elem, &dcnt);
+        <span class="kw">if</span> (dcnt > <span class="num">0</span>) cccd_hdl = descr_elem.handle;
+    }
+    <span class="kw">break</span>;
+}</code></pre>
+  </section>
+
+
+  <!-- Read Write Client -->
+  <section class="section" id="read-write-client">
+    <div class="section-header">
+      <span class="section-num">18</span>
+      <h2>Client: Read and Write Characteristics</h2>
+    </div>
+
+    <h3>Reading a characteristic</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="fn">esp_ble_gattc_read_char</span>(
+    gattc_if,
+    conn_id,
+    char_hdl,
+    ESP_GATT_AUTH_REQ_NONE   <span class="cmt">/* or ESP_GATT_AUTH_REQ_NO_MITM for encrypted */</span>
+);
+
+<span class="kw">case</span> ESP_GATTC_READ_CHAR_EVT:
+    <span class="kw">if</span> (param->read.status == ESP_GATT_OK) {
+        ESP_LOGI(TAG, <span class="str">"Read value len=%d"</span>, param->read.value_len);
+        <span class="kw">for</span> (<span class="type">int</span> i=<span class="num">0</span>; i&lt;param->read.value_len; i++)
+            ESP_LOGI(TAG, <span class="str">"  [%d]: 0x%02X"</span>, i, param->read.value[i]);
+    }
+    <span class="kw">break</span>;</code></pre>
+
+    <h3>Writing a characteristic</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="type">uint8_t</span> write_data[] = { <span class="num">0x01</span>, <span class="num">0x02</span>, <span class="num">0x03</span> };
+
+<span class="fn">esp_ble_gattc_write_char</span>(
+    gattc_if,
+    conn_id,
+    char_hdl,
+    <span class="kw">sizeof</span>(write_data),
+    write_data,
+    ESP_GATT_WRITE_TYPE_RSP,    <span class="cmt">/* RSP = with acknowledgement */</span>
+    ESP_GATT_AUTH_REQ_NONE
+);</code></pre>
+  </section>
+
+
+  <!-- Notify Client -->
+  <section class="section" id="notify-client">
+    <div class="section-header">
+      <span class="section-num">19</span>
+      <h2>Client: Enabling and Receiving Notifications</h2>
+    </div>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* Step 1: register for notify events */</span>
+<span class="fn">esp_ble_gattc_register_for_notify</span>(gattc_if, remote_bda, char_hdl);
+
+<span class="cmt">/* Step 2: in ESP_GATTC_REG_FOR_NOTIFY_EVT — write 0x0001 to CCCD */</span>
+<span class="kw">case</span> ESP_GATTC_REG_FOR_NOTIFY_EVT: {
+    <span class="type">uint8_t</span> notify_en_val[<span class="num">2</span>] = { <span class="num">0x01</span>, <span class="num">0x00</span> };
+    <span class="fn">esp_ble_gattc_write_char_descr</span>(
+        gattc_if, conn_id, cccd_hdl,
+        <span class="kw">sizeof</span>(notify_en_val), notify_en_val,
+        ESP_GATT_WRITE_TYPE_RSP, ESP_GATT_AUTH_REQ_NONE);
+    <span class="kw">break</span>;
+}
+
+<span class="cmt">/* Step 3: receive notifications */</span>
+<span class="kw">case</span> ESP_GATTC_NOTIFY_EVT:
+    ESP_LOGI(TAG, <span class="str">"Notification from handle 0x%04x, len=%d"</span>,
+        param->notify.handle, param->notify.value_len);
+    <span class="kw">for</span> (<span class="type">int</span> i=<span class="num">0</span>; i&lt;param->notify.value_len; i++)
+        ESP_LOGI(TAG, <span class="str">"  [%d]: 0x%02X"</span>, i, param->notify.value[i]);
+    <span class="kw">break</span>;</code></pre>
+  </section>
+
+
+  <!-- Security Overview -->
+  <section class="section" id="security-overview">
+    <div class="section-header">
+      <span class="section-num">20</span>
+      <h2>Pairing, Bonding & BLE Security</h2>
+    </div>
+
+    <p>BLE security operates in distinct phases. Understanding the terminology is essential before writing security code:</p>
+
+    <div class="key-card">
+      <div class="key-emoji">🤝</div>
+      <div><div class="key-title">Pairing</div><div class="key-desc">The one-time process of exchanging keys to establish an encrypted, optionally authenticated, link. Pairing generates Long-Term Keys (LTK), Identity Resolving Keys (IRK), and Connection Signature Resolving Keys (CSRK).</div></div>
+    </div>
+    <div class="key-card">
+      <div class="key-emoji">🔗</div>
+      <div><div class="key-title">Bonding</div><div class="key-desc">Storing the pairing keys in non-volatile memory (NVS on ESP32) so the devices can re-connect and re-encrypt without pairing again. A bonded device is a "known device."</div></div>
+    </div>
+    <div class="key-card">
+      <div class="key-emoji">🔑</div>
+      <div><div class="key-title">Encryption</div><div class="key-desc">Once pairing is done, the link is encrypted using the LTK. Subsequent connections use the stored LTK directly (no re-pairing needed).</div></div>
+    </div>
+    <div class="key-card">
+      <div class="key-emoji">✅</div>
+      <div><div class="key-title">Authentication (MITM protection)</div><div class="key-desc">Proving the peer is who it claims to be, not a man-in-the-middle. Achieved via passkey entry, numeric comparison, or OOB. Without MITM protection, encryption is present but unauthenticated.</div></div>
+    </div>
+    <div class="key-card">
+      <div class="key-emoji">🆕</div>
+      <div><div class="key-title">LE Secure Connections (LESC)</div><div class="key-desc">BLE 4.2+ Elliptic Curve Diffie-Hellman key exchange. Significantly stronger than legacy pairing. Enabled with <code>ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH</code>.</div></div>
+    </div>
+  </section>
+
+
+  <!-- IO Capabilities -->
+  <section class="section" id="io-cap">
+    <div class="section-header">
+      <span class="section-num">21</span>
+      <h2>IO Capabilities — Choosing the Right Mode</h2>
+    </div>
+
+    <p>The pairing method depends on what input/output the device physically has. Both sides declare their IO capabilities and the Bluetooth spec determines which pairing method is used:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Constant</th><th>Value</th><th>Device has…</th><th>Pairing method</th></tr></thead>
+        <tbody>
+          <tr><td><code>ESP_IO_CAP_NONE</code></td><td>3</td><td>No display, no keyboard</td><td>Just Works (no MITM protection)</td></tr>
+          <tr><td><code>ESP_IO_CAP_OUT</code></td><td>1</td><td>Display only (no keyboard)</td><td>Passkey Display — server shows 6-digit code, user enters on other device</td></tr>
+          <tr><td><code>ESP_IO_CAP_IN</code></td><td>2</td><td>Keyboard only (no display)</td><td>Passkey Entry — user types passkey shown on the other device</td></tr>
+          <tr><td><code>ESP_IO_CAP_IO</code></td><td>4</td><td>Keyboard + display</td><td>Numeric Comparison (BLE SC) or Passkey Entry (Legacy)</td></tr>
+          <tr><td><code>ESP_IO_CAP_KBDISP</code></td><td>0</td><td>Keyboard + display (combined)</td><td>Best available — Numeric Comparison preferred</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Pairing method matrix</h3>
+    <p>The Bluetooth spec combines the two sides' IO caps to select the association model:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Initiator ↓ / Responder →</th><th>NoInput/NoOutput</th><th>Display Only</th><th>Display+Keyboard</th><th>Keyboard Only</th></tr></thead>
+        <tbody>
+          <tr><td><strong>NoInput/NoOutput</strong></td><td>Just Works</td><td>Just Works</td><td>Just Works</td><td>Just Works</td></tr>
+          <tr><td><strong>Display Only</strong></td><td>Just Works</td><td>Just Works</td><td>Passkey Entry</td><td>Passkey Entry</td></tr>
+          <tr><td><strong>Display+Keyboard</strong></td><td>Just Works</td><td>Passkey Entry</td><td>Num. Comparison</td><td>Passkey Entry</td></tr>
+          <tr><td><strong>Keyboard Only</strong></td><td>Just Works</td><td>Passkey Entry</td><td>Passkey Entry</td><td>Passkey Entry</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box tip">
+      <div class="box-title">💡 IoT Devices Recommendation</div>
+      <p>For a headless sensor (no display, no keyboard) use <code>ESP_IO_CAP_NONE</code>. This results in "Just Works" pairing — no user interaction, but also no MITM protection. For higher security, use <code>ESP_IO_CAP_OUT</code> with a display (show passkey) or <code>ESP_IO_CAP_IN</code> with a button (fixed passkey entry).</p>
+    </div>
+  </section>
+
+
+  <!-- Security Modes -->
+  <section class="section" id="sec-modes">
+    <div class="section-header">
+      <span class="section-num">22</span>
+      <h2>Security Modes & Levels</h2>
+    </div>
+
+    <p>BLE defines <strong>Security Modes</strong> and within them <strong>Levels</strong> of protection that a characteristic can require:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mode</th><th>Level</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td>Mode 1</td><td>Level 1</td><td>No security (no encryption, no authentication)</td></tr>
+          <tr><td>Mode 1</td><td>Level 2</td><td>Unauthenticated pairing with encryption (Just Works)</td></tr>
+          <tr><td>Mode 1</td><td>Level 3</td><td>Authenticated pairing with encryption (MITM protected)</td></tr>
+          <tr><td>Mode 1</td><td>Level 4</td><td>Authenticated LE SC pairing with encryption (strongest)</td></tr>
+          <tr><td>Mode 2</td><td>Level 1</td><td>Unauthenticated pairing with data signing</td></tr>
+          <tr><td>Mode 2</td><td>Level 2</td><td>Authenticated pairing with data signing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>In ESP-IDF, you enforce a security mode by using <code>ESP_GATT_PERM_READ_ENCRYPTED</code> / <code>ESP_GATT_PERM_WRITE_ENCRYPTED</code> (Level 2) or <code>ESP_GATT_PERM_READ_ENC_MITM</code> / <code>ESP_GATT_PERM_WRITE_ENC_MITM</code> (Level 3) on characteristics.</p>
+  </section>
+
+
+  <!-- Bonding in Code -->
+  <section class="section" id="bonding-code">
+    <div class="section-header">
+      <span class="section-num">23</span>
+      <h2>Implementing Pairing & Bonding in Code</h2>
+    </div>
+
+    <h3>1 — Configure security parameters</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="type">void</span> <span class="fn">setup_ble_security</span>(<span class="type">void</span>)
+{
+    <span class="cmt">/* Authentication requirements */</span>
+    <span class="type">esp_ble_auth_req_t</span> auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;
+    <span class="cmt">/*
+     * ESP_LE_AUTH_NO_BOND          — no bonding, no MITM
+     * ESP_LE_AUTH_BOND             — bond, no MITM (Just Works)
+     * ESP_LE_AUTH_REQ_MITM         — no bond, MITM (passkey)
+     * ESP_LE_AUTH_REQ_SC_ONLY      — LE SC, no bond
+     * ESP_LE_AUTH_REQ_SC_BOND      — LE SC + bond
+     * ESP_LE_AUTH_REQ_SC_MITM      — LE SC + MITM, no bond
+     * ESP_LE_AUTH_REQ_SC_MITM_BOND — LE SC + MITM + bond (strongest)
+     */</span>
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_AUTHEN_REQ_MODE,
+        &auth_req, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+
+    <span class="cmt">/* IO capability of this device */</span>
+    <span class="type">esp_ble_io_cap_t</span> iocap = ESP_IO_CAP_NONE;   <span class="cmt">/* headless device */</span>
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_IOCAP_MODE,
+        &iocap, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+
+    <span class="cmt">/* Key distribution — what keys each side sends */</span>
+    <span class="type">uint8_t</span> init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+    <span class="type">uint8_t</span> rsp_key  = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_SET_INIT_KEY,
+        &init_key, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_SET_RSP_KEY,
+        &rsp_key, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+
+    <span class="cmt">/* Maximum bonded devices to store */</span>
+    <span class="type">uint8_t</span> max_bonds = <span class="num">4</span>;
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_MAX_BOND_DEV_NUM,
+        &max_bonds, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+
+    <span class="cmt">/* Only accept specified security auth */</span>
+    <span class="type">uint8_t</span> only_accept = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_ENABLE;
+    <span class="fn">esp_ble_gap_set_security_param</span>(ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH,
+        &only_accept, <span class="kw">sizeof</span>(<span class="type">uint8_t</span>));
+}</code></pre>
+
+    <h3>2 — Handle security events in GAP callback</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="kw">case</span> ESP_GAP_BLE_SEC_REQ_EVT:
+    <span class="cmt">/* Peer is requesting pairing — accept it */</span>
+    <span class="fn">esp_ble_gap_security_rsp</span>(param->ble_security.ble_req.bd_addr, <span class="kw">true</span>);
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
+    <span class="cmt">/* Display the 6-digit passkey on your display/UART */</span>
+    ESP_LOGI(TAG, <span class="str">"Passkey to enter on peer: %06d"</span>,
+        param->ble_security.key_notif.passkey);
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GAP_BLE_PASSKEY_REQ_EVT:
+    <span class="cmt">/* User has entered the passkey shown on the peer — confirm it */</span>
+    <span class="fn">esp_ble_passkey_reply</span>(
+        param->ble_security.ble_req.bd_addr,
+        <span class="kw">true</span>,
+        <span class="num">123456</span>  <span class="cmt">/* replace with user-entered value */</span>
+    );
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GAP_BLE_NC_REQ_EVT:
+    <span class="cmt">/* Numeric Comparison (LE SC): show number, user confirms yes/no */</span>
+    ESP_LOGI(TAG, <span class="str">"Numeric comparison: %06d"</span>,
+        param->ble_security.key_notif.passkey);
+    <span class="fn">esp_ble_confirm_reply</span>(
+        param->ble_security.ble_req.bd_addr,
+        <span class="kw">true</span>  <span class="cmt">/* true = confirmed; false = rejected */</span>
+    );
+    <span class="kw">break</span>;
+
+<span class="kw">case</span> ESP_GAP_BLE_AUTH_CMPL_EVT:
+    <span class="kw">if</span> (param->ble_security.auth_cmpl.success) {
+        ESP_LOGI(TAG, <span class="str">"Pairing SUCCESS! Auth mode: 0x%02x"</span>,
+            param->ble_security.auth_cmpl.auth_mode);
+    } <span class="kw">else</span> {
+        ESP_LOGE(TAG, <span class="str">"Pairing FAILED! Reason: 0x%02x"</span>,
+            param->ble_security.auth_cmpl.fail_reason);
+    }
+    <span class="kw">break</span>;</code></pre>
+
+    <h3>3 — Initiate security from the server side (optional)</h3>
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="cmt">/* Called when a device connects but hasn't paired yet */</span>
+<span class="kw">case</span> ESP_GATTS_CONNECT_EVT:
+    conn_id_g = param->connect.conn_id;
+    <span class="cmt">/* Ask the stack to start the security/pairing procedure */</span>
+    <span class="fn">esp_ble_set_encryption</span>(param->connect.remote_bda,
+        ESP_BLE_SEC_ENCRYPT_MITM);</code></pre>
+  </section>
+
+
+  <!-- Bond Management -->
+  <section class="section" id="bond-mgmt">
+    <div class="section-header">
+      <span class="section-num">24</span>
+      <h2>Bond Management — Listing and Removing Bonded Devices</h2>
+    </div>
+
+    <pre><div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-lang">c</span></div><code><span class="type">void</span> <span class="fn">list_bonded_devices</span>(<span class="type">void</span>)
+{
+    <span class="type">int</span> dev_num = <span class="fn">esp_ble_get_bond_device_num</span>();
+    ESP_LOGI(TAG, <span class="str">"Bonded devices: %d"</span>, dev_num);
+
+    <span class="type">esp_ble_bond_dev_t</span> *dev_list =
+        (<span class="type">esp_ble_bond_dev_t</span> *)<span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">esp_ble_bond_dev_t</span>) * dev_num);
+    <span class="fn">esp_ble_get_bond_device_list</span>(&dev_num, dev_list);
+
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; dev_num; i++) {
+        ESP_LOGI(TAG, <span class="str">"  [%d]: %02x:%02x:%02x:%02x:%02x:%02x"</span>, i,
+            dev_list[i].bd_addr[<span class="num">0</span>], dev_list[i].bd_addr[<span class="num">1</span>],
+            dev_list[i].bd_addr[<span class="num">2</span>], dev_list[i].bd_addr[<span class="num">3</span>],
+            dev_list[i].bd_addr[<span class="num">4</span>], dev_list[i].bd_addr[<span class="num">5</span>]);
+    }
+    <span class="fn">free</span>(dev_list);
+}
+
+<span class="cmt">/* Remove a specific bonded device */</span>
+<span class="type">void</span> <span class="fn">remove_bond_device</span>(<span class="type">esp_bd_addr_t</span> bda)
+{
+    <span class="fn">esp_ble_remove_bond_device</span>(bda);
+    ESP_LOGI(TAG, <span class="str">"Bond removed"</span>);
+}
+
+<span class="cmt">/* Remove ALL bonded devices (factory reset BLE) */</span>
+<span class="type">void</span> <span class="fn">remove_all_bonds</span>(<span class="type">void</span>)
+{
+    <span class="type">int</span> dev_num = <span class="fn">esp_ble_get_bond_device_num</span>();
+    <span class="type">esp_ble_bond_dev_t</span> *dev_list =
+        (<span class="type">esp_ble_bond_dev_t</span> *)<span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">esp_ble_bond_dev_t</span>) * dev_num);
+    <span class="fn">esp_ble_get_bond_device_list</span>(&dev_num, dev_list);
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; dev_num; i++)
+        <span class="fn">esp_ble_remove_bond_device</span>(dev_list[i].bd_addr);
+    <span class="fn">free</span>(dev_list);
+    ESP_LOGI(TAG, <span class="str">"All bonds removed"</span>);
+}</code></pre>
+
+    <div class="box warn">
+      <div class="box-title">⚠️ NVS must not be erased</div>
+      <p>Bond keys are stored in NVS. Calling <code>nvs_flash_erase()</code> removes all bond data — only do this intentionally during development or factory reset flows.</p>
+    </div>
+
+    <h3>Reconnecting to a bonded device</h3>
+    <p>When a bonded central reconnects, the stack automatically uses the stored LTK to encrypt the link without user interaction. The server should call <code>esp_ble_set_encryption</code> again after <code>ESP_GATTS_CONNECT_EVT</code> to ensure the link re-encrypts using the stored bond.</p>
+  </section>
+
+
+  <!-- Troubleshooting -->
+  <section class="section" id="troubleshoot">
+    <div class="section-header">
+      <span class="section-num">25</span>
+      <h2>Troubleshooting Common Issues</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Device not visible in scanner</td><td>Advertising not started, or wrong channel</td><td>Check <code>ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT</code> fires before <code>esp_ble_gap_start_advertising</code>.</td></tr>
+          <tr><td><code>ESP_ERR_INVALID_STATE</code> on init</td><td>NVS not initialised</td><td>Always call <code>nvs_flash_init()</code> before BT init.</td></tr>
+          <tr><td>No notifications received</td><td>CCCD not written</td><td>Ensure client writes <code>0x0001</code> to CCCD. Check <code>notify_en</code> flag on server.</td></tr>
+          <tr><td>Characteristic handle is 0</td><td>Handle not saved in event</td><td>Save <code>param->add_char.attr_handle</code> in <code>ESP_GATTS_ADD_CHAR_EVT</code>.</td></tr>
+          <tr><td>Pairing fails immediately</td><td>Security param mismatch</td><td>Ensure both sides agree on IO caps. Try <code>ESP_IO_CAP_NONE</code> + <code>ESP_LE_AUTH_BOND</code> first.</td></tr>
+          <tr><td>Heap exhausted / crash</td><td>BLE stack + app too large</td><td>Use <code>esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT)</code>. Use BLE-only controller mode.</td></tr>
+          <tr><td>Long write not working</td><td><code>ESP_GATTS_EXEC_WRITE_EVT</code> not handled</td><td>Implement <code>execute_write_event_env</code> to reassemble and confirm the write.</td></tr>
+          <tr><td>Indication error <code>0x0a</code></td><td>Sent second indication before ACK</td><td>Wait for <code>ESP_GATTS_CONF_EVT</code> before sending the next indication.</td></tr>
+          <tr><td>MTU too small</td><td>Never called <code>esp_ble_gatt_set_local_mtu</code></td><td>Call it early in init with value up to 517.</td></tr>
+          <tr><td>Device appears twice in bond list</td><td>IRK not exchanged (address changes)</td><td>Set <code>ESP_BLE_ID_KEY_MASK</code> in key distribution to exchange IRK.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- Glossary -->
+  <section class="section" id="glossary">
+    <div class="section-header">
+      <span class="section-num">26</span>
+      <h2>Glossary</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ATT</strong></td><td>Attribute Protocol — low-level protocol for reading/writing attributes over a BLE connection.</td></tr>
+          <tr><td><strong>Attribute</strong></td><td>Any piece of data in the GATT database: service declaration, characteristic declaration, value, or descriptor.</td></tr>
+          <tr><td><strong>BDA</strong></td><td>Bluetooth Device Address — 6-byte MAC-like address. Can be public, static random, resolvable private, or non-resolvable private.</td></tr>
+          <tr><td><strong>BLE SC / LESC</strong></td><td>LE Secure Connections — BLE 4.2+ ECDH-based key exchange. Replaces legacy SMP for higher security.</td></tr>
+          <tr><td><strong>CCCD</strong></td><td>Client Characteristic Configuration Descriptor (UUID 0x2902) — written by the client to enable notify (0x0001) or indicate (0x0002).</td></tr>
+          <tr><td><strong>Central</strong></td><td>GAP role that scans and initiates connections. Also the GATT Client role in practice.</td></tr>
+          <tr><td><strong>Characteristic</strong></td><td>A typed data value in a GATT service, with properties (read/write/notify) and an optional set of descriptors.</td></tr>
+          <tr><td><strong>conn_id</strong></td><td>Connection identifier — a number assigned by the stack to each active connection. Required for most GATTS/GATTC API calls.</td></tr>
+          <tr><td><strong>CSRK</strong></td><td>Connection Signature Resolving Key — used for data signing (Security Mode 2).</td></tr>
+          <tr><td><strong>GAP</strong></td><td>Generic Access Profile — governs device discovery, advertising, and connection procedures.</td></tr>
+          <tr><td><strong>gatts_if</strong></td><td>GATTS interface identifier — like a file descriptor for the GATT server instance. Passed to most GATTS API calls.</td></tr>
+          <tr><td><strong>GATT</strong></td><td>Generic Attribute Profile — defines how data is organised and transferred over BLE.</td></tr>
+          <tr><td><strong>Handle</strong></td><td>16-bit number referencing an attribute in the ATT database. Assigned sequentially when services are registered.</td></tr>
+          <tr><td><strong>Indication</strong></td><td>Server-initiated data push that requires a confirmation (ACK) from the client. More reliable than Notification.</td></tr>
+          <tr><td><strong>IRK</strong></td><td>Identity Resolving Key — allows resolution of a peer's randomised private address back to its real identity.</td></tr>
+          <tr><td><strong>Just Works</strong></td><td>Pairing method with no user interaction. Encrypts the link but provides no MITM protection.</td></tr>
+          <tr><td><strong>LTK</strong></td><td>Long-Term Key — the main encryption key. Stored during bonding for re-encryption on subsequent connections.</td></tr>
+          <tr><td><strong>MITM</strong></td><td>Man-in-the-Middle. BLE security level 3+ is MITM-protected, meaning a passive eavesdropper cannot inject data.</td></tr>
+          <tr><td><strong>MTU</strong></td><td>Maximum Transmission Unit — max payload per ATT packet. Default 23 bytes; can be negotiated up to 517 bytes.</td></tr>
+          <tr><td><strong>Notification</strong></td><td>Server-initiated data push with no ACK from client. Fast and low-overhead but delivery not guaranteed.</td></tr>
+          <tr><td><strong>NVS</strong></td><td>Non-Volatile Storage — ESP-IDF key-value store in flash. Used by Bluedroid to persist bonding keys.</td></tr>
+          <tr><td><strong>OOB</strong></td><td>Out-of-Band — pairing using a channel other than BLE (e.g. NFC, QR code) to exchange keys.</td></tr>
+          <tr><td><strong>Passkey</strong></td><td>6-digit number used to confirm pairing identity. One device displays it, the other inputs it.</td></tr>
+          <tr><td><strong>Peripheral</strong></td><td>GAP role that advertises and accepts connections. Also the GATT Server role in practice.</td></tr>
+          <tr><td><strong>Profile</strong></td><td>A collection of services designed to fulfil a specific use case (e.g. Heart Rate Profile).</td></tr>
+          <tr><td><strong>Service</strong></td><td>A logical container for related characteristics, identified by a UUID.</td></tr>
+          <tr><td><strong>SMP</strong></td><td>Security Manager Protocol — the pairing and key exchange protocol in BLE.</td></tr>
+          <tr><td><strong>UUID</strong></td><td>Universally Unique Identifier — 16-bit (SIG-defined) or 128-bit (custom) identifier for services, characteristics, and descriptors.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr>
+
+    <div class="box tip" style="margin-top:2rem;">
+      <div class="box-title">📚 Further Reading</div>
+      <p>Official ESP-IDF BLE examples: <code>$IDF_PATH/examples/bluetooth/bluedroid/ble/</code><br>
+      Bluetooth SIG assigned numbers: <code>https://www.bluetooth.com/specifications/assigned-numbers/</code><br>
+      ESP-IDF API docs: <code>https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/</code></p>
+    </div>
+
+    <div style="padding: 2rem 0 0; color: var(--text3); font-size: 12px; font-family: 'JetBrains Mono', monospace; text-align: center; border-top: 1px solid var(--border); margin-top: 2rem;">
+      ESP-IDF BLE Tutorial · ESP32 Series · Bluedroid Stack · Generated for ESP-IDF v5.x
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-10% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ESP-IDF BLE GATT Configurator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg-dark:   #1a1d23;
+    --bg-mid:    #22262f;
+    --bg-panel:  #2a2e3a;
+    --bg-card:   #303544;
+    --bg-hover:  #373d4e;
+    --accent-blue:  #4a9eff;
+    --accent-green: #3ecf8e;
+    --accent-amber: #f5a623;
+    --accent-red:   #e05c5c;
+    --text-primary: #e8eaf0;
+    --text-sec:     #8b91a1;
+    --text-muted:   #5a6070;
+    --border:       #3a3f50;
+    --sel-bg:       #1e3a5f;
+    --code-bg:      #0d1117;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    height: 50px;
+    flex-shrink: 0;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  #toolbar::-webkit-scrollbar { height: 3px; }
+  #toolbar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .toolbar-title {
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 12px 0 6px;
+    white-space: nowrap;
+    letter-spacing: -0.3px;
+  }
+  .toolbar-title span { opacity: .7; font-size: 18px; margin-right: 6px; }
+  .toolbar-sep {
+    width: 1px; background: var(--border);
+    height: 30px; margin: 0 6px; flex-shrink: 0;
+  }
+  .tbtn {
+    background: var(--bg-card);
+    border: none; border-radius: 4px;
+    padding: 5px 11px;
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.12s, transform 0.08s;
+    flex-shrink: 0;
+  }
+  .tbtn:hover { background: var(--bg-hover); transform: translateY(-1px); }
+  .tbtn:active { transform: translateY(0); }
+  .tbtn.blue   { color: var(--accent-blue); }
+  .tbtn.green  { color: var(--accent-green); }
+  .tbtn.amber  { color: var(--accent-amber); font-weight: 700; }
+  .tbtn.red    { color: var(--accent-red); }
+  .tbtn.muted  { color: var(--text-sec); }
+  .chip-badge {
+    margin-left: auto;
+    color: var(--accent-green);
+    font-size: 11px;
+    white-space: nowrap;
+    padding-right: 8px;
+    flex-shrink: 0;
+  }
+  .chip-badge::before { content: '● '; }
+
+  /* ── MAIN LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .panel-hdr {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    color: var(--accent-blue);
+    font-weight: 600;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ── LEFT PANEL (GATT Tree) ── */
+  #panel-gatt { width: 310px; min-width: 220px; background: var(--bg-dark); }
+
+  #gatt-tree {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-mid);
+    padding: 4px 0;
+  }
+  #gatt-tree::-webkit-scrollbar { width: 6px; }
+  #gatt-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .tree-hdr-row {
+    display: flex;
+    background: var(--bg-panel);
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    border-bottom: 1px solid var(--border);
+    gap: 4px;
+  }
+  .tree-hdr-row .col-name { flex: 1.4; }
+  .tree-hdr-row .col-uuid { flex: 1.2; overflow: hidden; }
+  .tree-hdr-row .col-type { flex: 0.6; text-align: center; }
+
+  .tree-item {
+    display: flex;
+    align-items: center;
+    padding: 5px 8px;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: background 0.1s;
+    user-select: none;
+    gap: 4px;
+  }
+  .tree-item:hover { background: var(--bg-hover); }
+  .tree-item.selected { background: var(--sel-bg); }
+  .tree-item.svc-row { color: var(--accent-blue); font-weight: 600; font-size: 12px; }
+  .tree-item.char-row { color: var(--text-primary); padding-left: 24px; font-size: 12px; }
+  .tree-item.cccd-row { color: var(--text-muted); padding-left: 42px; font-size: 11px; font-style: italic; }
+
+  .tree-item .col-name { flex: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-item .col-uuid { flex: 1.2; color: var(--text-muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-item .col-type { flex: 0.6; text-align: center; font-size: 10px; color: var(--text-sec); }
+  .tree-item.char-row .col-type { color: var(--accent-amber); }
+  .tree-toggle { width: 14px; flex-shrink: 0; font-size: 10px; color: var(--text-muted); text-align: center; }
+
+  .gatt-btn-row {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 4px 6px;
+    gap: 4px;
+  }
+  .mini-btn {
+    background: var(--bg-card);
+    border: none; border-radius: 3px;
+    padding: 4px 10px;
+    font-family: inherit; font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .mini-btn:hover { background: var(--bg-hover); }
+  .mini-btn.blue  { color: var(--accent-blue); }
+  .mini-btn.green { color: var(--accent-green); }
+  .mini-btn.red   { color: var(--accent-red); margin-left: auto; }
+
+  /* ── STATS STRIP ── */
+  #stats-strip {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 4px 12px;
+    gap: 18px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .stat-item { display: flex; align-items: center; gap: 5px; }
+  .stat-label { color: var(--text-muted); }
+  .stat-val { color: var(--accent-blue); font-weight: 700; }
+
+  /* ── CENTER PANEL (Properties) ── */
+  #panel-props { width: 440px; min-width: 320px; background: var(--bg-dark); }
+  #props-body { flex: 1; overflow-y: auto; padding: 12px; }
+  #props-body::-webkit-scrollbar { width: 6px; }
+  #props-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .props-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); gap: 10px;
+    font-size: 13px; text-align: center;
+  }
+  .props-empty .icon { font-size: 40px; opacity: 0.4; }
+
+  /* Form elements */
+  .form-group { margin-bottom: 10px; }
+  .form-label {
+    display: block; font-size: 11px;
+    color: var(--text-sec); margin-bottom: 4px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: inherit; font-size: 12px;
+    padding: 6px 9px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent-blue); }
+  .form-input.error { border-color: var(--accent-red); background: #2a1515; }
+  .form-select { cursor: pointer; }
+  option { background: var(--bg-card); }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: var(--accent-blue); text-transform: uppercase;
+    margin: 14px 0 8px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .cb-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 8px; border-radius: 4px;
+    background: var(--bg-card); cursor: pointer;
+    font-size: 11px; color: var(--text-primary);
+    transition: background 0.1s;
+  }
+  .cb-item:hover { background: var(--bg-hover); }
+  .cb-item input[type=checkbox] { accent-color: var(--accent-blue); width: 13px; height: 13px; cursor: pointer; }
+  .cb-item.has-cccd { grid-column: 1/-1; background: rgba(74,158,255,0.08); border: 1px solid rgba(74,158,255,0.2); }
+
+  .radio-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .rb-item { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; }
+  .rb-item input { accent-color: var(--accent-blue); }
+
+  .value-preview {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--accent-green);
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 32px;
+  }
+  .val-err { font-size: 11px; color: var(--accent-red); margin-top: 3px; min-height: 16px; }
+  .byte-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    color: var(--accent-amber);
+    margin-left: 6px;
+  }
+
+  .apply-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-green);
+    color: #0d1117;
+    border: none; border-radius: 4px;
+    padding: 8px 18px; margin-top: 12px;
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.08s;
+  }
+  .apply-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ── RIGHT PANEL (Settings + Code) ── */
+  #panel-right { flex: 1; background: var(--bg-dark); display: flex; flex-direction: column; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    background: none; border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 20px;
+    font-family: inherit; font-size: 12px;
+    color: var(--text-sec);
+    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; }
+  .tab-content.active { display: flex; flex-direction: column; }
+
+  /* Settings tab */
+  #tab-settings { overflow-y: auto; padding: 16px; }
+  #tab-settings::-webkit-scrollbar { width: 6px; }
+  #tab-settings::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .settings-grid .form-group.full { grid-column: 1/-1; }
+
+  /* Code tab */
+  #tab-code { flex-direction: column; }
+  #code-toolbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 4px 8px; gap: 4px;
+    flex-shrink: 0;
+  }
+  #code-area {
+    flex: 1;
+    background: var(--code-bg);
+    color: #c9d1d9;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 12px;
+    border: none; outline: none;
+    padding: 12px 16px;
+    resize: none;
+    overflow: auto;
+    white-space: pre;
+    tab-size: 4;
+  }
+  #code-area::-webkit-scrollbar { width: 8px; height: 8px; }
+  #code-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── STATUS BAR ── */
+  #statusbar {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 10px; height: 26px;
+    font-size: 11px; flex-shrink: 0;
+  }
+  #status-msg { color: var(--text-sec); flex: 1; }
+  #status-ver { color: var(--text-muted); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 480px; max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: translateY(12px);
+    transition: transform 0.15s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title {
+    padding: 14px 16px;
+    color: var(--accent-blue);
+    font-size: 14px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-body { padding: 14px 16px; }
+  .modal-list {
+    list-style: none;
+    background: var(--bg-mid);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-height: 200px; overflow-y: auto;
+    margin-bottom: 12px;
+  }
+  .modal-list::-webkit-scrollbar { width: 6px; }
+  .modal-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .modal-list li {
+    padding: 7px 12px; cursor: pointer; font-size: 12px;
+    transition: background 0.1s; border-bottom: 1px solid var(--border);
+  }
+  .modal-list li:last-child { border-bottom: none; }
+  .modal-list li:hover { background: var(--bg-hover); }
+  .modal-list li.selected { background: var(--sel-bg); color: var(--text-primary); }
+  .modal-footer {
+    padding: 10px 16px;
+    display: flex; gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-confirm {
+    background: var(--accent-blue);
+    color: #0d1117;
+    border: none; border-radius: 4px;
+    padding: 7px 18px;
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .btn-confirm:hover { opacity: 0.9; }
+  .btn-cancel {
+    background: var(--bg-card);
+    color: var(--text-sec);
+    border: none; border-radius: 4px;
+    padding: 7px 14px;
+    font-family: inherit; font-size: 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .btn-cancel:hover { background: var(--bg-hover); }
+
+  .spinbox-row { display: flex; align-items: center; gap: 6px; }
+  .spinbox {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: inherit; font-size: 12px;
+    padding: 5px 8px;
+    width: 90px;
+    outline: none;
+  }
+  .spinbox:focus { border-color: var(--accent-blue); }
+
+  .alert { padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; }
+  .alert-warn { background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.3); color: var(--accent-amber); }
+
+  /* drag ghost */
+  .dragging { opacity: 0.5; }
+
+  /* Syntax colors in textarea via overlay won't work easily — we style it simply */
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="toolbar-title"><span>⬡</span>ESP-IDF BLE GATT Configurator</div>
+  <div class="toolbar-sep"></div>
+  <button class="tbtn blue"  onclick="showAddServiceModal()">＋ Add Service</button>
+  <button class="tbtn green" onclick="showAddCharModal()">＋ Add Char</button>
+  <button class="tbtn red"   onclick="deleteSelected()">✕ Delete</button>
+  <button class="tbtn muted" onclick="moveUp()">⬆ Move Up</button>
+  <button class="tbtn muted" onclick="moveDown()">⬇ Move Down</button>
+  <div class="toolbar-sep"></div>
+  <button class="tbtn amber" onclick="generateCode()">⚙ Generate main.c</button>
+  <button class="tbtn muted" onclick="saveConfig()">💾 Save Config</button>
+  <button class="tbtn muted" onclick="loadConfig()">📂 Load Config</button>
+  <div class="chip-badge">ESP32  |  IDF v5.x</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT: GATT Tree -->
+  <div class="panel" id="panel-gatt">
+    <div class="panel-hdr">GATT Profile</div>
+    <div id="stats-strip">
+      <div class="stat-item"><span class="stat-label">Services</span><span class="stat-val" id="stat-svcs">0</span></div>
+      <div class="stat-item"><span class="stat-label">Chars</span><span class="stat-val" id="stat-chars">0</span></div>
+      <div class="stat-item"><span class="stat-label">Est. Handles</span><span class="stat-val" id="stat-handles">0</span></div>
+    </div>
+    <div class="tree-hdr-row">
+      <div class="col-name">Name</div>
+      <div class="col-uuid">UUID</div>
+      <div class="col-type">Type</div>
+    </div>
+    <div id="gatt-tree"></div>
+    <div class="gatt-btn-row">
+      <button class="mini-btn blue"  onclick="showAddServiceModal()">＋ Service</button>
+      <button class="mini-btn green" onclick="showAddCharModal()">＋ Char</button>
+      <button class="mini-btn red"   onclick="deleteSelected()">✕ Delete</button>
+    </div>
+  </div>
+
+  <!-- CENTER: Properties -->
+  <div class="panel" id="panel-props">
+    <div class="panel-hdr" id="props-title">Properties</div>
+    <div id="props-body">
+      <div class="props-empty" id="props-empty">
+        <div class="icon">⬡</div>
+        <div>Select a service or characteristic<br>to view and edit its properties.</div>
+      </div>
+      <div id="props-service" style="display:none"></div>
+      <div id="props-char"    style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Settings + Code -->
+  <div id="panel-right">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('settings')">  BLE Settings  </button>
+      <button class="tab-btn"        onclick="switchTab('code')">  Code Preview  </button>
+    </div>
+    <div class="tab-content active" id="tab-settings">
+      <div class="section-label">Advertise Settings</div>
+      <div class="settings-grid">
+        <div class="form-group">
+          <label class="form-label">Device Name</label>
+          <input class="form-input" id="cfg-devname" value="ESP32_BLE"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Appearance (hex)</label>
+          <input class="form-input" id="cfg-appearance" value="0x0000"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adv Interval Min (×0.625ms)</label>
+          <input class="spinbox" id="cfg-adv-min" type="number" min="16" max="16000" step="16" value="160"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adv Interval Max (×0.625ms)</label>
+          <input class="spinbox" id="cfg-adv-max" type="number" min="16" max="16000" step="16" value="320"/>
+        </div>
+      </div>
+      <div class="section-label">Connection Settings</div>
+      <div class="settings-grid">
+        <div class="form-group">
+          <label class="form-label">MTU Size (bytes)</label>
+          <input class="spinbox" id="cfg-mtu" type="number" min="23" max="517" step="1" value="500"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">TX Power Level</label>
+          <select class="form-select" id="cfg-txpower">
+            <option>ESP_PWR_LVL_N12</option><option>ESP_PWR_LVL_N9</option>
+            <option>ESP_PWR_LVL_N6</option><option>ESP_PWR_LVL_N3</option>
+            <option>ESP_PWR_LVL_N0</option><option>ESP_PWR_LVL_P3</option>
+            <option>ESP_PWR_LVL_P6</option><option selected>ESP_PWR_LVL_P9</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Security Mode</label>
+          <select class="form-select" id="cfg-security">
+            <option>None</option><option>No Auth No Encrypt</option>
+            <option>Auth No Encrypt</option><option>Auth With Encrypt</option>
+            <option>Auth MITM Encrypt</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-code">
+      <div id="code-toolbar">
+        <span style="color:var(--text-muted);font-size:11px;flex:1">// ESP-IDF BLE main.c</span>
+        <button class="mini-btn amber" onclick="generateCode()" style="color:var(--accent-amber)">⚙ Generate</button>
+        <button class="mini-btn blue"  onclick="copyCode()"     style="color:var(--accent-blue)">📋 Copy</button>
+        <button class="mini-btn green" onclick="downloadCode()" style="color:var(--accent-green)">💾 Save</button>
+      </div>
+      <textarea id="code-area" readonly spellcheck="false">// Press ⚙ Generate to create your ESP-IDF BLE main.c
+</textarea>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <span id="status-msg">Ready — Add services to get started</span>
+  <span id="status-ver">ESP-IDF BLE Configurator v1.0 | 2025</span>
+</div>
+
+<!-- MODAL: Add Service / Char -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-title" id="modal-add-title">Add BLE Service</div>
+    <div class="modal-body">
+      <div class="form-label" style="margin-bottom:6px">Select standard entry or choose Custom:</div>
+      <ul class="modal-list" id="modal-add-list"></ul>
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input class="form-input" id="modal-add-name" placeholder="My Service"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-confirm" onclick="confirmAdd()">Add</button>
+      <button class="btn-cancel"  onclick="closeModal('modal-add')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Rename -->
+<div class="modal-overlay" id="modal-rename">
+  <div class="modal" style="width:360px">
+    <div class="modal-title" id="modal-rename-title">Rename</div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input class="form-input" id="modal-rename-input"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-confirm" onclick="confirmRename()">Rename</button>
+      <button class="btn-cancel"  onclick="closeModal('modal-rename')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for load -->
+<input type="file" id="file-input" accept=".json" style="display:none" onchange="onFileLoaded(event)"/>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────────
+const STANDARD_SERVICES = {
+  "Generic Access (0x1800)":           "1800",
+  "Generic Attribute (0x1801)":        "1801",
+  "Device Information (0x180A)":       "180A",
+  "Battery Service (0x180F)":          "180F",
+  "Heart Rate (0x180D)":               "180D",
+  "Health Thermometer (0x1809)":       "1809",
+  "Human Interface Device (0x1812)":   "1812",
+  "Nordic UART Service (Custom)":      "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
+  "Custom Service":                    "CUSTOM",
+};
+const STANDARD_CHARS = {
+  "Device Name (0x2A00)":                "2A00",
+  "Appearance (0x2A01)":                 "2A01",
+  "Battery Level (0x2A19)":             "2A19",
+  "Model Number String (0x2A24)":        "2A24",
+  "Serial Number String (0x2A25)":       "2A25",
+  "Firmware Revision String (0x2A26)":   "2A26",
+  "Hardware Revision String (0x2A27)":   "2A27",
+  "Software Revision String (0x2A28)":   "2A28",
+  "Manufacturer Name String (0x2A29)":   "2A29",
+  "Heart Rate Measurement (0x2A37)":     "2A37",
+  "Temperature Measurement (0x2A1C)":    "2A1C",
+  "Nordic UART TX (Custom)":             "6E400002-B5A3-F393-E0A9-E50E24DCCA9E",
+  "Nordic UART RX (Custom)":             "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
+  "Custom Characteristic":               "CUSTOM",
+};
+
+function genUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+    return v.toString(16).toUpperCase();
+  });
+}
+
+function makeSvc(name='New Service', uuidVal='CUSTOM') {
+  return {
+    name, uuid: uuidVal === 'CUSTOM' ? genUUID() : uuidVal,
+    primary: true, characteristics: [], open: true,
+  };
+}
+function makeChar(name='New Characteristic', uuidVal='CUSTOM') {
+  return {
+    name, uuid: uuidVal === 'CUSTOM' ? genUUID() : uuidVal,
+    description: '',
+    prop_read: false, prop_write: false, prop_write_nr: false,
+    prop_notify: false, prop_indicate: false, prop_broadcast: false,
+    perm_read: false, perm_write: false, perm_read_enc: false, perm_write_enc: false,
+    value_type: 'uint8_t', value_len: 1, init_value: '0x00', has_cccd: false,
+  };
+}
+
+const state = {
+  services: [],
+  selected: null,   // {kind:'service'|'char', si, ci?}
+  addMode: null,    // 'service' | 'char'
+  addListData: null,
+  addSelectedKey: null,
+};
+
+// ─────────────────────────────────────────────────
+// STATUS
+// ─────────────────────────────────────────────────
+let _statusTimer = null;
+function setStatus(msg, timeout=4000) {
+  document.getElementById('status-msg').textContent = msg;
+  clearTimeout(_statusTimer);
+  if (timeout) _statusTimer = setTimeout(() => document.getElementById('status-msg').textContent = 'Ready', timeout);
+}
+
+// ─────────────────────────────────────────────────
+// TREE RENDERING
+// ─────────────────────────────────────────────────
+function shortUUID(u) { return u.length > 8 ? u.slice(0,8)+'…' : u; }
+function propStr(ch) {
+  const p=[];
+  if(ch.prop_read) p.push('R');
+  if(ch.prop_write) p.push('W');
+  if(ch.prop_write_nr) p.push('WN');
+  if(ch.prop_notify) p.push('N');
+  if(ch.prop_indicate) p.push('I');
+  return p.join('/') || '—';
+}
+
+function renderTree() {
+  const tree = document.getElementById('gatt-tree');
+  tree.innerHTML = '';
+  let charCount = 0, handleEst = 0;
+
+  state.services.forEach((svc, si) => {
+    charCount += svc.characteristics.length;
+    handleEst += 1 + 2*svc.characteristics.length + svc.characteristics.filter(c=>c.has_cccd).length;
+
+    const svcSel = state.selected?.kind==='service' && state.selected.si===si;
+    const svcRow = document.createElement('div');
+    svcRow.className = 'tree-item svc-row' + (svcSel?' selected':'');
+    svcRow.dataset.si = si;
+    svcRow.innerHTML = `
+      <div class="tree-toggle" onclick="toggleSvc(event,${si})">${svc.open?'▾':'▸'}</div>
+      <div class="col-name">⬡ ${esc(svc.name)}</div>
+      <div class="col-uuid">${shortUUID(svc.uuid)}</div>
+      <div class="col-type">${svc.primary?'Primary':'Secondary'}</div>`;
+    svcRow.addEventListener('click', (e) => { if(!e.target.classList.contains('tree-toggle')) selectService(si); });
+    svcRow.addEventListener('dblclick', () => openRenameModal(si));
+    svcRow.addEventListener('contextmenu', e => { e.preventDefault(); selectService(si); showContextMenu(e, si, null); });
+    tree.appendChild(svcRow);
+
+    if (svc.open) {
+      svc.characteristics.forEach((ch, ci) => {
+        const chSel = state.selected?.kind==='char' && state.selected.si===si && state.selected.ci===ci;
+        const chRow = document.createElement('div');
+        chRow.className = 'tree-item char-row' + (chSel?' selected':'');
+        chRow.dataset.si = si; chRow.dataset.ci = ci;
+        chRow.innerHTML = `
+          <div class="col-name">◈ ${esc(ch.name)}</div>
+          <div class="col-uuid">${shortUUID(ch.uuid)}</div>
+          <div class="col-type">${propStr(ch)}</div>`;
+        chRow.addEventListener('click', () => selectChar(si, ci));
+        chRow.addEventListener('dblclick', () => openRenameModal(si, ci));
+        chRow.addEventListener('contextmenu', e => { e.preventDefault(); selectChar(si, ci); showContextMenu(e, si, ci); });
+        tree.appendChild(chRow);
+
+        if (ch.has_cccd) {
+          const cRow = document.createElement('div');
+          cRow.className = 'tree-item cccd-row';
+          cRow.innerHTML = `
+            <div class="col-name">▸ CCCD</div>
+            <div class="col-uuid">0x2902</div>
+            <div class="col-type">Desc</div>`;
+          tree.appendChild(cRow);
+        }
+      });
+    }
+  });
+
+  document.getElementById('stat-svcs').textContent = state.services.length;
+  document.getElementById('stat-chars').textContent = charCount;
+  document.getElementById('stat-handles').textContent = handleEst;
+}
+
+function toggleSvc(e, si) {
+  e.stopPropagation();
+  state.services[si].open = !state.services[si].open;
+  renderTree();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─────────────────────────────────────────────────
+// SELECTION + PROPERTIES PANEL
+// ─────────────────────────────────────────────────
+function selectService(si) {
+  state.selected = { kind:'service', si };
+  renderTree();
+  showServiceProps(si);
+}
+function selectChar(si, ci) {
+  state.selected = { kind:'char', si, ci };
+  renderTree();
+  showCharProps(si, ci);
+}
+function clearSelection() {
+  state.selected = null;
+  renderTree();
+  showPanel('empty');
+  document.getElementById('props-title').textContent = 'Properties';
+}
+
+function showPanel(which) {
+  document.getElementById('props-empty').style.display   = which==='empty'   ? 'flex' : 'none';
+  document.getElementById('props-service').style.display = which==='service' ? 'block' : 'none';
+  document.getElementById('props-char').style.display    = which==='char'    ? 'block' : 'none';
+}
+
+// ── SERVICE PROPS ──
+function showServiceProps(si) {
+  const svc = state.services[si];
+  document.getElementById('props-title').textContent = `Service: ${svc.name}`;
+  const el = document.getElementById('props-service');
+  el.innerHTML = `
+    <div class="section-label">Service Identity</div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="sp-name" value="${esc(svc.name)}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">UUID</label>
+      <input class="form-input" id="sp-uuid" value="${esc(svc.uuid)}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Service Type</label>
+      <div class="radio-row">
+        <label class="rb-item"><input type="radio" name="sp-primary" value="1" ${svc.primary?'checked':''}> Primary</label>
+        <label class="rb-item"><input type="radio" name="sp-primary" value="0" ${!svc.primary?'checked':''}> Secondary</label>
+      </div>
+    </div>
+    <button class="apply-btn" onclick="applyServiceProps(${si})">✓ Apply Changes</button>
+  `;
+  showPanel('service');
+}
+
+function applyServiceProps(si) {
+  const svc = state.services[si];
+  const newUUID = document.getElementById('sp-uuid').value.trim();
+  const compact = newUUID.replace(/-/g,'').replace(/0x/gi,'').replace(/[{}]/g,'').toUpperCase();
+  if (!/^[0-9A-F]+$/.test(compact) || ![4,8,32].includes(compact.length)) {
+    alert('Service UUID must be a 16-bit (4 hex), 32-bit (8 hex), or 128-bit (32 hex) BLE UUID.');
+    return;
+  }
+  svc.name = document.getElementById('sp-name').value;
+  svc.uuid = newUUID;
+  svc.primary = document.querySelector('input[name="sp-primary"]:checked')?.value === '1';
+  renderTree();
+  showServiceProps(si);
+  setStatus(`Service '${svc.name}' updated.`);
+}
+
+// ── CHAR PROPS ──
+function showCharProps(si, ci) {
+  const ch = state.services[si].characteristics[ci];
+  document.getElementById('props-title').textContent = `Char: ${ch.name}`;
+  const types = ['uint8_t','uint16_t','uint32_t','int8_t','int16_t','int32_t','char[]','uint8_t[]','float','double'];
+  const typeOpts = types.map(t=>`<option${t===ch.value_type?' selected':''}>${t}</option>`).join('');
+
+  const el = document.getElementById('props-char');
+  el.innerHTML = `
+    <div class="section-label">Characteristic Identity</div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="cp-name" value="${esc(ch.name)}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">UUID</label>
+      <input class="form-input" id="cp-uuid" value="${esc(ch.uuid)}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="cp-desc" value="${esc(ch.description)}"/>
+    </div>
+
+    <div class="section-label">Properties</div>
+    <div class="checkbox-grid">
+      <label class="cb-item"><input type="checkbox" id="pp-read"     ${ch.prop_read?'checked':''}    onchange="onPropChange()"> Read</label>
+      <label class="cb-item"><input type="checkbox" id="pp-write"    ${ch.prop_write?'checked':''}   onchange="onPropChange()"> Write</label>
+      <label class="cb-item"><input type="checkbox" id="pp-write_nr" ${ch.prop_write_nr?'checked':''} onchange="onPropChange()"> Write No Resp</label>
+      <label class="cb-item"><input type="checkbox" id="pp-notify"   ${ch.prop_notify?'checked':''}  onchange="onPropChange()"> Notify</label>
+      <label class="cb-item"><input type="checkbox" id="pp-indicate" ${ch.prop_indicate?'checked':''} onchange="onPropChange()"> Indicate</label>
+      <label class="cb-item"><input type="checkbox" id="pp-broadcast"${ch.prop_broadcast?'checked':''} onchange="onPropChange()"> Broadcast</label>
+    </div>
+
+    <div class="section-label">Permissions</div>
+    <div class="checkbox-grid">
+      <label class="cb-item"><input type="checkbox" id="pm-read"      ${ch.perm_read?'checked':''}> Perm Read</label>
+      <label class="cb-item"><input type="checkbox" id="pm-write"     ${ch.perm_write?'checked':''}> Perm Write</label>
+      <label class="cb-item"><input type="checkbox" id="pm-read_enc"  ${ch.perm_read_enc?'checked':''}> Read Encrypted</label>
+      <label class="cb-item"><input type="checkbox" id="pm-write_enc" ${ch.perm_write_enc?'checked':''}> Write Encrypted</label>
+    </div>
+
+    <div class="section-label">Value</div>
+    <div class="form-group">
+      <label class="form-label">Data Type</label>
+      <select class="form-select" id="cp-vtype" onchange="onValueChange()">${typeOpts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Input Format</label>
+      <div class="radio-row">
+        <label class="rb-item"><input type="radio" name="val-fmt" value="hex" checked onchange="onValueChange()"> Hex</label>
+        <label class="rb-item"><input type="radio" name="val-fmt" value="dec" onchange="onValueChange()"> Decimal</label>
+        <label class="rb-item"><input type="radio" name="val-fmt" value="str" onchange="onValueChange()"> String</label>
+        <label class="rb-item"><input type="radio" name="val-fmt" value="bin" onchange="onValueChange()"> Binary</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Initial Value <span class="byte-badge" id="byte-badge">1 byte</span></label>
+      <input class="form-input" id="cp-vinit" value="${esc(ch.init_value)}" oninput="onValueChange()"/>
+      <div class="val-err" id="val-err"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">C Initialiser Preview</label>
+      <div class="value-preview" id="val-preview">{0x00}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Max Length (bytes)</label>
+      <input class="spinbox" id="cp-vlen" type="number" min="1" max="512" value="${ch.value_len}"/>
+      <span style="font-size:11px;color:var(--text-muted)" id="len-auto-lbl">← auto from value</span>
+    </div>
+
+    <div class="checkbox-grid" style="margin-top:10px">
+      <label class="cb-item has-cccd"><input type="checkbox" id="cp-cccd" ${ch.has_cccd?'checked':''} onchange="onPropChange()"> Add CCCD Descriptor (required for Notify/Indicate)</label>
+    </div>
+
+    <button class="apply-btn" onclick="applyCharProps(${si},${ci})">✓ Apply Changes</button>
+  `;
+  showPanel('char');
+  onValueChange();
+}
+
+function onPropChange() {
+  const notify   = document.getElementById('pp-notify')?.checked;
+  const indicate = document.getElementById('pp-indicate')?.checked;
+  if (notify || indicate) {
+    const cccd = document.getElementById('cp-cccd');
+    if (cccd) cccd.checked = true;
+  }
+  const read  = document.getElementById('pp-read')?.checked;
+  const write = document.getElementById('pp-write')?.checked || document.getElementById('pp-write_nr')?.checked;
+  const pr = document.getElementById('pm-read');
+  const pw = document.getElementById('pm-write');
+  if (pr) pr.checked = read;
+  if (pw) pw.checked = write;
+
+  if (state.selected?.kind === 'char') {
+    const {si, ci} = state.selected;
+    const ch = state.services[si]?.characteristics[ci];
+    if (ch) {
+      ch.prop_read      = !!document.getElementById('pp-read')?.checked;
+      ch.prop_write     = !!document.getElementById('pp-write')?.checked;
+      ch.prop_write_nr  = !!document.getElementById('pp-write_nr')?.checked;
+      ch.prop_notify    = !!document.getElementById('pp-notify')?.checked;
+      ch.prop_indicate  = !!document.getElementById('pp-indicate')?.checked;
+      ch.prop_broadcast = !!document.getElementById('pp-broadcast')?.checked;
+      ch.perm_read      = !!document.getElementById('pm-read')?.checked;
+      ch.perm_write     = !!document.getElementById('pm-write')?.checked;
+      ch.has_cccd       = !!document.getElementById('cp-cccd')?.checked || ch.prop_notify || ch.prop_indicate;
+      renderTree();
+    }
+  }
+}
+
+function parseInitValue() {
+  const raw  = (document.getElementById('cp-vinit')?.value || '').trim();
+  const fmt  = document.querySelector('input[name="val-fmt"]:checked')?.value || 'hex';
+  if (!raw) return { bytes:[0x00], err:'' };
+  try {
+    if (fmt === 'hex') {
+      const tokens = raw.replace(/,/g,' ').split(/\s+/);
+      const result = [];
+      for (let t of tokens) {
+        t = t.trim();
+        if (t.toLowerCase().startsWith('0x')) t = t.slice(2);
+        if (!t) continue;
+        if (t.length % 2 !== 0) t = '0' + t;
+        for (let i=0; i<t.length; i+=2) result.push(parseInt(t.slice(i,i+2),16));
+      }
+      if (result.some(isNaN)) return { bytes:[0], err:'Invalid hex byte.' };
+      return { bytes: result.length ? result : [0x00], err:'' };
+    }
+    if (fmt === 'dec') {
+      const tokens = raw.replace(/,/g,' ').split(/\s+/).filter(Boolean);
+      const result = tokens.map(Number);
+      if (result.some(v=>isNaN(v)||v<0||v>255)) return {bytes:[0],err:'Decimal values must be 0–255.'};
+      return { bytes: result.length ? result : [0x00], err:'' };
+    }
+    if (fmt === 'str') {
+      const enc = new TextEncoder().encode(raw);
+      return { bytes: [...enc], err:'' };
+    }
+    if (fmt === 'bin') {
+      const clean = raw.replace(/[,\s]/g,'');
+      if (!/^[01]+$/.test(clean)) return {bytes:[0],err:'Binary must only contain 0 and 1.'};
+      const padded = clean.padStart(Math.ceil(clean.length/8)*8,'0');
+      const result = [];
+      for (let i=0;i<padded.length;i+=8) result.push(parseInt(padded.slice(i,i+8),2));
+      return { bytes: result, err:'' };
+    }
+  } catch(e) { return {bytes:[0],err:String(e)}; }
+  return {bytes:[0x00],err:''};
+}
+
+function onValueChange() {
+  const {bytes, err} = parseInitValue();
+  const errEl = document.getElementById('val-err');
+  const initEl = document.getElementById('cp-vinit');
+  const badge = document.getElementById('byte-badge');
+  const preview = document.getElementById('val-preview');
+  const lenSpin = document.getElementById('cp-vlen');
+  const lenLbl = document.getElementById('len-auto-lbl');
+
+  if (errEl) errEl.textContent = err;
+  if (initEl) initEl.classList.toggle('error', !!err);
+
+  const n = bytes.length;
+  if (badge) badge.textContent = `${n} byte${n!==1?'s':''}`;
+
+  if (lenSpin && !err) {
+    const cur = parseInt(lenSpin.value)||1;
+    if (n > cur) {
+      lenSpin.value = n;
+      if (lenLbl) lenLbl.style.color = 'var(--accent-amber)';
+    } else {
+      if (lenLbl) lenLbl.style.color = 'var(--text-muted)';
+    }
+  }
+
+  if (!preview) return;
+  if (err) { preview.textContent = '{  /* invalid input */  }'; return; }
+
+  const vtype = document.getElementById('cp-vtype')?.value || 'uint8_t';
+  let prev;
+  if (vtype === 'float' || vtype === 'double') {
+    prev = '/* set at runtime */';
+  } else if (vtype === 'char[]') {
+    try { prev = `"${new TextDecoder().decode(new Uint8Array(bytes)).replace(/\\/g,'\\\\').replace(/"/g,'\\"')}"`;} catch { prev = '{' + bytes.map(b=>`0x${b.toString(16).padStart(2,'0').toUpperCase()}`).join(', ') + '}'; }
+  } else {
+    prev = '{' + bytes.map(b=>`0x${b.toString(16).padStart(2,'0').toUpperCase()}`).join(', ') + '}';
+  }
+  if (prev.length > 40) {
+    const parts = prev.replace(/^{|}$/g,'').split(', ');
+    const rows = []; let row = [], w = 0;
+    for (const p of parts) {
+      w += p.length + 2; row.push(p);
+      if (w >= 36) { rows.push(row.join(', ')); row=[]; w=0; }
+    }
+    if (row.length) rows.push(row.join(', '));
+    prev = '{\n  ' + rows.join(',\n  ') + '\n}';
+  }
+  preview.textContent = prev;
+}
+
+function applyCharProps(si, ci) {
+  const ch = state.services[si].characteristics[ci];
+  const {bytes, err} = parseInitValue();
+  if (err) { alert(`Could not parse the initial value:\n${err}`); return; }
+
+  const newUUID = document.getElementById('cp-uuid')?.value.trim() || ch.uuid;
+  const compact = newUUID.replace(/-/g,'').replace(/0x/gi,'').replace(/[{}]/g,'').toUpperCase();
+  if (!/^[0-9A-F]+$/.test(compact) || ![4,8,32].includes(compact.length)) {
+    alert('Characteristic UUID must be a 16-bit (4 hex), 32-bit (8 hex), or 128-bit (32 hex) BLE UUID.');
+    return;
+  }
+
+  const vlen = parseInt(document.getElementById('cp-vlen')?.value || 1);
+  if (isNaN(vlen) || vlen < 1 || vlen > 512) { alert('Max Len must be between 1 and 512 bytes.'); return; }
+  if (bytes.length > vlen) { alert(`Initial value is ${bytes.length} bytes but Max Length is ${vlen}.\nIncrease Max Length or shorten the initial value.`); return; }
+
+  ch.name         = document.getElementById('cp-name')?.value || ch.name;
+  ch.uuid         = newUUID;
+  ch.description  = document.getElementById('cp-desc')?.value || '';
+  ch.prop_read      = !!document.getElementById('pp-read')?.checked;
+  ch.prop_write     = !!document.getElementById('pp-write')?.checked;
+  ch.prop_write_nr  = !!document.getElementById('pp-write_nr')?.checked;
+  ch.prop_notify    = !!document.getElementById('pp-notify')?.checked;
+  ch.prop_indicate  = !!document.getElementById('pp-indicate')?.checked;
+  ch.prop_broadcast = !!document.getElementById('pp-broadcast')?.checked;
+  ch.perm_read      = !!document.getElementById('pm-read')?.checked;
+  ch.perm_write     = !!document.getElementById('pm-write')?.checked;
+  ch.perm_read_enc  = !!document.getElementById('pm-read_enc')?.checked;
+  ch.perm_write_enc = !!document.getElementById('pm-write_enc')?.checked;
+  ch.value_type   = document.getElementById('cp-vtype')?.value || ch.value_type;
+  ch.value_len    = vlen;
+  ch.init_value   = bytes.map(b=>`0x${b.toString(16).padStart(2,'0').toUpperCase()}`).join(', ');
+  ch.has_cccd     = !!document.getElementById('cp-cccd')?.checked || ch.prop_notify || ch.prop_indicate;
+
+  renderTree();
+  showCharProps(si, ci);
+  setStatus(`Characteristic '${ch.name}' updated.`);
+}
+
+function syncSelectedPropsBeforeGenerate() {
+  if (!state.selected) return true;
+
+  if (state.selected.kind === 'service' && document.getElementById('props-service').style.display !== 'none') {
+    const {si} = state.selected;
+    const svc = state.services[si];
+    if (!svc) return true;
+    const newUUID = document.getElementById('sp-uuid')?.value.trim() || svc.uuid;
+    const compact = newUUID.replace(/-/g,'').replace(/0x/gi,'').replace(/[{}]/g,'').toUpperCase();
+    if (!/^[0-9A-F]+$/.test(compact) || ![4,8,32].includes(compact.length)) {
+      alert('Service UUID must be a 16-bit (4 hex), 32-bit (8 hex), or 128-bit (32 hex) BLE UUID.');
+      return false;
+    }
+    svc.name = document.getElementById('sp-name')?.value || svc.name;
+    svc.uuid = newUUID;
+    svc.primary = document.querySelector('input[name="sp-primary"]:checked')?.value === '1';
+    return true;
+  }
+
+  if (state.selected.kind === 'char' && document.getElementById('props-char').style.display !== 'none') {
+    const {si, ci} = state.selected;
+    const ch = state.services[si]?.characteristics[ci];
+    if (!ch) return true;
+    const {bytes, err} = parseInitValue();
+    if (err) { alert(`Could not parse the initial value:\n${err}`); return false; }
+
+    const newUUID = document.getElementById('cp-uuid')?.value.trim() || ch.uuid;
+    const compact = newUUID.replace(/-/g,'').replace(/0x/gi,'').replace(/[{}]/g,'').toUpperCase();
+    if (!/^[0-9A-F]+$/.test(compact) || ![4,8,32].includes(compact.length)) {
+      alert('Characteristic UUID must be a 16-bit (4 hex), 32-bit (8 hex), or 128-bit (32 hex) BLE UUID.');
+      return false;
+    }
+
+    const vlen = parseInt(document.getElementById('cp-vlen')?.value || 1);
+    if (isNaN(vlen) || vlen < 1 || vlen > 512) { alert('Max Len must be between 1 and 512 bytes.'); return false; }
+    if (bytes.length > vlen) { alert(`Initial value is ${bytes.length} bytes but Max Length is ${vlen}.`); return false; }
+
+    ch.name         = document.getElementById('cp-name')?.value || ch.name;
+    ch.uuid         = newUUID;
+    ch.description  = document.getElementById('cp-desc')?.value || '';
+    ch.prop_read      = !!document.getElementById('pp-read')?.checked;
+    ch.prop_write     = !!document.getElementById('pp-write')?.checked;
+    ch.prop_write_nr  = !!document.getElementById('pp-write_nr')?.checked;
+    ch.prop_notify    = !!document.getElementById('pp-notify')?.checked;
+    ch.prop_indicate  = !!document.getElementById('pp-indicate')?.checked;
+    ch.prop_broadcast = !!document.getElementById('pp-broadcast')?.checked;
+    ch.perm_read      = !!document.getElementById('pm-read')?.checked;
+    ch.perm_write     = !!document.getElementById('pm-write')?.checked;
+    ch.perm_read_enc  = !!document.getElementById('pm-read_enc')?.checked;
+    ch.perm_write_enc = !!document.getElementById('pm-write_enc')?.checked;
+    ch.value_type   = document.getElementById('cp-vtype')?.value || ch.value_type;
+    ch.value_len    = vlen;
+    ch.init_value   = bytes.map(b=>`0x${b.toString(16).padStart(2,'0').toUpperCase()}`).join(', ');
+    ch.has_cccd     = !!document.getElementById('cp-cccd')?.checked || ch.prop_notify || ch.prop_indicate;
+  }
+  return true;
+}
+
+// ─────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['settings','code'][i]===name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ─────────────────────────────────────────────────
+// ADD SERVICE / CHAR MODALS
+// ─────────────────────────────────────────────────
+function showAddServiceModal() {
+  state.addMode = 'service';
+  state.addListData = STANDARD_SERVICES;
+  document.getElementById('modal-add-title').textContent = 'Add BLE Service';
+  document.getElementById('modal-add-name').placeholder = 'My Service';
+  document.getElementById('modal-add-name').value = '';
+  const list = document.getElementById('modal-add-list');
+  list.innerHTML = '';
+  const keys = Object.keys(STANDARD_SERVICES);
+  keys.forEach((k, i) => {
+    const li = document.createElement('li');
+    li.textContent = k;
+    li.dataset.key = k;
+    if (i === keys.length-1) { li.classList.add('selected'); state.addSelectedKey = k; }
+    li.onclick = () => {
+      list.querySelectorAll('li').forEach(x=>x.classList.remove('selected'));
+      li.classList.add('selected');
+      state.addSelectedKey = k;
+      if (k !== 'Custom Service') {
+        document.getElementById('modal-add-name').value = k.replace(/\s*\(0x[0-9A-Fa-f]+\)/,'').trim();
+      }
+    };
+    list.appendChild(li);
+  });
+  openModal('modal-add');
+  document.getElementById('modal-add-name').focus();
+}
+
+function showAddCharModal() {
+  let si = null;
+  if (state.selected?.kind === 'service') si = state.selected.si;
+  else if (state.selected?.kind === 'char') si = state.selected.si;
+  else if (state.services.length > 0) si = 0;
+  if (si === null) { alert('Please add a service first before adding characteristics.'); return; }
+  state.addMode = 'char';
+  state.addMode_si = si;
+  state.addListData = STANDARD_CHARS;
+  document.getElementById('modal-add-title').textContent = 'Add Characteristic';
+  document.getElementById('modal-add-name').placeholder = 'My Characteristic';
+  document.getElementById('modal-add-name').value = '';
+  const list = document.getElementById('modal-add-list');
+  list.innerHTML = '';
+  const keys = Object.keys(STANDARD_CHARS);
+  keys.forEach((k, i) => {
+    const li = document.createElement('li');
+    li.textContent = k;
+    li.dataset.key = k;
+    if (i === keys.length-1) { li.classList.add('selected'); state.addSelectedKey = k; }
+    li.onclick = () => {
+      list.querySelectorAll('li').forEach(x=>x.classList.remove('selected'));
+      li.classList.add('selected');
+      state.addSelectedKey = k;
+      if (k !== 'Custom Characteristic') {
+        document.getElementById('modal-add-name').value = k.replace(/\s*\(0x[0-9A-Fa-f]+\)/,'').trim();
+      }
+    };
+    list.appendChild(li);
+  });
+  openModal('modal-add');
+  document.getElementById('modal-add-name').focus();
+}
+
+function confirmAdd() {
+  const name = document.getElementById('modal-add-name').value.trim() || (state.addMode==='service'?'My Service':'My Characteristic');
+  const key  = state.addSelectedKey || (state.addMode==='service'?'Custom Service':'Custom Characteristic');
+  const uuidVal = (state.addListData||{})[key] || 'CUSTOM';
+  if (state.addMode === 'service') {
+    state.services.push(makeSvc(name, uuidVal));
+    renderTree();
+    setStatus(`Service '${name}' added.`);
+  } else {
+    const si = state.addMode_si ?? 0;
+    state.services[si].characteristics.push(makeChar(name, uuidVal));
+    renderTree();
+    setStatus(`Characteristic '${name}' added.`);
+  }
+  closeModal('modal-add');
+}
+
+// ─────────────────────────────────────────────────
+// RENAME MODAL
+// ─────────────────────────────────────────────────
+function openRenameModal(si, ci) {
+  const isSvc = ci === undefined;
+  document.getElementById('modal-rename-title').textContent = isSvc ? 'Rename Service' : 'Rename Characteristic';
+  const current = isSvc ? state.services[si].name : state.services[si].characteristics[ci].name;
+  const inp = document.getElementById('modal-rename-input');
+  inp.value = current;
+  state._renaming = {si, ci};
+  openModal('modal-rename');
+  inp.focus(); inp.select();
+}
+function confirmRename() {
+  const {si, ci} = state._renaming || {};
+  const val = document.getElementById('modal-rename-input').value.trim();
+  if (!val) return;
+  if (ci === undefined || ci === null) {
+    state.services[si].name = val;
+  } else {
+    state.services[si].characteristics[ci].name = val;
+  }
+  renderTree();
+  if (state.selected?.kind==='service' && state.selected.si===si) showServiceProps(si);
+  if (state.selected?.kind==='char' && state.selected.si===si && state.selected.ci===ci) showCharProps(si,ci);
+  closeModal('modal-rename');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─────────────────────────────────────────────────
+// DELETE / MOVE
+// ─────────────────────────────────────────────────
+function deleteSelected() {
+  if (!state.selected) return;
+  if (state.selected.kind === 'service') {
+    const {si} = state.selected;
+    const name = state.services[si].name;
+    if (confirm(`Delete service '${name}' and all its characteristics?`)) {
+      state.services.splice(si, 1);
+      clearSelection();
+      renderTree();
+      setStatus(`Service '${name}' deleted.`);
+    }
+  } else {
+    const {si, ci} = state.selected;
+    const name = state.services[si].characteristics[ci].name;
+    if (confirm(`Delete characteristic '${name}'?`)) {
+      state.services[si].characteristics.splice(ci, 1);
+      clearSelection();
+      renderTree();
+      setStatus(`Characteristic '${name}' deleted.`);
+    }
+  }
+}
+
+function moveUp() {
+  if (!state.selected) return;
+  if (state.selected.kind === 'service') {
+    const {si} = state.selected;
+    if (si > 0) {
+      [state.services[si-1], state.services[si]] = [state.services[si], state.services[si-1]];
+      state.selected.si = si-1;
+      renderTree();
+    }
+  } else {
+    const {si, ci} = state.selected;
+    if (ci > 0) {
+      const chars = state.services[si].characteristics;
+      [chars[ci-1], chars[ci]] = [chars[ci], chars[ci-1]];
+      state.selected.ci = ci-1;
+      renderTree();
+    }
+  }
+}
+
+function moveDown() {
+  if (!state.selected) return;
+  if (state.selected.kind === 'service') {
+    const {si} = state.selected;
+    if (si < state.services.length-1) {
+      [state.services[si], state.services[si+1]] = [state.services[si+1], state.services[si]];
+      state.selected.si = si+1;
+      renderTree();
+    }
+  } else {
+    const {si, ci} = state.selected;
+    const chars = state.services[si].characteristics;
+    if (ci < chars.length-1) {
+      [chars[ci], chars[ci+1]] = [chars[ci+1], chars[ci]];
+      state.selected.ci = ci+1;
+      renderTree();
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────
+// CONTEXT MENU
+// ─────────────────────────────────────────────────
+let _ctxMenu = null;
+function showContextMenu(e, si, ci) {
+  removeContextMenu();
+  const menu = document.createElement('div');
+  menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;
+    background:var(--bg-card);border:1px solid var(--border);border-radius:5px;
+    z-index:200;min-width:160px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);`;
+  const items = [
+    ['＋ Add Service', () => showAddServiceModal()],
+    ['＋ Add Characteristic', () => showAddCharModal()],
+    null,
+    ['✎ Rename', () => openRenameModal(si, ci===null?undefined:ci)],
+    ['✕ Delete', () => deleteSelected()],
+  ];
+  for (const item of items) {
+    if (!item) { const hr=document.createElement('div'); hr.style.cssText='height:1px;background:var(--border);margin:2px 0'; menu.appendChild(hr); continue; }
+    const [label, fn] = item;
+    const d = document.createElement('div');
+    d.textContent = label;
+    d.style.cssText = 'padding:7px 14px;cursor:pointer;color:var(--text-primary);transition:background 0.1s';
+    d.onmouseenter = () => d.style.background = 'var(--bg-hover)';
+    d.onmouseleave = () => d.style.background = '';
+    d.onclick = () => { fn(); removeContextMenu(); };
+    menu.appendChild(d);
+  }
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', removeContextMenu, {once:true}), 0);
+}
+function removeContextMenu() { if (_ctxMenu) { _ctxMenu.remove(); _ctxMenu=null; } }
+
+// ─────────────────────────────────────────────────
+// SAVE / LOAD CONFIG
+// ─────────────────────────────────────────────────
+function saveConfig() {
+  const data = {
+    device_name:      document.getElementById('cfg-devname').value,
+    adv_interval_min: +document.getElementById('cfg-adv-min').value,
+    adv_interval_max: +document.getElementById('cfg-adv-max').value,
+    tx_power:         document.getElementById('cfg-txpower').value,
+    appearance:       document.getElementById('cfg-appearance').value,
+    mtu:              +document.getElementById('cfg-mtu').value,
+    security_mode:    document.getElementById('cfg-security').value,
+    services: state.services.map(svc => ({
+      name: svc.name, uuid: svc.uuid, primary: svc.primary,
+      characteristics: svc.characteristics.map(ch => ({
+        name: ch.name, uuid: ch.uuid, description: ch.description,
+        prop_read: ch.prop_read, prop_write: ch.prop_write, prop_write_nr: ch.prop_write_nr,
+        prop_notify: ch.prop_notify, prop_indicate: ch.prop_indicate, prop_broadcast: ch.prop_broadcast,
+        perm_read: ch.perm_read, perm_write: ch.perm_write,
+        perm_read_enc: ch.perm_read_enc, perm_write_enc: ch.perm_write_enc,
+        value_type: ch.value_type, value_len: ch.value_len,
+        init_value: ch.init_value, has_cccd: ch.has_cccd,
+      }))
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'ble_config.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  setStatus('Config saved.');
+}
+
+function loadConfig() { document.getElementById('file-input').click(); }
+
+function onFileLoaded(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      document.getElementById('cfg-devname').value    = data.device_name || 'ESP32_BLE';
+      document.getElementById('cfg-adv-min').value   = data.adv_interval_min || 160;
+      document.getElementById('cfg-adv-max').value   = data.adv_interval_max || 320;
+      document.getElementById('cfg-txpower').value   = data.tx_power || 'ESP_PWR_LVL_P9';
+      document.getElementById('cfg-appearance').value= data.appearance || '0x0000';
+      document.getElementById('cfg-mtu').value       = data.mtu || 500;
+      document.getElementById('cfg-security').value  = data.security_mode || 'None';
+      state.services = (data.services||[]).map(sd => {
+        const svc = makeSvc(sd.name||'New Service', sd.uuid||genUUID());
+        svc.primary = sd.primary !== false;
+        svc.characteristics = (sd.characteristics||[]).map(cd => {
+          const ch = makeChar(cd.name||'New Characteristic', cd.uuid||genUUID());
+          Object.assign(ch, {
+            description: cd.description||'',
+            prop_read: !!cd.prop_read, prop_write: !!cd.prop_write,
+            prop_write_nr: !!cd.prop_write_nr, prop_notify: !!cd.prop_notify,
+            prop_indicate: !!cd.prop_indicate, prop_broadcast: !!cd.prop_broadcast,
+            perm_read: !!cd.perm_read, perm_write: !!cd.perm_write,
+            perm_read_enc: !!cd.perm_read_enc, perm_write_enc: !!cd.perm_write_enc,
+            value_type: cd.value_type||'uint8_t', value_len: cd.value_len||1,
+            init_value: cd.init_value||'0x00', has_cccd: !!cd.has_cccd,
+          });
+          return ch;
+        });
+        return svc;
+      });
+      clearSelection();
+      renderTree();
+      setStatus(`Config loaded from ${file.name}`);
+    } catch(err) { alert('Could not load configuration:\n'+err); }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────────────
+// CODE GENERATION
+// ─────────────────────────────────────────────────
+function cString(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+function cComment(value) {
+  return String(value).replace(/\/\*/g, '/ *').replace(/\*\//g, '* /').replace(/\r?\n/g, ' ');
+}
+
+function cIdent(value, fallback) {
+  let ident = String(value).trim().replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+  if (!ident) ident = fallback;
+  if (/^[0-9]/.test(ident)) ident = `${fallback}_${ident}`;
+  return ident;
+}
+
+function compactUUID(value, label) {
+  const compact = String(value || '').trim().replace(/-/g,'').replace(/0x/gi,'').replace(/[{}]/g,'').toUpperCase();
+  if (!/^[0-9A-F]+$/.test(compact) || ![4,8,32].includes(compact.length)) {
+    throw new Error(`${label} must be a 16-bit, 32-bit, or 128-bit BLE UUID (4, 8, or 32 hex digits).`);
+  }
+  return compact;
+}
+
+function getIntSetting(id, label, min, max) {
+  const value = Number.parseInt(document.getElementById(id).value, 10);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`${label} must be between ${min} and ${max}.`);
+  }
+  return value;
+}
+
+function hexU16(value, label) {
+  let text = String(value || '').trim();
+  if (text.toLowerCase().startsWith('0x')) text = text.slice(2);
+  if (!/^[0-9A-Fa-f]{1,4}$/.test(text)) {
+    throw new Error(`${label} must be a 16-bit hex value, for example 0x0000.`);
+  }
+  return `0x${Number.parseInt(text, 16).toString(16).padStart(4, '0').toUpperCase()}`;
+}
+
+function storedValueBytes(value, label) {
+  const tokens = String(value || '0x00').split(',').map(s => s.trim()).filter(Boolean);
+  if (!tokens.length) return ['0x00'];
+  return tokens.map(t => {
+    let hex = t;
+    if (hex.toLowerCase().startsWith('0x')) hex = hex.slice(2);
+    if (!/^[0-9A-Fa-f]{1,2}$/.test(hex)) {
+      throw new Error(`${label} initial value must contain byte values only.`);
+    }
+    return `0x${Number.parseInt(hex, 16).toString(16).padStart(2, '0').toUpperCase()}`;
+  });
+}
+
+function generateCode() {
+  try {
+    if (!syncSelectedPropsBeforeGenerate()) return;
+    renderTree();
+
+    if (!state.services.length) {
+      throw new Error('Add at least one service before generating main.c.');
+    }
+
+    const devName    = (document.getElementById('cfg-devname').value || 'ESP32_BLE').trim();
+    if (new TextEncoder().encode(devName).length > 29) {
+      throw new Error('Device Name must be 29 bytes or shorter to fit in the BLE scan response payload.');
+    }
+    const advMin     = getIntSetting('cfg-adv-min', 'Advertising minimum interval', 16, 16000);
+    const advMax     = getIntSetting('cfg-adv-max', 'Advertising maximum interval', 16, 16000);
+    if (advMin > advMax) throw new Error('Advertising minimum interval cannot be greater than the maximum interval.');
+    const txPwr      = document.getElementById('cfg-txpower').value || 'ESP_PWR_LVL_P9';
+    if (!/^ESP_PWR_LVL_[A-Z0-9_]+$/.test(txPwr)) throw new Error('TX power level is not a valid ESP_PWR_LVL_* constant.');
+    const appearance = hexU16(document.getElementById('cfg-appearance').value || '0x0000', 'Appearance');
+    const mtu        = getIntSetting('cfg-mtu', 'MTU size', 23, 517);
+    const secMode    = document.getElementById('cfg-security').value || 'None';
+
+    state.services.forEach((svc, si) => {
+      compactUUID(svc.uuid, `Service '${svc.name}' UUID`);
+      svc.characteristics.forEach(ch => {
+        if (ch.prop_notify || ch.prop_indicate) ch.has_cccd = true;
+        compactUUID(ch.uuid, `Characteristic '${ch.name}' UUID`);
+        const vlen = Number.parseInt(ch.value_len, 10);
+        if (!Number.isInteger(vlen) || vlen < 1 || vlen > 512) {
+          throw new Error(`Characteristic '${ch.name}' max length must be between 1 and 512 bytes.`);
+        }
+        if (storedValueBytes(ch.init_value, `Characteristic '${ch.name}'`).length > vlen) {
+          throw new Error(`Characteristic '${ch.name}' initial value is longer than its max length.`);
+        }
+        ch.value_len = vlen;
+      });
+    });
+
+  switchTab('code');
+
+  const now = new Date().toISOString().slice(0,10);
+  const lines = [
+    `/*`,
+    ` * Generated by ESP-IDF BLE GATT Configurator`,
+    ` * Date: ${now}`,
+    ` * Device: ${cComment(devName)}`,
+    ` */`,
+    ``,
+    `#include <string.h>`,
+    `#include <inttypes.h>`,
+    `#include "freertos/FreeRTOS.h"`,
+    `#include "freertos/task.h"`,
+    `#include "freertos/event_groups.h"`,
+    `#include "esp_system.h"`,
+    `#include "esp_log.h"`,
+    `#include "esp_bt.h"`,
+    `#include "esp_gap_ble_api.h"`,
+    `#include "esp_gatts_api.h"`,
+    `#include "esp_bt_defs.h"`,
+    `#include "esp_bt_main.h"`,
+    `#include "esp_gatt_common_api.h"`,
+    `#include "nvs_flash.h"`,
+    ``,
+    `#define TAG           "BLE_GATT"`,
+    `#define DEVICE_NAME   "${cString(devName)}"`,
+    `#define APP_ID        0x00`,
+    `#define SERVICE_COUNT ${state.services.length}`,
+    ``,
+    `/* ── GATT Attribute Counts ── */`,
+  ];
+
+  state.services.forEach((svc, si) => {
+    const cnt = 1 + 2 * svc.characteristics.length + svc.characteristics.filter(c=>c.has_cccd).length;
+    lines.push(`#define GATTS_NUM_HANDLES_SVC_${si}  ${cnt}`);
+  });
+  lines.push('');
+
+  state.services.forEach((svc, si) => {
+    lines.push(`enum {`);
+    lines.push(`    SVC_${si}_IDX_SERVICE,`);
+    svc.characteristics.forEach((ch, ci) => {
+      lines.push(`    SVC_${si}_IDX_CHAR_${ci}_DECL,`);
+      lines.push(`    SVC_${si}_IDX_CHAR_${ci}_VAL,`);
+      if (ch.has_cccd) lines.push(`    SVC_${si}_IDX_CHAR_${ci}_CCCD,`);
+    });
+    lines.push(`    SVC_${si}_IDX_NB,`);
+    lines.push(`};`);
+    lines.push(`static uint16_t gatts_handle_table_svc${si}[GATTS_NUM_HANDLES_SVC_${si}];`);
+    lines.push('');
+  });
+
+  // Characteristic value arrays + property byte variables
+  state.services.forEach((svc, si) => {
+    svc.characteristics.forEach((ch, ci) => {
+      // Include service+char index to guarantee unique C identifiers
+      const vname = `${cIdent(ch.name, 'CHAR')}_S${si}C${ci}_VAL`;
+      const bytes = storedValueBytes(ch.init_value, `Characteristic '${ch.name}'`);
+      lines.push(`static uint8_t ${vname}[${ch.value_len}] = {${bytes.join(', ') || '0x00'}};`);
+      if (ch.has_cccd) {
+        lines.push(`static uint8_t ${vname}_CCCD[2] = {0x00, 0x00};`);
+      }
+
+      // Property byte must be addressable - emit as a named static variable
+      const props = [];
+      if (ch.prop_broadcast) props.push('ESP_GATT_CHAR_PROP_BIT_BROADCAST');
+      if (ch.prop_read)      props.push('ESP_GATT_CHAR_PROP_BIT_READ');
+      if (ch.prop_write_nr)  props.push('ESP_GATT_CHAR_PROP_BIT_WRITE_NR');
+      if (ch.prop_write)     props.push('ESP_GATT_CHAR_PROP_BIT_WRITE');
+      if (ch.prop_notify)    props.push('ESP_GATT_CHAR_PROP_BIT_NOTIFY');
+      if (ch.prop_indicate)  props.push('ESP_GATT_CHAR_PROP_BIT_INDICATE');
+      const propExpr = props.length ? props.join(' | ') : '0';
+      lines.push(`static const uint8_t CHAR_PROP_S${si}C${ci} = ${propExpr};`);
+    });
+  });
+  lines.push('');
+
+  // UUID definitions
+  // BLE UUIDs are transmitted little-endian. For 16-bit UUIDs store as uint16_t.
+  // For 128-bit UUIDs the ESP-IDF stack expects the bytes in little-endian order
+  // (LSB first), which means the UUID string is reversed byte-by-byte.
+  function uuidToC128(uuidStr) {
+    const hex = compactUUID(uuidStr, 'UUID');
+    // Convert to bytes array (big-endian as written)
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) bytes.push('0x' + hex.slice(i, i+2));
+    // Reverse for little-endian (ESP-IDF expects LSB first)
+    bytes.reverse();
+    return bytes.join(', ');
+  }
+
+  state.services.forEach((svc, si) => {
+    const compact = compactUUID(svc.uuid, `Service '${svc.name}' UUID`);
+    if (compact.length <= 4) {
+      // 16-bit UUID
+      lines.push(`static const uint16_t SVC_UUID_${si} = 0x${compact};`);
+    } else if (compact.length <= 8) {
+      // 32-bit UUID — store as uint32_t, cast to uint8_t* in attr table
+      lines.push(`static const uint32_t SVC_UUID_${si} = 0x${compact};`);
+    } else {
+      // 128-bit UUID — little-endian byte array
+      lines.push(`static const uint8_t SVC_UUID_${si}[16] = {${uuidToC128(svc.uuid)}};`);
+    }
+    svc.characteristics.forEach((ch, ci) => {
+      const ccompact = compactUUID(ch.uuid, `Characteristic '${ch.name}' UUID`);
+      if (ccompact.length <= 4) {
+        lines.push(`static const uint16_t CHAR_UUID_${si}_${ci} = 0x${ccompact};`);
+      } else if (ccompact.length <= 8) {
+        lines.push(`static const uint32_t CHAR_UUID_${si}_${ci} = 0x${ccompact};`);
+      } else {
+        lines.push(`static const uint8_t CHAR_UUID_${si}_${ci}[16] = {${uuidToC128(ch.uuid)}};`);
+      }
+    });
+  });
+  lines.push('');
+
+  // Helper UUIDs for attribute table entries - macros cannot have & applied to them
+  // so we store them in static variables first (emitted before attr tables).
+  // Only emit each variable if it is actually referenced by the configuration.
+  const hasSecondary = state.services.some(s => !s.primary);
+  const hasCCCD      = state.services.some(s => s.characteristics.some(c => c.has_cccd));
+  lines.push(`/* ── Standard UUID variables (macros cannot be addressed directly) ── */`);
+  lines.push(`static const uint16_t UUID_PRI_SERVICE     = ESP_GATT_UUID_PRI_SERVICE;`);
+  if (hasSecondary)
+    lines.push(`static const uint16_t UUID_SEC_SERVICE     = ESP_GATT_UUID_SEC_SERVICE;`);
+  lines.push(`static const uint16_t UUID_CHAR_DECLARE    = ESP_GATT_UUID_CHAR_DECLARE;`);
+  if (hasCCCD)
+    lines.push(`static const uint16_t UUID_CHAR_CLI_CFG    = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;`);
+  lines.push(``);
+
+  // Attribute tables
+  state.services.forEach((svc, si) => {
+    const ptypeVar = svc.primary ? 'UUID_PRI_SERVICE' : 'UUID_SEC_SERVICE';
+    const svcCompact = compactUUID(svc.uuid, `Service '${svc.name}' UUID`);
+    // Service UUID length and pointer for the attribute table value field
+    let svcUuidLen, svcUuidPtr;
+    if (svcCompact.length <= 4) {
+      svcUuidLen = 'ESP_UUID_LEN_16';
+      svcUuidPtr = `(uint8_t*)&SVC_UUID_${si}`;
+    } else if (svcCompact.length <= 8) {
+      svcUuidLen = 'ESP_UUID_LEN_32';
+      svcUuidPtr = `(uint8_t*)&SVC_UUID_${si}`;
+    } else {
+      svcUuidLen = 'ESP_UUID_LEN_128';
+      svcUuidPtr = `(uint8_t*)SVC_UUID_${si}`;   // array decays — no & needed
+    }
+    lines.push(`/* Service ${si}: ${cComment(svc.name)} */`);
+    lines.push(`static const esp_gatts_attr_db_t gatts_db_svc${si}[] = {`);
+    lines.push(`    /* Service Declaration */`);
+    lines.push(`    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&${ptypeVar},`);
+    lines.push(`      ESP_GATT_PERM_READ, sizeof(SVC_UUID_${si}), sizeof(SVC_UUID_${si}), ${svcUuidPtr}}},`);
+    svc.characteristics.forEach((ch, ci) => {
+      const perms = [];
+      if (ch.prop_read || ch.perm_read) perms.push('ESP_GATT_PERM_READ');
+      if (ch.prop_write || ch.prop_write_nr || ch.perm_write) perms.push('ESP_GATT_PERM_WRITE');
+      if (ch.perm_read_enc)  perms.push('ESP_GATT_PERM_READ_ENCRYPTED');
+      if (ch.perm_write_enc) perms.push('ESP_GATT_PERM_WRITE_ENCRYPTED');
+      const permStr = perms.length ? perms.join(' | ') : 'ESP_GATT_PERM_READ';
+
+      const vname = `${cIdent(ch.name, 'CHAR')}_S${si}C${ci}_VAL`;
+      const bytes  = storedValueBytes(ch.init_value, `Characteristic '${ch.name}'`);
+      const vlen   = ch.value_len;
+      const vsize  = bytes.length;
+
+      // Determine char UUID length constant and correct pointer
+      const ccompact = compactUUID(ch.uuid, `Characteristic '${ch.name}' UUID`);
+      let charUuidLen, charUuidPtr;
+      if (ccompact.length <= 4) {
+        charUuidLen = 'ESP_UUID_LEN_16';
+        charUuidPtr = `(uint8_t*)&CHAR_UUID_${si}_${ci}`;
+      } else if (ccompact.length <= 8) {
+        charUuidLen = 'ESP_UUID_LEN_32';
+        charUuidPtr = `(uint8_t*)&CHAR_UUID_${si}_${ci}`;
+      } else {
+        charUuidLen = 'ESP_UUID_LEN_128';
+        charUuidPtr = `(uint8_t*)CHAR_UUID_${si}_${ci}`;  // array — no &
+      }
+
+      const valPtr = `(uint8_t*)${vname}`;
+
+      const propVarName = `CHAR_PROP_S${si}C${ci}`;
+      lines.push(`    /* Characteristic ${ci}: ${cComment(ch.name)} */`);
+      lines.push(`    /* Char Declaration */`);
+      lines.push(`    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&UUID_CHAR_DECLARE,`);
+      lines.push(`      ESP_GATT_PERM_READ, sizeof(uint8_t), sizeof(uint8_t),`);
+      lines.push(`      (uint8_t*)&${propVarName}}},`);
+      lines.push(`    /* Char Value */`);
+      lines.push(`    {{ESP_GATT_AUTO_RSP}, {${charUuidLen}, ${charUuidPtr},`);
+      lines.push(`      ${permStr}, ${vlen}, ${vsize}, ${valPtr}}},`);
+
+      if (ch.has_cccd) {
+        lines.push(`    /* CCCD Descriptor */`);
+        lines.push(`    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&UUID_CHAR_CLI_CFG,`);
+        lines.push(`      ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, sizeof(uint16_t),`);
+        lines.push(`      sizeof(${vname}_CCCD), (uint8_t*)${vname}_CCCD}},`);
+      }
+    });
+    lines.push(`};`);
+    lines.push('');
+  });
+
+  // GATTS event handler
+  const readHandlerLines = [];
+  const writeHandlerLines = [];
+  state.services.forEach((svc, si) => {
+    svc.characteristics.forEach((ch, ci) => {
+      const vname = `${cIdent(ch.name, 'CHAR')}_S${si}C${ci}_VAL`;
+      readHandlerLines.push(
+        `        if (param->read.handle == gatts_handle_table_svc${si}[SVC_${si}_IDX_CHAR_${ci}_VAL]) {`,
+        `            ESP_LOGI(TAG, "READ attr: svc${si}/${cString(svc.name)} char${ci}/${cString(ch.name)}, max_len %u", (unsigned)sizeof(${vname}));`,
+        `            attr_matched = 1;`,
+        `        }`,
+      );
+      writeHandlerLines.push(
+        `        if (param->write.handle == gatts_handle_table_svc${si}[SVC_${si}_IDX_CHAR_${ci}_VAL]) {`,
+        `            ESP_LOGI(TAG, "WRITE attr: svc${si}/${cString(svc.name)} char${ci}/${cString(ch.name)}, len %d", param->write.len);`,
+        `            ESP_LOG_BUFFER_HEX(TAG, param->write.value, param->write.len);`,
+        `            attr_matched = 1;`,
+        `        }`,
+      );
+      if (ch.has_cccd) {
+        writeHandlerLines.push(
+          `        if (param->write.handle == gatts_handle_table_svc${si}[SVC_${si}_IDX_CHAR_${ci}_CCCD]) {`,
+          `            ESP_LOGI(TAG, "WRITE CCCD: svc${si}/${cString(svc.name)} char${ci}/${cString(ch.name)}, len %d", param->write.len);`,
+          `            ESP_LOG_BUFFER_HEX(TAG, param->write.value, param->write.len);`,
+          `            attr_matched = 1;`,
+          `        }`,
+        );
+      }
+    });
+  });
+
+  lines.push(
+    `/* ── Advertising Parameters & Data (forward declarations) ── */`,
+    `static esp_ble_adv_params_t adv_params;`,
+    `static esp_ble_adv_data_t   adv_data;`,
+    `static esp_ble_adv_data_t   scan_rsp_data;`,
+    `static void init_adv_data(void);`,
+    ``,
+    `/* Track when both adv_data and scan_rsp_data are configured */`,
+    `static uint8_t s_adv_config_done = 0;`,
+    `static uint8_t s_services_started = 0;`,
+    `static uint8_t s_advertising_started = 0;`,
+    `#define ADV_CONFIG_FLAG      (1 << 0)`,
+    `#define SCAN_RSP_CONFIG_FLAG (1 << 1)`,
+    ``,
+    `static void try_start_advertising(void) {`,
+    `    if (!s_advertising_started &&`,
+    `        s_adv_config_done == (ADV_CONFIG_FLAG | SCAN_RSP_CONFIG_FLAG) &&`,
+    `        s_services_started >= SERVICE_COUNT) {`,
+    `        esp_ble_gap_start_advertising(&adv_params);`,
+    `        s_advertising_started = 1;`,
+    `    }`,
+    `}`,
+    ``,
+    `static void handle_gatt_read(esp_ble_gatts_cb_param_t *param) {`,
+    `    ESP_LOGI(TAG, "READ_EVT conn_id %d, trans_id %" PRIu32 ", handle %d",`,
+    `             param->read.conn_id, param->read.trans_id, param->read.handle);`,
+    `    int attr_matched = 0;`,
+    ...readHandlerLines.map(line => line.replace(/^        /, '    ')),
+    `    if (!attr_matched) {`,
+    `        ESP_LOGI(TAG, "READ attr: unknown handle %d", param->read.handle);`,
+    `    }`,
+    `}`,
+    ``,
+    `static void handle_gatt_write(esp_ble_gatts_cb_param_t *param) {`,
+    `    ESP_LOGI(TAG, "WRITE_EVT conn_id %d, trans_id %" PRIu32 ", handle %d, len %d",`,
+    `             param->write.conn_id, param->write.trans_id,`,
+    `             param->write.handle, param->write.len);`,
+    `    if (param->write.len > 512) {`,
+    `        ESP_LOGE(TAG, "Write too long (%d bytes), ignoring", param->write.len);`,
+    `        /* Attributes use ESP_GATT_AUTO_RSP, so the stack sends the ATT response. */`,
+    `        return;`,
+    `    }`,
+    `    int attr_matched = 0;`,
+    ...writeHandlerLines.map(line => line.replace(/^        /, '    ')),
+    `    if (!attr_matched) {`,
+    `        ESP_LOGI(TAG, "WRITE attr: unknown handle %d", param->write.handle);`,
+    `        ESP_LOG_BUFFER_HEX(TAG, param->write.value, param->write.len);`,
+    `    }`,
+    `    /* Attributes use ESP_GATT_AUTO_RSP, so no manual write response is sent here. */`,
+    `}`,
+    ``,
+    `/* GATTS Event Handler */`,
+    `static void gatts_event_handler(esp_gatts_cb_event_t event,`,
+    `                                 esp_gatt_if_t gatts_if,`,
+    `                                 esp_ble_gatts_cb_param_t *param) {`,
+    `    switch (event) {`,
+    `    case ESP_GATTS_REG_EVT:`,
+    `        ESP_LOGI(TAG, "REGISTER_APP_EVT, status %d, app_id %d",`,
+    `                 param->reg.status, param->reg.app_id);`,
+    `        if (param->reg.status != ESP_GATT_OK) {`,
+    `            ESP_LOGE(TAG, "GATTS app registration failed, status %d", param->reg.status);`,
+    `            break;`,
+    `        }`,
+    `        init_adv_data();`,
+    `        esp_ble_gap_set_device_name(DEVICE_NAME);`,
+    `        esp_ble_gap_config_adv_data(&adv_data);`,
+    `        esp_ble_gap_config_adv_data(&scan_rsp_data);`,
+  );
+  state.services.forEach((svc, si) => {
+    lines.push(
+      `        /* Register service ${si}: ${cComment(svc.name)} */`,
+      `        esp_ble_gatts_create_attr_tab(gatts_db_svc${si}, gatts_if,`,
+      `            GATTS_NUM_HANDLES_SVC_${si}, ${si});`,
+    );
+  });
+  lines.push(
+    `        break;`,
+    `    case ESP_GATTS_CREAT_ATTR_TAB_EVT:`,
+    `        if (param->add_attr_tab.status != ESP_GATT_OK) {`,
+    `            ESP_LOGE(TAG, "Create attr table failed for svc_inst_id %d, error 0x%x",`,
+    `                     param->add_attr_tab.svc_inst_id, param->add_attr_tab.status);`,
+    `            break;`,
+    `        }`,
+    `        /* Start the correct service based on which table was just registered */`,
+    `        switch (param->add_attr_tab.svc_inst_id) {`,
+  );
+  state.services.forEach((svc, si) => {
+    const cnt = 1 + 2 * svc.characteristics.length + svc.characteristics.filter(c=>c.has_cccd).length;
+    lines.push(
+      `        case ${si}: /* ${cComment(svc.name)} */`,
+      `            if (param->add_attr_tab.num_handle != GATTS_NUM_HANDLES_SVC_${si}) {`,
+      `                ESP_LOGE(TAG, "Create attr table for svc${si} abnormal, num_handle %d != %d",`,
+      `                         param->add_attr_tab.num_handle, GATTS_NUM_HANDLES_SVC_${si});`,
+      `            } else {`,
+      `                memcpy(gatts_handle_table_svc${si}, param->add_attr_tab.handles,`,
+      `                       sizeof(gatts_handle_table_svc${si}));`,
+      `                esp_ble_gatts_start_service(param->add_attr_tab.handles[0]);`,
+      `                s_services_started++;`,
+      `                try_start_advertising();`,
+      `                ESP_LOGI(TAG, "Service ${si} (${cString(svc.name)}) started");`,
+      `            }`,
+      `            break;`,
+    );
+  });
+  lines.push(
+    `        default:`,
+    `            ESP_LOGE(TAG, "Unknown svc_inst_id %d in CREAT_ATTR_TAB_EVT", param->add_attr_tab.svc_inst_id);`,
+    `            break;`,
+    `        }`,
+    `        break;`,
+    `    case ESP_GATTS_READ_EVT:`,
+    `        handle_gatt_read(param);`,
+    `        break;`,
+    `    case ESP_GATTS_WRITE_EVT:`,
+    `        handle_gatt_write(param);`,
+    `        break;`,
+    `    case ESP_GATTS_EXEC_WRITE_EVT:`,
+    `        ESP_LOGI(TAG, "EXEC_WRITE_EVT conn_id %d, trans_id %" PRIu32,`,
+    `                 param->exec_write.conn_id, param->exec_write.trans_id);`,
+    `        break;`,
+    `    case ESP_GATTS_CONNECT_EVT:`,
+    `        ESP_LOGI(TAG, "CONNECT_EVT conn_id %d", param->connect.conn_id);`,
+    `        break;`,
+    `    case ESP_GATTS_DISCONNECT_EVT:`,
+    `        ESP_LOGI(TAG, "DISCONNECT_EVT conn_id %d, reason 0x%x",`,
+    `                 param->disconnect.conn_id, param->disconnect.reason);`,
+    `        /* Restart advertising after disconnect */`,
+    `        s_adv_config_done = ADV_CONFIG_FLAG | SCAN_RSP_CONFIG_FLAG; /* already configured */`,
+    `        s_advertising_started = 1;`,
+    `        esp_ble_gap_start_advertising(&adv_params);`,
+    `        break;`,
+    `    default:`,
+    `        break;`,
+    `    }`,
+    `}`,
+    ``,
+  );
+
+  lines.push(
+    `/* ── Advertising Parameters (definition) ── */`,
+    `static void init_adv_data(void) {`,
+    `    s_adv_config_done = 0;`,
+    `    s_services_started = 0;`,
+    `    s_advertising_started = 0;`,
+    `    adv_params.adv_int_min       = ${advMin};`,
+    `    adv_params.adv_int_max       = ${advMax};`,
+    `    adv_params.adv_type          = ADV_TYPE_IND;`,
+    `    adv_params.own_addr_type     = BLE_ADDR_TYPE_PUBLIC;`,
+    `    adv_params.channel_map       = ADV_CHNL_ALL;`,
+    `    adv_params.adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY;`,
+    ``,
+    `    /* Primary advertising payload: flags + device name (shortened) */`,
+    `    memset(&adv_data, 0, sizeof(adv_data));`,
+    `    adv_data.set_scan_rsp        = false;`,
+    `    adv_data.include_name        = false;`,
+    `    adv_data.include_txpower     = true;`,
+    `    adv_data.min_interval        = ${advMin};`,
+    `    adv_data.max_interval        = ${advMax};`,
+    `    adv_data.appearance          = ${appearance};`,
+    `    adv_data.manufacturer_len    = 0;`,
+    `    adv_data.p_manufacturer_data = NULL;`,
+    `    adv_data.service_data_len    = 0;`,
+    `    adv_data.p_service_data      = NULL;`,
+    `    adv_data.service_uuid_len    = 0;`,
+    `    adv_data.p_service_uuid      = NULL;`,
+    `    adv_data.flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT);`,
+    ``,
+    `    /* Scan response: repeat name in full so scanners see it */`,
+    `    memset(&scan_rsp_data, 0, sizeof(scan_rsp_data));`,
+    `    scan_rsp_data.set_scan_rsp        = true;`,
+    `    scan_rsp_data.include_name        = true;`,
+    `    scan_rsp_data.include_txpower     = false;`,
+    `    scan_rsp_data.manufacturer_len    = 0;`,
+    `    scan_rsp_data.p_manufacturer_data = NULL;`,
+    `    scan_rsp_data.service_data_len    = 0;`,
+    `    scan_rsp_data.p_service_data      = NULL;`,
+    `    scan_rsp_data.service_uuid_len    = 0;`,
+    `    scan_rsp_data.p_service_uuid      = NULL;`,
+    `}`,
+    ``,
+    `/* ── GAP Event Handler ── */`,
+    `static void gap_event_handler(esp_gap_ble_cb_event_t event,`,
+    `                               esp_ble_gap_cb_param_t *param) {`,
+    `    switch (event) {`,
+    `    case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:`,
+    `        s_adv_config_done |= ADV_CONFIG_FLAG;`,
+    `        try_start_advertising();`,
+    `        break;`,
+    `    case ESP_GAP_BLE_SCAN_RSP_DATA_SET_COMPLETE_EVT:`,
+    `        s_adv_config_done |= SCAN_RSP_CONFIG_FLAG;`,
+    `        try_start_advertising();`,
+    `        break;`,
+    `    case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:`,
+    `        if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {`,
+    `            s_advertising_started = 0;`,
+    `            ESP_LOGE(TAG, "Advertising start failed, status %d", param->adv_start_cmpl.status);`,
+    `        } else {`,
+    `            ESP_LOGI(TAG, "Advertising started successfully");`,
+    `        }`,
+    `        break;`,
+    `    case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:`,
+    `        if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {`,
+    `            ESP_LOGE(TAG, "Advertising stop failed, status %d", param->adv_stop_cmpl.status);`,
+    `        } else {`,
+    `            s_advertising_started = 0;`,
+    `        }`,
+    `        break;`,
+    `    case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:`,
+    `        ESP_LOGI(TAG, "Connection params update: status %d, min_int %d, max_int %d, latency %d, timeout %d",`,
+    `                 param->update_conn_params.status, param->update_conn_params.min_int,`,
+    `                 param->update_conn_params.max_int, param->update_conn_params.latency,`,
+    `                 param->update_conn_params.timeout);`,
+    `        break;`,
+    `    default: break;`,
+    `    }`,
+    `}`,
+    ``,
+    `/* ── app_main ── */`,
+    `void app_main(void) {`,
+    `    esp_err_t ret;`,
+    ``,
+    `    /* NVS must be initialised before BT — required for RF cal data & BT config */`,
+    `    ret = nvs_flash_init();`,
+    `    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {`,
+    `        ESP_ERROR_CHECK(nvs_flash_erase());`,
+    `        ret = nvs_flash_init();`,
+    `    }`,
+    `    ESP_ERROR_CHECK(ret);`,
+    ``,
+    `    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));`,
+    ``,
+    `    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();`,
+    `    ret = esp_bt_controller_init(&bt_cfg);`,
+    `    if (ret) { ESP_LOGE(TAG, "bt_controller_init failed: %s", esp_err_to_name(ret)); return; }`,
+    ``,
+    `    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);`,
+    `    if (ret) { esp_bt_controller_deinit(); return; }`,
+    ``,
+    `    ret = esp_bluedroid_init();`,
+    `    if (ret) { esp_bt_controller_disable(); esp_bt_controller_deinit(); return; }`,
+    ``,
+    `    ret = esp_bluedroid_enable();`,
+    `    if (ret) { esp_bluedroid_deinit(); esp_bt_controller_disable(); esp_bt_controller_deinit(); return; }`,
+    ``,
+    `    ESP_ERROR_CHECK(esp_ble_gatts_register_callback(gatts_event_handler));`,
+    `    ESP_ERROR_CHECK(esp_ble_gap_register_callback(gap_event_handler));`,
+    `    ESP_ERROR_CHECK(esp_ble_gatts_app_register(APP_ID));`,
+    ``,
+    `    esp_ble_gatt_set_local_mtu(${mtu});`,
+    `    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ${txPwr});`,
+    ``,
+    `    /* GAP handler starts advertising after adv and scan response data are ready. */`,
+    `    ESP_LOGI(TAG, "BLE init done; advertising will start after GATTS registration.");`,
+    `}`,
+    ``,
+    `/* ── End of generated file ── */`,
+  );
+
+  const code = lines.join('\n');
+  document.getElementById('code-area').value = code;
+  setStatus('Code generated! Switch to Code Preview to view.');
+  } catch (err) {
+    alert(`Invalid configuration:\n${err.message || err}`);
+    setStatus('Code generation failed.');
+  }
+}
+
+function copyCode() {
+  const area = document.getElementById('code-area');
+  navigator.clipboard.writeText(area.value).then(() => setStatus('Code copied to clipboard!'));
+}
+
+function downloadCode() {
+  const code = document.getElementById('code-area').value;
+  const blob = new Blob([code], {type:'text/plain'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'main.c';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  setStatus('main.c saved!');
+}
+
+// ─────────────────────────────────────────────────
+// KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+  if (e.key === 'F2') { if (state.selected) openRenameModal(state.selected.si, state.selected.ci); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); moveUp(); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveDown(); }
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Enter key confirm on modals
+document.getElementById('modal-add-name').addEventListener('keydown', e => { if(e.key==='Enter') confirmAdd(); });
+document.getElementById('modal-rename-input').addEventListener('keydown', e => { if(e.key==='Enter') confirmRename(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeModal('modal-add'); closeModal('modal-rename'); } });
+
+// Init
+renderTree();
+</script>
+</body>
+</html>
