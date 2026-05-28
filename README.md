@@ -37,6 +37,8 @@ Then access individual tutorials:
 * [🔗ESP32 BLE](https://shuvabratadey.github.io/embedded_systems/ESP32_BLE/) →
   `https://shuvabratadey.github.io/embedded_systems/ESP32_BLE/`
 
+  * Click here to [🔗Open ESP-IDF BLE Code Generator](https://shuvabratadey.github.io/embedded_systems/ESP32_BLE/BLE_Code_Generator.html)
+
 * [🔗I²C Protocol](https://shuvabratadey.github.io/embedded_systems/i2c_communication/) →
   `https://shuvabratadey.github.io/embedded_systems/i2c_communication/`
 
